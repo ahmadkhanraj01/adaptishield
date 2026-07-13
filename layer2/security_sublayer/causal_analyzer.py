@@ -19,9 +19,9 @@ class CausalDiagnostic:
     boundary_index: int
     reason:         str
 
-
+    
 class CausalAnalyzer:
-    def __init__(self, model_name: str = "lqwen2.5:3b"):
+    def __init__(self, model_name: str = "qwen2.5:3b"):
         self.llm             = OllamaLLM(model=model_name)
         self.boundary_history: List[Tuple[float, float]] = []
         self.window_size     = 3
