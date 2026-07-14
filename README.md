@@ -928,6 +928,297 @@ python3 adaptishield_pipeline.py
 | Kaggle cannot host a live server/API | Kaggle is for training and evaluation only; pipeline runs locally |
 | The Causal Analyzer makes 4 LLM calls per boundary — expect 30–60s per boundary on local hardware | Acceptable for development; Kaggle for speed-critical runs |
 
+# 14 July 2026 Handover
+## 2. Current Directory Structure (Verified)
+ 
+Captured directly from `ls`/directory scan of `~/adaptishield/`:
+ 
+```
+.
+├── requirements.txt
+├── dir.py
+├── .gitignore
+├── adaptishield_pipeline.py
+├── README.md
+├── installed.txt
+│
+├── layer0/
+│   ├── server_trust_registry.py
+│   └── __init__.py
+│
+├── layer1/
+│   └── provenance.py
+│                              ⚠ __init__.py MISSING — see Section 4
+│
+├── layer2/
+│   ├── __init__.py
+│   └── security_sublayer/
+│       ├── context_sanitizer.py
+│       ├── policy_engine.py
+│       ├── causal_analyzer.py
+│       └── __init__.py
+│
+├── layer3/
+│   ├── tool_response_screener.py
+│   └── __init__.py
+│
+├── layer4/                     (empty)
+├── layer5/                     (empty)
+├── red_team/                   (empty)
+├── evaluation/                 (empty)
+├── logs/                       (empty)
+└── tests/                      (empty)
+```
+ 
+---
+ 
+## 3. Build Status by Component
+ 
+| Component | File | Status |
+|---|---|---|
+| Server Trust Registry | `layer0/server_trust_registry.py` | ✅ Built and tested |
+| Provenance Tagging | `layer1/provenance.py` | ✅ Built and tested |
+| Policy Engine (3A) | `layer2/security_sublayer/policy_engine.py` | ✅ Built and tested |
+| Causal Analyzer (3B) | `layer2/security_sublayer/causal_analyzer.py` | ✅ Built |
+| Context Sanitizer (3C) | `layer2/security_sublayer/context_sanitizer.py` | ✅ Built |
+| Tool Response Screener | `layer3/tool_response_screener.py` | ✅ Built, wired into pipeline |
+| Full Pipeline | `adaptishield_pipeline.py` | ✅ Built, includes Layer 3 escalation path |
+| Docker Sandbox | `layer4/sandbox.py` | 🔲 Pending — next priority |
+| Permission Control | `layer4/permission_control.py` | 🔲 Pending |
+| Network Egress Filter | `layer4/network_egress_filter.py` | 🔲 Pending |
+| Telemetry Stream | `layer4/telemetry_stream.py` | 🔲 Pending |
+| Adaptive Threat Model (3D) | `layer2/security_sublayer/adaptive_threat_model.py` | 🔲 Pending |
+| Red Team Module | `red_team/` | 🔲 Pending |
+| Evaluation Framework | `evaluation/` | 🔲 Pending |
+| Layer 5 (Dashboard/Console/Logs) | `layer5/` | 🔲 Pending |
+| Unit tests | `tests/` | 🔲 Pending |
+ 
+---
+ 
+## 4. Known Issue to Fix
+ 
+**`layer1/` has no `__init__.py`**, unlike `layer0/`, `layer2/`, and `layer3/`. In your current
+Python 3.10 setup this *may* still work because Python 3.3+ supports implicit namespace
+packages — but it's inconsistent with the rest of the codebase and can cause confusing
+import errors later (e.g. if you ever add a `setup.py`/packaging step, or run tests with
+certain pytest configurations that don't handle namespace packages the same way).
+ 
+**Fix:**
+ 
+```bash
+touch ~/adaptishield/layer1/__init__.py
+```
+ 
+Do this before building Layer 4, so every layer package is structured identically.
+ 
+---
+ 
+## 5. Target Directory Structure
+ 
+Where things land as the remaining components get built:
+ 
+```
+~/adaptishield/
+├── layer4/
+│   ├── __init__.py
+│   ├── sandbox.py                    # Docker/gVisor process isolation
+│   ├── permission_control.py         # MCP scope enforcement per server
+│   ├── network_egress_filter.py      # allowlist from ServerTrustRegistry
+│   └── telemetry_stream.py           # emits structured Episode Records
+│
+├── layer5/
+│   ├── __init__.py
+│   ├── audit_dashboard.py
+│   ├── manual_override.py
+│   ├── policy_inspection_console.py  # human approval gate for 3D rule updates
+│   └── audit_logs.py                 # append-only log writer
+│
+├── layer2/security_sublayer/
+│   └── adaptive_threat_model.py      # Component 3D — GRPO, runs on Kaggle
+│
+├── red_team/
+│   ├── __init__.py
+│   ├── attack_generator.py
+│   ├── execution_agent.py            # dry-run shadow execution
+│   ├── evaluator_agent.py            # scores ASR/FPR/WCR
+│   └── optimizer_agent.py            # refines attack strategies
+│
+├── evaluation/
+│   ├── __init__.py
+│   ├── attack_vectors.py             # 8 vectors from Du et al. / MCPSecBench
+│   ├── metrics.py                    # ASR / FPR / WCR computation
+│   └── run_benchmark.py              # static baseline vs AdaptiShield comparison
+│
+├── logs/
+│   └── episode_records/              # JSON dumps consumed by 3D training
+│
+└── tests/
+    ├── test_layer0.py
+    ├── test_layer1.py
+    ├── test_layer3.py
+    └── test_pipeline_end_to_end.py
+```
+ 
+---
+ 
+## 6. Verified Package Versions
+ 
+> **Critical:** numpy must be pinned to 1.26.4. numpy 2.x is incompatible with Python 3.10.12.
+> Note: `installed.txt` in the repo shows some newer versions (e.g. `numpy==2.2.6`,
+> `langchain==1.3.4`) that were pulled in at some point — reconcile against
+> `requirements.txt` before your next dependency install to avoid drift.
+ 
+### `requirements.txt` (target/pinned)
+ 
+```
+fastapi==0.115.5
+uvicorn==0.32.1
+langchain==0.3.7
+langchain-community==0.3.7
+langgraph==0.2.53
+langchain-ollama==0.2.1
+httpx==0.27.2
+pydantic==2.10.3
+python-dotenv==1.0.1
+chromadb==0.5.23
+sqlalchemy==2.0.36
+psycopg2-binary==2.9.10
+prometheus-client==0.21.1
+cryptography==44.0.0
+numpy==1.26.4
+pandas==2.2.3
+matplotlib==3.9.3
+pytest==8.3.4
+pytest-asyncio==0.24.0
+rich==13.9.4
+```
+ 
+### Install
+ 
+```bash
+cd ~/adaptishield
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+python3 -c "import langchain; import fastapi; import chromadb; print('All packages OK')"
+```
+ 
+---
+ 
+## 7. Model Selection — Final Decision
+ 
+| Model | VRAM | Speed | Quality | Verdict |
+|---|---|---|---|---|
+| `qwen2.5:3b` | ~2GB | Fast (~1-2s) | Good | ✅ **Primary — use this** |
+| `gemma3:4b` | ~3.5GB | Fast (~1-2s) | Very Good | ✅ Good upgrade option |
+| `gemma2:9b` | 0GB (CPU) | Slow (~30-45s) | Excellent | ✅ For Causal Analyzer quality runs |
+| `llama3.2:3b` | ~2GB | Fast | Poor on security | ❌ Rejected — misinterpreted "prompt injection" as cosmetic surgery |
+| `llama3.2` (8B) / `deepseek-r1:8b` | ~5-6GB | — | — | ❌ Exceeds VRAM |
+ 
+Per-component assignment: `qwen2.5:3b` for Context Sanitizer, Tool Response Screener, and
+the planner LLM; `gemma2:9b` (CPU) or Groq's free `llama-3.1-8b-instant` API when the
+Causal Analyzer needs stronger reasoning.
+ 
+---
+ 
+## 8. Compute Strategy
+ 
+| Task | Platform | Reason |
+|---|---|---|
+| Writing/debugging code | Local | Instant feedback, offline |
+| Pipeline logic testing | Local `qwen2.5:3b` | Fast, free |
+| Causal Analyzer quality runs | Local `gemma2:9b` or Groq API | Better reasoning |
+| GRPO/RL training (3D) | **Kaggle P100** | Needs 16GB VRAM |
+| Red team dataset generation at scale | **Kaggle** | Speed |
+| Full benchmark (ASR/FPR/WCR) | **Kaggle** | Reproducible, logged |
+ 
+> Kaggle cannot host a live MCP server — it's used purely for training/evaluation.
+> The full pipeline runs locally.
+ 
+---
+ 
+## 9. How to Start the Project Fresh
+ 
+```bash
+cd ~/adaptishield
+source venv/bin/activate
+ollama serve &
+sleep 2
+ollama list                          # confirm qwen2.5:3b is present
+ 
+python3 layer0/server_trust_registry.py
+python3 layer1/provenance.py
+python3 layer2/security_sublayer/policy_engine.py
+python3 layer3/tool_response_screener.py
+python3 adaptishield_pipeline.py
+```
+ 
+---
+ 
+## 10. Testing Checklist and Expected Outputs
+ 
+| Test | Command | Expected Output |
+|---|---|---|
+| Server Trust Registry — legitimate | `python3 layer0/server_trust_registry.py` | `True — Verified` |
+| Server Trust Registry — rug-pull | same | `False — RUG-PULL DETECTED` |
+| Provenance tagging | `python3 layer1/provenance.py` | Prints trusted and mediator partitions |
+| Policy Engine — low impact | `python3 layer2/security_sublayer/policy_engine.py` | `approve_direct` |
+| Policy Engine — high impact | same | `send_to_causal` |
+| Policy Engine — injection pattern | same | `block` |
+| Tool Response Screener — clean | `python3 layer3/tool_response_screener.py` | `flagged=False` |
+| Tool Response Screener — IPI | same | `flagged=True` |
+| Full pipeline — benign | `python3 adaptishield_pipeline.py` | `approved_direct` |
+| Full pipeline — IPI on high-impact tool | same | `safe_continuation` |
+| Full pipeline — IPI on low-impact tool | same | `approved_causal` or `safe_continuation` (Layer 3 escalation fix) |
+ 
+---
+ 
+## 11. What to Build Next
+ 
+### Immediate — fix + Layer 4
+ 
+- [ ] Add missing `layer1/__init__.py` (Section 4)
+- [ ] **`layer4/sandbox.py`** — Docker container isolation for tool execution (`docker-py` SDK)
+- [ ] **`layer4/permission_control.py`** — enforce each MCP server's registered capability scope
+- [ ] **`layer4/network_egress_filter.py`** — block outbound connections not in `registry.get_allowlist()`
+- [ ] **`layer4/telemetry_stream.py`** — structure execution logs as dicts matching the eventual
+      Episode Record schema (boundary context, causal verdict, sanitization decision, outcome severity)
+### Week 5–6
+ 
+- [ ] **`layer2/security_sublayer/adaptive_threat_model.py`** — Component 3D
+  - GRPO reward: +1.0 correct block / safe continuation, +0.8 correct pass, −1.0 missed attack, −0.5 false positive
+  - Ingests Episode Records from Feedback Analyzer
+  - Updates `PolicyEngine.blocked_patterns`/`high_impact_tools` and `CausalAnalyzer` thresholds only — no LLM weight updates
+  - Train on Kaggle P100
+- [ ] **`red_team/`** — Attack Generator → Execution Agent (dry-run) → Evaluator Agent (ASR/FPR/WCR) → Optimizer Agent
+  - Connection 1: injects attacks into `layer1/provenance.py`'s `InputParser`
+  - Connection 2: sends successful evasions as Episode Records to 3D
+### Week 7–8
+ 
+- [ ] **`evaluation/`** — eight attack vectors (Du et al. / MCPSecBench), static baseline
+      (Policy Engine only) vs. full AdaptiShield, run on Kaggle, export results for the paper
+- [ ] **`layer5/`** — Audit Dashboard, Policy Inspection Console, Manual Override, Audit Logs
+- [ ] **`tests/`** — formal pytest suite covering all layers plus end-to-end pipeline cases
+---
+ 
+## 12. Key Lessons Learned
+ 
+| Finding | Action Taken |
+|---|---|
+| `llama3.2:3b` cannot reason about security — answered "prompt injection" with cosmetic surgery info | Rejected. Using `qwen2.5:3b` instead |
+| numpy 2.x incompatible with Python 3.10.12 | Pinned `numpy==1.26.4` in `requirements.txt` |
+| `installed.txt` shows drift from `requirements.txt` (e.g. `numpy==2.2.6`, `langchain==1.3.4`) | Reconcile before next install; treat `requirements.txt` as source of truth |
+| `layer1/` missing `__init__.py` while all other layers have it | Add it before building Layer 4 for structural consistency |
+| 4GB VRAM cannot run any 7B+ model | Models above 3–4B go on CPU (via 16GB RAM) or Kaggle |
+| Kaggle cannot host a live server/API | Kaggle is for training and evaluation only; pipeline runs locally |
+| Causal Analyzer makes 4 LLM calls per boundary — ~30–60s per boundary on local hardware | Acceptable for development; use Kaggle for speed-critical runs |
+| Layer 3 screener flags responses but doesn't block — low-impact tools with flagged responses now escalate to 3B instead of skipping causal evaluation | Prevents IPI payloads riding in on "safe" tools |
+ 
+---
+ 
+*AdaptiShield Handover Document — v3 (reflects verified directory structure)*
+*Muhammad Ahmad Khan (23JZBCS0238) · Aleena Khan (23JZBCS0229)*
+*Supervisor: Dr. Laeeq Ahmed | UET Peshawar (Jalozai Campus)*
 ---
 
 *AdaptiShield Handover Document*  
