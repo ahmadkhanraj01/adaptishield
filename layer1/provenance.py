@@ -46,6 +46,12 @@ class ContextBuilder:
         self.trusted_prefix: List[ProvenanceSegment] = []
         self.mediator_view: List[ProvenanceSegment]  = []
 
+    def reset(self) -> None:
+        """Clears accumulated context. Call at the start of each
+        independent request/boundary to prevent cross-request bleed."""
+        self.trusted_prefix.clear()
+        self.mediator_view.clear()
+
     def add_segment(self, segment: ProvenanceSegment) -> None:
         if segment.label == ProvenanceLabel.USER_ORIGINATED:
             self.trusted_prefix.append(segment)
@@ -56,7 +62,6 @@ class ContextBuilder:
         trusted  = "\n".join(s.content for s in self.trusted_prefix)
         mediator = "\n".join(s.content for s in self.mediator_view)
         return trusted, mediator
-
 
 if __name__ == "__main__":
     parser  = InputParser()

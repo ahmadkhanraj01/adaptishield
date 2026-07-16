@@ -34,7 +34,7 @@ class AdaptiShieldPipeline:
         print(f"[Pipeline] User   : {user_input[:60]}")
         print(f"[Pipeline] Tool   : {tool_name}")
         print(f"[Pipeline] Action : {proposed_action[:50]}")
-
+        self.context_builder.reset() 
         self.boundary_index += 1
         record_kwargs = dict(
             boundary_index=self.boundary_index,
@@ -52,7 +52,7 @@ class AdaptiShieldPipeline:
         # --- Layer 3: Tool Response Screener ---
         # Runs on the raw tool response before it's trusted as clean context.
         screen_result = self.tool_screener.screen(tool_response, tool_name)
-        print(f"[L3] flagged={screen_result.flagged} — {screen_result.reason}")
+        print(f"[L3] flagged={screen_result.is_flagged} — {screen_result.reason}")
 
         # --- 3A: Policy Engine ---
         policy = self.policy_engine.evaluate(tool_name, proposed_action)
@@ -67,7 +67,7 @@ class AdaptiShieldPipeline:
         # on tools the Policy Engine would otherwise fast-path as low-impact.
         needs_causal = (
             policy.decision == PolicyDecision.SEND_TO_CAUSAL
-            or screen_result.flagged
+            or screen_result.is_flagged
         )
 
         if not needs_causal:

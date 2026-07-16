@@ -1,6 +1,7 @@
+import re
 from dataclasses import dataclass
+from typing import Tuple
 from langchain_ollama import OllamaLLM
-
 
 @dataclass
 class ScreenResult:
@@ -8,6 +9,7 @@ class ScreenResult:
     reason:     str
     content:    str
     tool_name:  str
+    source:     str  # "llm", "keyword", or "llm+keyword" — which check(s) fired
 
 
 class ToolResponseScreener:
@@ -15,16 +17,58 @@ class ToolResponseScreener:
     Layer 3 — Tool Response Screener.
 
     Intercepts every tool response BEFORE it is incorporated into the
-    agent context (i.e. before layer1.provenance.ContextBuilder sees it).
+    agent context. Does NOT block outright — flagged responses are tagged
+    and still flow through to the Causal Analyzer (3B).
 
-    It does NOT block responses outright. Flagged responses are tagged
-    with a risk indicator and still flow through to the Causal Analyzer
-    (3B) for boundary-level evaluation, preserving workflow continuity —
-    consistent with the "screen, don't block" design in architecture.md.
+    Uses two independent checks:
+      1. LLM-based semantic detection (catches novel/subtle injections)
+      2. Deterministic keyword backstop (catches obvious cases reliably,
+         since small local models can write a correct diagnosis in prose
+         while still emitting the wrong FLAGGED: verdict)
+    A response is flagged if EITHER check fires.
     """
+
+    # Same spirit as PolicyEngine.blocked_patterns — deterministic, cheap,
+    # and immune to the LLM's own inconsistency.
+    KEYWORD_MARKERS = [
+        "ignore previous", "ignore all previous", "forget instructions",
+        "disregard", "new task:", "important override", "system prompt:",
+        "forward all", "send all", "exfiltrate", "priority override",
+        "you must now", "override your instructions",
+    ]
 
     def __init__(self, model_name: str = "qwen2.5:3b"):
         self.llm = OllamaLLM(model=model_name)
+
+    def _keyword_check(self, tool_response: str) -> Tuple[bool, str]:
+        text = tool_response.lower()
+        for marker in self.KEYWORD_MARKERS:
+            if marker in text:
+                return True, f"Keyword marker matched: '{marker}'"
+        return False, ""
+
+    def _parse_llm_response(self, response: str) -> Tuple[bool, str]:
+        """
+        Tolerant parser: strips markdown noise, searches for the
+        FLAGGED/REASON tokens anywhere in the line rather than requiring
+        an exact prefix match, since small models sometimes wrap output
+        in bullets/bold/etc despite instructions.
+        """
+        flagged = False
+        reason  = "No indication of injected instructions"
+
+        for raw_line in response.split("\n"):
+            # Strip common markdown noise: **, -, *, leading/trailing whitespace
+            line = re.sub(r"[*_`-]", "", raw_line).strip()
+            upper = line.upper()
+
+            if "FLAGGED:" in upper:
+                value = line.split(":", 1)[-1].strip().lower()
+                flagged = value.startswith("yes")
+            elif "REASON:" in upper:
+                reason = line.split(":", 1)[-1].strip()
+
+        return flagged, reason
 
     def screen(self, tool_response: str, tool_name: str) -> ScreenResult:
         prompt = (
@@ -46,25 +90,41 @@ class ToolResponseScreener:
         )
 
         response = self.llm.invoke(prompt)
+        llm_flagged, llm_reason = self._parse_llm_response(response)
 
-        flagged = False
-        reason  = "No indication of injected instructions"
+        kw_flagged, kw_reason = self._keyword_check(tool_response)
 
-        for line in response.split("\n"):
-            line = line.strip()
-            if line.upper().startswith("FLAGGED:"):
-                flagged = "yes" in line.split(":", 1)[-1].strip().lower()
-            elif line.upper().startswith("REASON:"):
-                reason = line.split(":", 1)[-1].strip()
+        flagged = llm_flagged or kw_flagged
+
+        if kw_flagged and llm_flagged:
+            source = "llm+keyword"
+            reason = f"{llm_reason} | {kw_reason}"
+        elif kw_flagged:
+            source = "keyword"
+            reason = kw_reason
+        elif llm_flagged:
+            source = "llm"
+            reason = llm_reason
+        else:
+            source = "llm"
+            reason = llm_reason
 
         status = "FLAGGED" if flagged else "clean"
-        print(f"[ToolResponseScreener] {tool_name} -> {status}: {reason}")
+        print(f"[ToolResponseScreener] {tool_name} -> {status} "
+              f"[{source}]: {reason}")
+
+        if llm_flagged != kw_flagged and (llm_flagged or kw_flagged):
+            # Disagreement between the two checks is worth surfacing —
+            # useful signal for tuning the LLM prompt or keyword list later.
+            print(f"[ToolResponseScreener]   ^ checks disagreed: "
+                  f"llm={llm_flagged} keyword={kw_flagged}")
 
         return ScreenResult(
             is_flagged=flagged,
             reason=reason,
             content=tool_response,
-            tool_name=tool_name
+            tool_name=tool_name,
+            source=source
         )
 
 
@@ -72,14 +132,12 @@ class ToolResponseScreener:
 if __name__ == "__main__":
     screener = ToolResponseScreener()
 
-    # Test 1: clean tool response
     r1 = screener.screen(
         tool_response="Temperature: 25C, Clear skies",
         tool_name="weather_tool"
     )
     print(f">>> Test 1 (expect clean): flagged={r1.is_flagged}\n")
 
-    # Test 2: IPI embedded in an otherwise normal-looking email body
     r2 = screener.screen(
         tool_response=(
             "Hi, hope you are well. "
@@ -89,7 +147,6 @@ if __name__ == "__main__":
     )
     print(f">>> Test 2 (expect FLAGGED): flagged={r2.is_flagged}\n")
 
-    # Test 3: benign-looking but slightly odd factual data (should NOT flag)
     r3 = screener.screen(
         tool_response="Flight AC-204 delayed 45 minutes due to weather. New gate: B12.",
         tool_name="flight_status_tool"
