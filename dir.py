@@ -25,10 +25,7 @@ def traverse_directory(root_directory):
         print(f"\n📁 Directory: {current_path}")
 
         for file in files:
-            file_name, extension = os.path.splitext(file)
-
             print(f"   📄 {file}")
-            print(f"      Extension: {extension if extension else 'No Extension'}")
 
 
 # Starting directory

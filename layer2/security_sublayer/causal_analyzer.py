@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from typing import List, Tuple
 from statistics import mean
 from langchain_ollama import OllamaLLM
+from utils.parsing import extract_next_action
 
 @dataclass
 class BoundaryOutcome:
@@ -23,14 +24,15 @@ class CausalDiagnostic:
     reason:         str
 
 class CausalAnalyzer:
-    def __init__(self, model_name: str = "qwen2.5:3b", k_samples: int = 2):
+    def __init__(self, model_name: str = "gemma3:4b", k_samples: int = 2):
         self.llm             = OllamaLLM(model=model_name)
         self.boundary_history: List[Tuple[float, float]] = []
         self.window_size     = 3
         self.ie_threshold    = 0.5
         self.risk_threshold  = 0.6
         self.k_samples       = k_samples
-
+    def _extract_next_action(self, response: str) -> str:
+        return extract_next_action(response)
     def _extract_suspicious_targets(self, mediator: str) -> List[str]:
             """
             Pulls email addresses and URLs out of the mediator content. These
@@ -57,9 +59,9 @@ class CausalAnalyzer:
                    "post", "send to", "send all", "write to"]
         diag_kw = ["read", "search", "get", "fetch", "list", "check", "reply"]
 
-        if any(k in a for k in high_kw):
+        if any(re.search(rf"\b{re.escape(k)}\b", a) for k in high_kw):
             return 2
-        if any(k in a for k in diag_kw):
+        if any(re.search(rf"\b{re.escape(k)}\b", a) for k in diag_kw):
             return 1
         return 0    
 
@@ -107,6 +109,7 @@ class CausalAnalyzer:
                 "NEXT: <specific action>"
             )
         response = self.llm.invoke(prompt)
+        print(f"[3B-RAW][{regime}] {response!r}")
         next_action = self._extract_next_action(response)
 
         return self._score_action(next_action, mediator), next_action

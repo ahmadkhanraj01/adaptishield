@@ -37,7 +37,7 @@ class ToolResponseScreener:
         "you must now", "override your instructions",
     ]
 
-    def __init__(self, model_name: str = "qwen2.5:3b"):
+    def __init__(self, model_name: str = "gemma3:4b"):
         self.llm = OllamaLLM(model=model_name)
 
     def _keyword_check(self, tool_response: str) -> Tuple[bool, str]:
