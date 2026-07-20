@@ -11,7 +11,6 @@ from layer4.telemetry_stream import TelemetryStream, EpisodeRecord
 from langchain_ollama import OllamaLLM
 from dataclasses import asdict
 from utils.parsing import extract_next_action
-import numpy as np
 
 # How much untrusted mediator content EpisodeRecord keeps. Long enough to
 # recover an injected directive's phrasing, short enough that the JSONL

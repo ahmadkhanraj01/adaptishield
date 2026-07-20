@@ -1,5 +1,5 @@
 """
-Regression tests for 3B's temporal-drift takeover rule (root README Sec. 6g).
+Regression tests for 3B's takeover rules (root README Sections 6f-6h).
 
 Fast and deterministic — the four probe regimes are patched out, so no Ollama
 and no GPU. This is the kind of test the rest of `tests/` should look like:
@@ -15,7 +15,7 @@ The bug: drift fired `Takeover=True` on a boundary where every regime scored
   2. Nothing required the *current* boundary to show any signal, so "nothing
      observed" could mean takeover.
 
-    python3 -m pytest tests/test_temporal_drift.py -v
+    python3 -m pytest tests/test_takeover_rules.py -v
 """
 
 from unittest.mock import patch
@@ -85,3 +85,80 @@ def test_history_is_recorded_per_session():
 
     assert len(ca.session_history["case-a"]) == 1
     assert len(ca.session_history["case-b"]) == 1
+
+
+# ── IE-rule sample consistency (root README Section 6h) ──────────
+
+def _analyzer_with_samples(samples, session_id="s"):
+    """
+    CausalAnalyzer whose regimes return explicit per-sample scores, so the
+    mean-vs-consistency distinction is testable. `samples` maps regime -> list.
+    """
+    from statistics import mean as _mean
+    ca = CausalAnalyzer()
+
+    def fake_regime(regime, user_input, mediator):
+        s = samples[regime]
+        return BoundaryOutcome(severity=_mean(s), proposed_action="x",
+                               regime=regime, samples=list(s), raw_actions=["x"] * len(s))
+
+    ca._sanitize_mediator = lambda mediator, user_goal: "sanitised"
+    ca._run_regime = fake_regime
+    return ca
+
+
+def test_inconsistent_ie_separation_is_suppressed():
+    """
+    The Section 6h false positive: masked=[1,1] vs masked_san=[1,0] gives
+    IE=0.5, which clears the threshold on the mean while one sample disagrees.
+    Paraphrase noise must not manufacture a takeover.
+    """
+    ca = _analyzer_with_samples({
+        "orig": [0, 0], "masked": [1, 1],
+        "masked_sanitized": [1, 0], "orig_sanitized": [0, 0],
+    })
+    diag = ca.evaluate_boundary("u", "m", boundary_index=1, session_id="s")
+
+    assert diag.ie == 0.5, "precondition: IE still clears the threshold on the mean"
+    assert diag.takeover is False
+    assert "inconsistent" in diag.reason
+
+
+def test_consistent_ie_separation_still_fires():
+    """A real contrast — every masked sample outscores every sanitized one."""
+    ca = _analyzer_with_samples({
+        "orig": [0, 0], "masked": [2, 2],
+        "masked_sanitized": [0, 0], "orig_sanitized": [0, 0],
+    })
+    diag = ca.evaluate_boundary("u", "m", boundary_index=1, session_id="s")
+
+    assert diag.takeover is True
+    assert "mediator-driven" in diag.reason
+
+
+def test_partial_sanitisation_still_fires():
+    """masked=[2,2] vs masked_san=[1,0]: still a consistent separation."""
+    ca = _analyzer_with_samples({
+        "orig": [0, 0], "masked": [2, 2],
+        "masked_sanitized": [1, 0], "orig_sanitized": [0, 0],
+    })
+    diag = ca.evaluate_boundary("u", "m", boundary_index=1, session_id="s")
+
+    assert diag.takeover is True
+
+
+def test_standalone_masked_rule_survives_ie_suppression():
+    """
+    Full compliance in both regimes: IE=0 and the separation is inconsistent,
+    but masked=2 must still fire the standalone rule (Section 6f). The
+    consistency guard must not be able to suppress strong evidence.
+    """
+    ca = _analyzer_with_samples({
+        "orig": [0, 0], "masked": [2, 2],
+        "masked_sanitized": [2, 2], "orig_sanitized": [0, 0],
+    })
+    diag = ca.evaluate_boundary("u", "m", boundary_index=1, session_id="s")
+
+    assert diag.ie == 0.0
+    assert diag.takeover is True
+    assert "masked severity" in diag.reason

@@ -1,6 +1,6 @@
 # tests — Automated Test Suite
 
-**Status:** 🟡 Started — `test_temporal_drift.py` (4 tests, passing)
+**Status:** 🟡 Started — `test_takeover_rules.py` (8 tests, passing)
 
 ## Purpose
 A formal `pytest` suite covering every layer plus end-to-end pipeline cases,
@@ -10,10 +10,22 @@ each module's `__main__` block by hand.
 ## What's done
 | File | Covers | Tests |
 | :--- | :--- | :--- |
-| `test_temporal_drift.py` | 3B's temporal-drift takeover rule (root README Sec. 6g) — empty boundaries must not fire, genuine drift must still fire, drift must not leak across sessions, history recorded per session | 4, ~0.55s |
+| `test_takeover_rules.py` | All three of 3B's takeover paths (root README Sec. 6f–6h) | 8, ~0.7s |
+
+What it pins:
+
+- **Temporal drift (6g)** — empty boundaries must not fire, genuine drift must
+  still fire, drift must not leak across sessions, history is per-session.
+- **IE sample consistency (6h)** — a one-sample paraphrase flip
+  (`masked=[1,1]` vs `masked_san=[1,0]`) must be suppressed, while a real
+  separation and a partial-sanitisation case must still fire.
+- **Rule precedence (6f)** — `masked=[2,2]` with `masked_san=[2,2]` has IE=0
+  *and* an inconsistent separation, yet must still fire via the standalone
+  rule. The consistency guard must never suppress strong evidence; that
+  ordering is the load-bearing invariant between 6f and 6h.
 
 ## The pattern to follow
-`test_temporal_drift.py` patches the four probe regimes out and asserts on the
+`test_takeover_rules.py` patches the four probe regimes out and asserts on the
 decision logic directly. **No Ollama, no GPU, sub-second.** That split is
 deliberate and worth preserving:
 
