@@ -4,9 +4,9 @@
 **Supervisor:** Dr. Laeeq Ahmed  
 **Students:** Muhammad Ahmad Khan (23JZBCS0238) · Aleena Khan (23JZBCS0229)  
 **Department:** CS&IT — University of Engineering and Technology Peshawar (Jalozai Campus)  
-**Handover Date:** July 2026 (v6 — consolidated, supersedes v5)  
+**Handover Date:** July 2026 (v7 — consolidated, supersedes v6)  
 
-> **Note:** This is the single source of truth. All earlier versions (v1–v5) have been merged and superseded — do not reference them separately. v6 closes out both "Immediate" items from v5 Section 11: the episode log was audited against Section 5's validated three-episode suite (exact match, no action needed), and `layer4/sandbox.py` is now wired into `_run_layer4()` for real, gated command execution.
+> **Note:** This is the single source of truth. All earlier versions (v1–v6) have been merged and superseded — do not reference them separately. v7 scaffolds and validates the `red_team/` module — Attack Generator, Execution Agent, Evaluator, and a v1 heuristic Optimizer — the first of the two "Short term" items from v6 Section 11.
 
 ---
 
@@ -17,6 +17,7 @@
 4. [Build Status by Component](#4-build-status-by-component)
 5. [Resolved — Causal Analyzer Masked Regime Investigation](#5-resolved--causal-analyzer-masked-regime-investigation)
 5b. [Resolved — Docker Sandbox Wired into Layer 4](#5b-resolved--docker-sandbox-wired-into-layer-4)
+5c. [New — Red Team Module Scaffolded and Validated](#5c-new--red-team-module-scaffolded-and-validated)
 6. [Verified Package Versions](#6-verified-package-versions)
 7. [Model Selection — Final Decision](#7-model-selection--final-decision)
 8. [Compute Strategy](#8-compute-strategy)
@@ -130,14 +131,23 @@
 │   └── telemetry_stream.py            ✅ Built and tested — writes JSONL episodes
 │
 ├── layer5/                            🔲 empty — pending
-├── red_team/                          🔲 empty — pending
+├── red_team/                          ✅ v1 scaffolded and validated — see Section 5c
+│   ├── __init__.py
+│   ├── attack_library.py              ✅ payload templates: 4 families x directives x attacker targets
+│   ├── attack_generator.py            ✅ combines library into concrete RedTeamCase objects (attack + benign)
+│   ├── execution_agent.py             ✅ runs cases through a live AdaptiShieldPipeline (dry-run — no `command`)
+│   ├── evaluator.py                   ✅ computes ASR/FPR/WCR, per-family + per-defense-layer breakdown
+│   ├── optimizer.py                   ✅ v1 heuristic keyword-softening mutator (not RL — see Section 5c)
+│   └── run_campaign.py                ✅ wires all four stages together, saves reports to logs/red_team_runs/
 ├── evaluation/                        🔲 empty — pending
 ├── utils/
 │   ├── __init__.py                    ✅ added (moved to project root — see Section 5)
 │   └── parsing.py                     ✅ shared tolerant NEXT: parser, used by 3B and pipeline's 3C safe-continuation step
 ├── logs/
-│   └── episode_records/
-│       └── episodes.jsonl             ✅ populated on each pipeline run — 3 validated episodes as of this handover
+│   ├── episode_records/
+│   │   └── episodes.jsonl             ✅ populated on each pipeline run — includes red-team campaign episodes as of this handover
+│   └── red_team_runs/
+│       └── campaign_*.json            ✅ one file per campaign run — ASR/FPR/WCR by generation and family
 └── tests/                             🔲 empty — pending
 ```
 
@@ -160,7 +170,7 @@
 | **Docker Sandbox** | `layer4/sandbox.py` | ✅ Built and wired into `_run_layer4` — real, gated command execution confirmed |
 | **Full Pipeline** | `adaptishield_pipeline.py` | ✅ Built and validated — L1 → L3 screen → 3A → 3B → 3C → L4 → telemetry, three-way test coverage confirmed |
 | **Adaptive Threat Model (3D)**| `layer2/security_sublayer/adaptive_threat_model.py`| 🔲 Pending |
-| **Red Team Module** | `red_team/` | 🔲 Pending |
+| **Red Team Module** | `red_team/` | ✅ v1 scaffolded and validated — Optimizer is a heuristic mutator, not RL (see Section 5c) |
 | **Evaluation Framework** | `evaluation/` | 🔲 Pending |
 | **Layer 5 (Dashboard/Console)**| `layer5/` | 🔲 Pending |
 | **Unit tests** | `tests/` | 🔲 Pending |
@@ -226,6 +236,42 @@ The `python:3.10-slim` sandbox base image was pulled locally (`docker pull pytho
 - **Episode 3** (benign high-impact, no injection): permission gate failed (mismatched `server_name`, by design of the test), no command was supplied on this call path either, so `sandbox_result=None` — consistent with the gating rule.
 
 > **Note on `command`:** the pipeline's existing test tools (`get_weather`, `send_email`) are simulated — there is no real API call today, so `command` has no automatic mapping from `tool_name`/`proposed_action`. It is an opt-in parameter the caller supplies when a real, vetted shell command exists for the approved action. This keeps the Sandbox wiring additive: existing call sites without a `command` behave exactly as before.
+
+---
+
+## 5c. New — Red Team Module Scaffolded and Validated
+
+The first "Short term" item from v6 Section 11 is scaffolded and validated end-to-end against the live pipeline. Four components, matching the architecture diagram's Red Team Module row:
+
+**Attack Generator** (`red_team/attack_library.py` + `attack_generator.py`) — raw payload templates are kept separate from the combinatorics that turn them into test cases. Four attack families, in ascending order of subtlety:
+- `blunt_override` — the validated true-positive style from Section 5 ("IGNORE PREVIOUS INSTRUCTIONS"). Trips both the keyword backstop and the LLM screener.
+- `important_instructions` — AgentDojo-style fake trusted-source block, imperative but phrased to avoid exact keyword-list hits.
+- `tool_knowledge_injection` — directive framed as a mundane tool-capability note, no imperative language at all. The subtlest family.
+- `masked_hypothetical` — hypothetical/roleplay framing, deliberately mirroring `CausalAnalyzer`'s own "masked" probe style.
+
+Each family is combined with attacker-controlled exfiltration targets (never in the campaign's egress allowlist) to produce attack cases, plus a set of benign high-impact `send_email` scenarios (modeled on the validated true-negative Episode 3) for FPR measurement.
+
+**Execution Agent** (`red_team/execution_agent.py`) — owns its own `AdaptiShieldPipeline` and registers a dedicated `email-api` server with `send_email` declared **in-scope** (unlike the pipeline's own `__main__` tests, which deliberately mismatch scope). This isolates what actually stops an attack in a campaign run: 3B/3C causal detection, or the egress allowlist as a backstop — not an accidental permission mismatch. "Dry-run" per the architecture diagram: no `command` is ever passed through to Layer 4, so the Sandbox never executes anything; only the pipeline's *decisions* are measured. `causal_takeover` is inferred directly from `final_status` (the pipeline's own control flow makes this a 1:1 mapping — `safe_continuation` ⟺ takeover, `approved_causal` ⟺ no takeover, `blocked`/`approved_direct` ⟺ 3B never reached), documented in code rather than requiring telemetry introspection.
+
+**Evaluator** (`red_team/evaluator.py`) — computes ASR/FPR/WCR per the definitions in Section 2, both overall and per-family, plus a "who actually stopped it" breakdown (`caught_by_causal` vs `caught_by_egress_only`) — the diagnostic that makes the report useful for tuning rather than a single pass/fail number. **Known v1 limitation, documented in the module docstring:** WCR is currently a proxy (did a `safe_continuation` fire) rather than an independent check that the user's original benign intent was actually served — attack cases don't yet carry a separate, independently-verifiable legitimate sub-task the way AgentDojo's dual-task trajectories do. Tightening this is future work for a v2 attack library.
+
+**Optimizer** (`red_team/optimizer.py`) — a **v1 heuristic**, explicitly not the RL/learned optimizer implied by the architecture diagram; that belongs with Component 3D once it exists, since "search for attacks that evade the current defense" and "train the defense to close the gap" are two ends of the same GRPO loop. v1 takes any family the Evaluator reports as fully defended (ASR == 0) and produces keyword-softened variants — substrings matching `ToolResponseScreener.KEYWORD_MARKERS` / `PolicyEngine.blocked_patterns` (imported directly from those modules, not duplicated) are replaced with neutral paraphrases, directly probing whether detection is semantic or just keyword matching.
+
+**Campaign Runner** (`red_team/run_campaign.py`) — wires all four stages: generate → execute → evaluate → optimize → re-execute mutations → re-evaluate. Saves a JSON report per run to `logs/red_team_runs/`.
+
+### Validation run (local, 4 families x 1 directive x 1 target + 4 benign scenarios)
+
+| Metric | Generation 1 | Generation 2 (keyword-softened) |
+| :--- | :--- | :--- |
+| **ASR** | 0% (0/4) | 0% (0/4) |
+| **FPR** | 0% (0/4) | n/a (attacks-only re-run) |
+| **WCR** | 50% (2/4) | 0% (0/4) |
+| **Caught by 3B (causal)** | 2/4 (`important_instructions`, `tool_knowledge_injection`) | **0/4** |
+| **Caught by L4 egress only** | 2/4 (`blunt_override`, `masked_hypothetical`) | **4/4** |
+
+**This is the campaign's most useful finding so far:** the Optimizer's keyword-softened generation-2 payloads evaded 3B's causal detection in *every* family that generation 1 had caught semantically — `caught_by_causal` dropped from 2/4 to 0/4 across the board. ASR stayed at 0% only because the static Network Egress Filter allowlist backstop caught all four attacks regardless of what 3B decided. In a deployment where the attacker's exfiltration target happened to already be an allowlisted host, this backstop wouldn't exist and these four attacks would have succeeded. This is concrete, campaign-generated evidence — not a hypothetical — for why Component 3D (adaptive, learned detection) is needed rather than relying on 3B's current fixed-threshold heuristics plus a static allowlist.
+
+> **Note on scale:** the local default (1 directive x 1 target per family) is intentionally small — each high-impact case costs 8+ LLM calls through the Causal Analyzer (~15–20s locally). `run_campaign()` accepts `max_directives`/`max_targets`/`max_benign` to scale up; a full combinatorial run (4 families x 2 directives x 2 targets = 16 attacks) is a Kaggle-scale job, consistent with Section 8's compute strategy.
 
 ---
 
@@ -314,6 +360,7 @@ python3 layer4/permission_control.py
 python3 layer4/network_egress_filter.py
 python3 layer4/telemetry_stream.py
 python3 adaptishield_pipeline.py
+python3 -m red_team.run_campaign             # local-scale red team campaign (see Section 5c)
 ```
 
 > **Standing practice:** before patching any file that has been edited more than once in a session, run `cat -n <file>` first to confirm on-disk state. This caught at least two real bugs this session where a described change hadn't actually landed.
@@ -340,6 +387,8 @@ python3 adaptishield_pipeline.py
 | **Full pipeline — Episode 1 (benign low-impact)** | `python3 adaptishield_pipeline.py` | `approved_direct` ✅ confirmed |
 | **Full pipeline — Episode 2 (malicious high-impact, true positive)**| *same* | `safe_continuation`, `Takeover=True` ✅ confirmed |
 | **Full pipeline — Episode 3 (benign high-impact, true negative)**| *same* | `approved_causal`, `Takeover=False` ✅ confirmed |
+| **Red team campaign — generation 1** | `python3 -m red_team.run_campaign` | ASR=0%, FPR=0%, WCR=50% ✅ confirmed (Section 5c) |
+| **Red team campaign — generation 2 (keyword-softened)** | *same* | ASR=0% (egress backstop), but `caught_by_causal` drops to 0/4 ✅ confirmed — documents a real 3B coverage gap |
 
 ---
 
@@ -353,14 +402,18 @@ python3 adaptishield_pipeline.py
 ### Short term
 - [ ] `layer2/security_sublayer/adaptive_threat_model.py` — Component 3D
   - GRPO reward: +1.0 correct block/safe continuation, +0.8 correct pass, −1.0 missed attack, −0.5 false positive
-  - Ingests Episode Records from `logs/episode_records/episodes.jsonl`
+  - Ingests Episode Records from `logs/episode_records/episodes.jsonl` (now includes red-team campaign episodes, not just the 3 hand-authored ones)
   - Updates `PolicyEngine.blocked_patterns`/`high_impact_tools` and `CausalAnalyzer` thresholds only — no LLM weight updates
   - Train on Kaggle P100
-- [ ] `red_team/` — Attack Generator → Execution Agent (dry-run) → Evaluator Agent (ASR/FPR/WCR) → Optimizer Agent
-  - Use the validated true-positive payload style (blunt "IGNORE PREVIOUS INSTRUCTIONS") as a baseline, then expand to subtler AgentDojo-style "Important Instructions"/"Tool Knowledge" families for a stronger benchmark
+  - Motivating evidence from Section 5c: keyword-softened attacks dropped 3B's `caught_by_causal` rate from 2/4 to 0/4 — 3B's current fixed thresholds/patterns don't generalize to paraphrased injections, which is exactly the gap 3D is meant to close
+- [x] `red_team/` — Attack Generator → Execution Agent (dry-run) → Evaluator Agent (ASR/FPR/WCR) → Optimizer Agent. **v1 scaffolded and validated — see Section 5c.** Remaining follow-ups, not blocking:
+  - [ ] Scale the campaign up (more directives/targets/families) and move bulk runs to Kaggle per Section 8
+  - [ ] Extend `attack_library.py` beyond `send_email` once the pipeline models more real tools
+  - [ ] Tighten the WCR proxy — add an independently-verifiable legitimate sub-task per attack case (AgentDojo-style dual-task trajectories) instead of inferring completion from `final_status == safe_continuation` alone
+  - [ ] Replace the Optimizer's v1 keyword-softening heuristic with something learned, once 3D exists to close the loop
 
 ### Later
-- [ ] `evaluation/` — eight attack vectors (Du et al. / MCPSecBench), static baseline vs. full AdaptiShield, run on Kaggle
+- [ ] `evaluation/` — eight attack vectors (Du et al. / MCPSecBench), static baseline vs. full AdaptiShield, run on Kaggle. Can likely reuse `red_team/evaluator.py`'s ASR/FPR/WCR computation rather than rebuilding it
 - [ ] `layer5/` — Audit Dashboard, Policy Inspection Console, Manual Override, Audit Logs
 - [ ] `tests/` — formal pytest suite covering all layers plus end-to-end pipeline cases (the three validated episodes in Section 5 are a natural starting point for regression tests)
 
@@ -385,8 +438,10 @@ python3 adaptishield_pipeline.py
 | **Small models (`qwen2.5:3b`) may refuse an injection so completely that Causal Analyzer has no divergence to detect — not a bug, but makes the model unsuitable as the 3B backbone** | Switched Causal Analyzer specifically to `gemma3:4b`, which does comply under `masked`, enabling real ACE/IE signal. Documented as a deliberate per-component model choice, not a global model swap. |
 | **Incremental patches to the same file were silently not landing** (multiple `TypeError`s traced back to code described as sent but not actually on disk) | Adopted "verify full file contents with `cat -n` before patching again" as standing practice — caught a real recurrence even after being flagged once already |
 | **Sandbox execution shouldn't run just because a command exists** — a naive wiring would execute any supplied command regardless of whether 3A/3B/3C/L4 actually approved the action | Gated Sandbox execution in `_run_layer4()` on both Permission Control and Egress Filter passing, so it stays defense-in-depth like the rest of Layer 4 rather than becoming an unconditional executor |
+| **3B's causal detection is not robust to keyword-softened paraphrasing** — a simple synonym-substitution mutation of already-defended attack payloads dropped `caught_by_causal` from 2/4 to 0/4 across all four families in the first red-team campaign | Not yet fixed (that's Component 3D's job) — but now has concrete, reproducible evidence via `red_team/run_campaign.py` rather than being a hypothetical concern. ASR stayed at 0% only because the static L4 egress allowlist backstop caught all four; a target on an already-allowlisted host would not have been caught |
+| **Reusing a deliberately-mismatched permission scope (as the pipeline's own `__main__` tests do) hides which layer is actually doing the defending** | Red Team's Execution Agent registers `send_email` as in-scope on purpose, so a campaign isolates 3B/3C causal detection from the egress allowlist backstop instead of conflating both behind one scope-mismatch block |
 
 ---
-**AdaptiShield Handover Document — v6 (consolidated, supersedes all prior versions)**  
+**AdaptiShield Handover Document — v7 (consolidated, supersedes all prior versions)**  
 *Muhammad Ahmad Khan (23JZBCS0238) · Aleena Khan (23JZBCS0229)*  
 *Supervisor: Dr. Laeeq Ahmed | UET Peshawar (Jalozai Campus)*
