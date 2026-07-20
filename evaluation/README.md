@@ -38,6 +38,16 @@ from recognition of one memorized string.
 python3 -m evaluation.holdout_generalization_test
 ```
 
+### `score_action_ablation.py` — keyword vs semantic severity scoring
+Regenerates the per-action accuracy figures in root README Section 6e
+(semantic 10/10, keyword 9/10; 4 of 10 cases held out of the judge's few-shot
+prompt). Its main use is as a caution: the semantic arm wins here and loses
+end-to-end, so this script should always be read next to the system numbers.
+
+```bash
+python3 -m evaluation.score_action_ablation
+```
+
 ## Result (2026-07-20) — the adaptive loop did **not** close
 
 | Measure | Before | After (training address) | After (held-out address) |
