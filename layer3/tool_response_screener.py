@@ -1,6 +1,6 @@
 import re
-from dataclasses import dataclass
-from typing import Tuple
+from dataclasses import dataclass, field
+from typing import List, Tuple
 from langchain_ollama import OllamaLLM
 
 @dataclass
@@ -10,6 +10,11 @@ class ScreenResult:
     content:    str
     tool_name:  str
     source:     str  # "llm", "keyword", or "llm+keyword" — which check(s) fired
+    # Every keyword marker that matched, not just the first. 3D consumes these
+    # as candidate blocked_patterns, so it needs the full set; an empty list on
+    # a flagged response means only the LLM check fired, which is itself the
+    # signal that the phrasing has drifted away from the keyword list.
+    matched_markers: List[str] = field(default_factory=list)
 
 
 class ToolResponseScreener:
@@ -40,12 +45,12 @@ class ToolResponseScreener:
     def __init__(self, model_name: str = "gemma3:4b"):
         self.llm = OllamaLLM(model=model_name)
 
-    def _keyword_check(self, tool_response: str) -> Tuple[bool, str]:
+    def _keyword_check(self, tool_response: str) -> Tuple[bool, str, List[str]]:
         text = tool_response.lower()
-        for marker in self.KEYWORD_MARKERS:
-            if marker in text:
-                return True, f"Keyword marker matched: '{marker}'"
-        return False, ""
+        matched = [m for m in self.KEYWORD_MARKERS if m in text]
+        if matched:
+            return True, f"Keyword marker(s) matched: {matched}", matched
+        return False, "", []
 
     def _parse_llm_response(self, response: str) -> Tuple[bool, str]:
         """
@@ -92,7 +97,7 @@ class ToolResponseScreener:
         response = self.llm.invoke(prompt)
         llm_flagged, llm_reason = self._parse_llm_response(response)
 
-        kw_flagged, kw_reason = self._keyword_check(tool_response)
+        kw_flagged, kw_reason, matched_markers = self._keyword_check(tool_response)
 
         flagged = llm_flagged or kw_flagged
 
@@ -124,7 +129,8 @@ class ToolResponseScreener:
             reason=reason,
             content=tool_response,
             tool_name=tool_name,
-            source=source
+            source=source,
+            matched_markers=matched_markers,
         )
 
 

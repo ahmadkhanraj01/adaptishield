@@ -11,6 +11,12 @@ from layer4.telemetry_stream import TelemetryStream, EpisodeRecord
 from langchain_ollama import OllamaLLM
 from dataclasses import asdict
 from utils.parsing import extract_next_action
+import numpy as np
+
+# How much untrusted mediator content EpisodeRecord keeps. Long enough to
+# recover an injected directive's phrasing, short enough that the JSONL
+# stays bounded on long tool responses.
+MEDIATOR_SNIPPET_CHARS = 500
 
 
 class AdaptiShieldPipeline:
@@ -40,7 +46,8 @@ class AdaptiShieldPipeline:
                         tool_name: str, proposed_action: str,
                         server_name: str = None,
                         destination_url: str = None,
-                        command: str = None) -> dict:
+                        command: str = None,
+                        session_id: str = "session-1") -> dict:
         print(f"\n{'='*60}")
         print(f"[Pipeline] User   : {user_input[:60]}")
         print(f"[Pipeline] Tool   : {tool_name}")
@@ -54,7 +61,7 @@ class AdaptiShieldPipeline:
         )
 
         # --- Layer 1: tag and partition ---
-        user_seg = self.input_parser.parse_user_input(user_input, "session-1")
+        user_seg = self.input_parser.parse_user_input(user_input, session_id)
         tool_seg = self.input_parser.parse_tool_response(tool_response, tool_name)
         self.context_builder.add_segment(user_seg)
         self.context_builder.add_segment(tool_seg)
@@ -64,6 +71,18 @@ class AdaptiShieldPipeline:
         # Runs on the raw tool response before it's trusted as clean context.
         screen_result = self.tool_screener.screen(tool_response, tool_name)
         print(f"[L3] flagged={screen_result.is_flagged} — {screen_result.reason}")
+
+        # Carry the screener's verdict and a bounded slice of the untrusted
+        # mediator into telemetry, so 3D can mine paraphrased injection
+        # wording from live traffic instead of relying on the red team to
+        # hand it `flagged_markers`.
+        record_kwargs["screen_result"] = {
+            "is_flagged": screen_result.is_flagged,
+            "source": screen_result.source,
+            "reason": screen_result.reason,
+            "matched_markers": screen_result.matched_markers,
+        }
+        record_kwargs["mediator_snippet"] = mediator[:MEDIATOR_SNIPPET_CHARS] if mediator else None
 
         # --- 3A: Policy Engine ---
         policy = self.policy_engine.evaluate(tool_name, proposed_action)
@@ -97,14 +116,19 @@ class AdaptiShieldPipeline:
         diag = self.causal_analyzer.evaluate_boundary(
             user_input=trusted,
             mediator_content=mediator,
-            boundary_index=self.boundary_index
+            boundary_index=self.boundary_index,
+            session_id=session_id
         )
         print(f"[3B] ACE={diag.ace}  IE={diag.ie}  DE={diag.de}  "
               f"Takeover={diag.takeover}")
         print(f"[3B] {diag.reason}")
 
         causal_verdict = {"ace": diag.ace, "ie": diag.ie, "de": diag.de,
-                           "takeover": diag.takeover, "reason": diag.reason}
+                           "takeover": diag.takeover, "reason": diag.reason,
+                           "orig_severity": diag.orig_severity,
+                           "masked_severity": diag.masked_severity,
+                           "masked_san_severity": diag.masked_san_severity,
+                           "orig_san_severity": diag.orig_san_severity}
 
         if not diag.takeover:
             result = self._run_layer4(
@@ -117,7 +141,7 @@ class AdaptiShieldPipeline:
                 egress_decision=result["egress"], sandbox_result=result["sandbox"]
             )
             return {"status": "approved_causal", "action": proposed_action,
-                    "layer4": result}
+                    "causal_verdict": causal_verdict, "layer4": result}
 
         # --- 3C: Context Sanitizer ---
         print("[3C] Takeover confirmed — purifying mediator content...")
@@ -161,6 +185,7 @@ class AdaptiShieldPipeline:
             "original_action": proposed_action,
             "safe_action":     safe_action,
             "removed":         san.instructions_removed,
+            "causal_verdict":  causal_verdict,
             "layer4":          result
         }
 

@@ -19,3 +19,4 @@ logs/
 
 # Python environment
 .env
+session.txt
