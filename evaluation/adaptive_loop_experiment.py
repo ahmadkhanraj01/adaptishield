@@ -16,11 +16,15 @@ Design — four phases, each attack phase on a FRESH pipeline:
   4. after   : the SAME gen-2 cases, plus the benign controls, on a fresh
                pipeline with the proposal applied.
 
-Why a fresh pipeline per phase: CausalAnalyzer.boundary_history drives a
-temporal-drift rule that can independently flip `takeover` once three
-boundaries have accumulated. Reusing one pipeline across before/after would
-let drift, not the threshold change, explain a difference. A fresh instance
-per phase makes the applied update the only variable.
+Why a fresh pipeline per phase: CausalAnalyzer's temporal-drift rule can
+independently flip `takeover` once three boundaries accumulate. Reusing one
+pipeline across before/after would let drift, not the applied update, explain
+a difference. A fresh instance per phase makes the update the only variable.
+
+Drift history is now scoped per `session_id` and the ExecutionAgent passes one
+per case, so cases no longer contaminate each other *within* a phase either
+(root README Section 6g). The fresh-pipeline-per-phase discipline is still
+worth keeping — it also isolates 3A/3B state mutated by an applied update.
 
 Why benign cases are re-run in phase 4: an adaptive update that catches
 attacks by making 3B hair-trigger is not a win. FPR before vs after is the

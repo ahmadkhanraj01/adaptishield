@@ -91,6 +91,11 @@ class ExecutionAgent:
             proposed_action=case.proposed_action,
             server_name=case.server_name,
             destination_url=case.destination_url,
+            # Each case is an independent conversation. Without this, 3B's
+            # temporal-drift rule computes a slope across unrelated attack
+            # families and fires takeover on cases where nothing was measured,
+            # inflating caught_by_causal (root README Section 6g).
+            session_id=case.case_id,
         )
 
         final_status = result["status"]

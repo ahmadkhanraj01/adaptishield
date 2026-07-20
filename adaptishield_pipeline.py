@@ -45,7 +45,8 @@ class AdaptiShieldPipeline:
                         tool_name: str, proposed_action: str,
                         server_name: str = None,
                         destination_url: str = None,
-                        command: str = None) -> dict:
+                        command: str = None,
+                        session_id: str = "session-1") -> dict:
         print(f"\n{'='*60}")
         print(f"[Pipeline] User   : {user_input[:60]}")
         print(f"[Pipeline] Tool   : {tool_name}")
@@ -59,7 +60,7 @@ class AdaptiShieldPipeline:
         )
 
         # --- Layer 1: tag and partition ---
-        user_seg = self.input_parser.parse_user_input(user_input, "session-1")
+        user_seg = self.input_parser.parse_user_input(user_input, session_id)
         tool_seg = self.input_parser.parse_tool_response(tool_response, tool_name)
         self.context_builder.add_segment(user_seg)
         self.context_builder.add_segment(tool_seg)
@@ -114,7 +115,8 @@ class AdaptiShieldPipeline:
         diag = self.causal_analyzer.evaluate_boundary(
             user_input=trusted,
             mediator_content=mediator,
-            boundary_index=self.boundary_index
+            boundary_index=self.boundary_index,
+            session_id=session_id
         )
         print(f"[3B] ACE={diag.ace}  IE={diag.ie}  DE={diag.de}  "
               f"Takeover={diag.takeover}")

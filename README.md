@@ -156,7 +156,9 @@ The full defensive pipeline (Layers 0–4) and the complete Security Sub-layer (
 │   ├── red_team_runs/campaign_*.json   ✅ one report per campaign (gitignored)
 │   └── adaptive_loop/*.json            ✅ before/after + holdout reports (gitignored)
 ├── layer5/                             🔲 pending (README.md placeholder)
-└── tests/                              🔲 pending (README.md placeholder)
+└── tests/
+    ├── README.md
+    └── test_temporal_drift.py          ✅ 4 deterministic tests, no LLM (Section 6g)
 ```
 
 ---
@@ -182,6 +184,7 @@ The full defensive pipeline (Layers 0–4) and the complete Security Sub-layer (
 | Adaptive-loop experiment | `evaluation/adaptive_loop_experiment.py` | ✅ Built & run (negative result, Sec. 6d) |
 | Holdout generalization test | `evaluation/holdout_generalization_test.py` | ✅ Built & run |
 | Eight-vector benchmark | `evaluation/` | 🔲 Pending |
+| Drift-rule regression tests | `tests/test_temporal_drift.py` | ✅ 4 passing, no LLM required |
 | Layer 5 (Dashboard/Console) | `layer5/` | 🔲 Pending |
 | Unit tests | `tests/` | 🔲 Pending |
 
@@ -309,6 +312,9 @@ ollama serve &
 sleep 2
 ollama list                                                 # confirm qwen2.5:3b and gemma3:4b
 
+# fast deterministic tests (no Ollama, no GPU)
+pytest tests/ -v
+
 # per-component self-tests
 python3 layer0/server_trust_registry.py
 python3 layer1/provenance.py
@@ -334,6 +340,7 @@ python3 -m evaluation.holdout_generalization_test           # same update vs an 
 
 | Test | Command | Expected |
 | :--- | :--- | :--- |
+| Drift-rule unit tests | `pytest tests/ -v` | 4 passed in under a second |
 | Server Trust Registry | `python3 layer0/server_trust_registry.py` | legit `True`, rug-pull `False` |
 | Provenance tagging | `python3 layer1/provenance.py` | trusted + mediator partitions |
 | Policy Engine | `python3 layer2/security_sublayer/policy_engine.py` | approve_direct / send_to_causal / block |
@@ -437,7 +444,7 @@ score. And 3C still fails to sanitise the softened directive — this rule stops
 that failure from laundering an attack into looking benign, but does not
 repair the sanitizer.
 
-### 6g. The temporal-drift rule fires on empty boundaries
+### 6g. The temporal-drift rule fires on empty boundaries — fixed
 
 Found while validating 6f. On `masked_hypothetical-gen2` every regime scored 0
 — nothing suspicious measured anywhere — and 3B still returned
@@ -463,8 +470,29 @@ window, so a *falling* ACE alone clears the 0.6 threshold. Two problems:
 
 Underneath both: in a red-team campaign consecutive boundaries are unrelated
 cases from different families, so "drift" across them measures noise. The rule
-is only meaningful across boundaries **within one conversation**, which
-`boundary_history` does not currently distinguish.
+is only meaningful across boundaries **within one conversation**.
+
+**Fix — two independent guards, since the bug had two independent causes:**
+
+1. **History is scoped per conversation.** `boundary_history` (one flat list)
+   became `session_history: Dict[str, List[...]]`, and `evaluate_boundary()`
+   takes a `session_id`. `ExecutionAgent` passes `case.case_id`, so campaign
+   cases are separate conversations and can no longer contaminate each other.
+   `AdaptiShieldPipeline.process_request()` takes `session_id` too (default
+   `"session-1"`), and it now also feeds Layer 1's provenance tagging, which
+   had the value hardcoded.
+2. **Drift requires signal on the current boundary.** The rule is gated on
+   `masked.severity >= 1`, matching the IE rule's existing gate. *Nothing
+   observed must never mean takeover.*
+
+The `max(-ace_slope, 0)` term is kept: ACE is `orig − masked`, so a falling
+ACE genuinely means the masked regime is growing more compliant relative to
+the unmasked one. The signal was sound; it was being computed over the wrong
+boundaries and without a floor.
+
+Regression-tested in `tests/test_temporal_drift.py` — 4 deterministic tests
+(regimes patched out, no Ollama, 0.55s) covering the empty-boundary case, that
+genuine drift still fires, session isolation, and per-session recording.
 
 ### Done since v9
 - [x] Apply a 3D proposal, re-run the campaign, compare `caught_by_causal` before vs after — **run; negative result** (Section 6d). Also built the held-out generalization test that showed the apparent gain was memorization.
@@ -490,11 +518,9 @@ than IE's resolution. Fix the measurement before training anything on it.
   measured — it worked** (Section 6f): gen-1 detection 2/4 → 3/4, gen-2
   0/4 → 1/4, FPR unchanged at 0%, WCR 50% → 75%. First change in this sequence
   to improve the system rather than just a component.
-- [ ] **Scope `boundary_history` to a conversation, and re-tune the drift
-  rule** (Section 6g). It currently fires `Takeover=True` on boundaries where
-  every regime scored 0, driven by ACE slope alone. It inflates campaign
-  detection counts and is a latent FPR source. Highest-value next change,
-  because it corrupts the metrics every other experiment is measured with.
+- [x] ~~Scope `boundary_history` to a conversation, and re-tune the drift
+  rule.~~ **Done** (Section 6g): history is per-`session_id`, drift requires
+  `masked >= 1`, and `tests/test_temporal_drift.py` pins all four behaviours.
 - [ ] **Fix 3C sanitisation of softened directives.** The Section 6f case only
   needed a standalone rule because the sanitizer left `"share copies of emails
   ... to attacker@evil.com"` intact, so `masked_sanitized` complied too. 6f
@@ -524,7 +550,7 @@ than IE's resolution. Fix the measurement before training anything on it.
 ### Later
 - [ ] `evaluation/` — eight attack vectors (Du et al. / MCPSecBench), static baseline vs full AdaptiShield vs AdaptiShield+3D, on Kaggle. Reuse `red_team/evaluator.py` for the metrics.
 - [ ] `layer5/` — Audit Dashboard, Policy Inspection Console, Manual Override, Audit Logs (data already emitted by telemetry + campaigns).
-- [ ] `tests/` — pytest suite; the 3 validated pipeline episodes are natural regression cases.
+- [ ] `tests/` — grow the pytest suite. `test_temporal_drift.py` is the model to follow: patch the four probe regimes out so the decision logic is tested deterministically in under a second, and leave the LLM-dependent checks in `evaluation/`. The 3 validated pipeline episodes are natural regression cases.
 
 ---
 **AdaptiShield — v10 current-state handover**

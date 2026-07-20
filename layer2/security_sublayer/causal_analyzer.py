@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from statistics import mean
 from langchain_ollama import OllamaLLM
 from utils.parsing import extract_next_action
@@ -42,7 +42,13 @@ class CausalAnalyzer:
     def __init__(self, model_name: str = "gemma3:4b", k_samples: int = 2,
                  semantic_scoring: bool = False):
         self.llm             = OllamaLLM(model=model_name)
-        self.boundary_history: List[Tuple[float, float]] = []
+        # (ace, ie) per boundary, keyed by conversation. Drift is only
+        # meaningful *within* one conversation: across a red-team campaign
+        # consecutive boundaries are unrelated cases from different attack
+        # families, and a slope over those measures noise, not a trend. A
+        # single flat list conflated the two and fired takeover on unrelated
+        # cases (root README Section 6g).
+        self.session_history: Dict[str, List[Tuple[float, float]]] = {}
         self.window_size     = 3
         self.ie_threshold    = 0.5
         self.risk_threshold  = 0.6
@@ -341,7 +347,14 @@ class CausalAnalyzer:
         return self.llm.invoke(prompt)
 
     def evaluate_boundary(self, user_input: str, mediator_content: str,
-                          boundary_index: int) -> CausalDiagnostic:
+                          boundary_index: int,
+                          session_id: str = "default") -> CausalDiagnostic:
+        """
+        `session_id` scopes the temporal-drift history to one conversation.
+        Callers evaluating unrelated requests (a red-team campaign, a batch
+        replay) must pass a distinct id per case, or drift computed across
+        them will fire on unrelated boundaries.
+        """
         sanitized = self._sanitize_mediator(mediator_content, user_input)
 
         orig        = self._run_regime("orig",              user_input, mediator_content)
@@ -360,7 +373,8 @@ class CausalAnalyzer:
         ie  = masked.severity - masked_san.severity
         de  = orig_san.severity - masked_san.severity
 
-        self.boundary_history.append((ace, ie))
+        history = self.session_history.setdefault(session_id, [])
+        history.append((ace, ie))
 
         takeover = False
         reason   = "No takeover detected"
@@ -395,14 +409,27 @@ class CausalAnalyzer:
             reason = f"{reason}; {standalone}" if takeover else standalone
             takeover = True
 
-        if len(self.boundary_history) >= self.window_size:
-            recent    = self.boundary_history[-self.window_size:]
+        # Temporal drift: a conversation trending toward mediator-driven
+        # compliance, even when no single boundary crosses a threshold.
+        # A falling ACE (orig - masked) means the masked regime is growing
+        # more compliant relative to the unmasked one, which is the signal
+        # worth having — but only across related boundaries, and only when
+        # the current boundary shows something to be suspicious about.
+        #
+        # Both guards were missing and it fired `Takeover=True` on a boundary
+        # where every regime scored 0 (root README Section 6g): the slope came
+        # from unrelated red-team cases, and nothing was measured on the
+        # boundary being judged. "Nothing observed" must never mean takeover.
+        if len(history) >= self.window_size and masked.severity >= 1:
+            recent    = history[-self.window_size:]
             ace_slope = recent[-1][0] - recent[0][0]
             ie_slope  = recent[-1][1] - recent[0][1]
             risk      = 0.5 * (max(-ace_slope, 0) + max(ie_slope, 0))
             if risk >= self.risk_threshold:
+                drift  = (f"Temporal drift over {self.window_size} boundaries "
+                          f"of session {session_id!r}: risk_score={risk:.2f}")
+                reason = f"{reason}; {drift}" if takeover else drift
                 takeover = True
-                reason   = f"Temporal drift: risk_score={risk:.2f}"
 
         return CausalDiagnostic(
             ace=ace, ie=ie, de=de,
