@@ -19,6 +19,7 @@ class EpisodeRecord:
     sanitization_decision:   Optional[Dict[str, Any]] = None   # from 3C, if triggered
     permission_decision:     Optional[Dict[str, Any]] = None   # from Layer 4 Permission Control
     egress_decision:         Optional[Dict[str, Any]] = None   # from Layer 4 Egress Filter
+    sandbox_result:           Optional[Dict[str, Any]] = None   # from Layer 4 Sandbox, if a command was executed
     outcome_severity:        int = 0        # 0=benign, 1=diagnostic, 2=high-impact
     final_status:            str = "unknown"  # blocked / approved_direct / approved_causal / safe_continuation
     timestamp:                str = field(default_factory=lambda: datetime.now().isoformat())

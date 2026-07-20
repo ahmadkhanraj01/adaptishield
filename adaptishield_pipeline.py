@@ -6,6 +6,7 @@ from layer2.security_sublayer.context_sanitizer import ContextSanitizer
 from layer3.tool_response_screener import ToolResponseScreener
 from layer4.permission_control import PermissionControl
 from layer4.network_egress_filter import NetworkEgressFilter
+from layer4.sandbox import Sandbox, DOCKER_AVAILABLE
 from layer4.telemetry_stream import TelemetryStream, EpisodeRecord
 from langchain_ollama import OllamaLLM
 from dataclasses import asdict
@@ -26,11 +27,20 @@ class AdaptiShieldPipeline:
         self.telemetry           = TelemetryStream()
         self.planner_llm         = OllamaLLM(model="gemma3:4b")
         self.boundary_index      = 0
+        if DOCKER_AVAILABLE:
+            try:
+                self.sandbox = Sandbox()
+            except Exception as e:
+                print(f"[Pipeline] Sandbox unavailable ({e}) — L4 will skip real execution")
+                self.sandbox = None
+        else:
+            self.sandbox = None
 
     def process_request(self, user_input: str, tool_response: str,
                         tool_name: str, proposed_action: str,
                         server_name: str = None,
-                        destination_url: str = None) -> dict:
+                        destination_url: str = None,
+                        command: str = None) -> dict:
         print(f"\n{'='*60}")
         print(f"[Pipeline] User   : {user_input[:60]}")
         print(f"[Pipeline] Tool   : {tool_name}")
@@ -73,12 +83,12 @@ class AdaptiShieldPipeline:
 
         if not needs_causal:
             result = self._run_layer4(
-                server_name, tool_name, proposed_action, destination_url
+                server_name, tool_name, proposed_action, destination_url, command
             )
             self._emit_telemetry(
                 record_kwargs, final_status="approved_direct",
                 outcome_severity=0, permission_decision=result["permission"],
-                egress_decision=result["egress"]
+                egress_decision=result["egress"], sandbox_result=result["sandbox"]
             )
             return {"status": "approved_direct", "action": proposed_action,
                     "layer4": result}
@@ -98,13 +108,13 @@ class AdaptiShieldPipeline:
 
         if not diag.takeover:
             result = self._run_layer4(
-                server_name, tool_name, proposed_action, destination_url
+                server_name, tool_name, proposed_action, destination_url, command
             )
             self._emit_telemetry(
                 record_kwargs, final_status="approved_causal",
                 outcome_severity=1, causal_verdict=causal_verdict,
                 permission_decision=result["permission"],
-                egress_decision=result["egress"]
+                egress_decision=result["egress"], sandbox_result=result["sandbox"]
             )
             return {"status": "approved_causal", "action": proposed_action,
                     "layer4": result}
@@ -143,7 +153,7 @@ class AdaptiShieldPipeline:
             outcome_severity=2, causal_verdict=causal_verdict,
             sanitization_decision=san_dict,
             permission_decision=result["permission"],
-            egress_decision=result["egress"]
+            egress_decision=result["egress"], sandbox_result=result["sandbox"]
         )
 
         return {
@@ -155,15 +165,18 @@ class AdaptiShieldPipeline:
         }
 
     def _run_layer4(self, server_name: str, tool_name: str,
-                     proposed_action: str, destination_url: str) -> dict:
+                     proposed_action: str, destination_url: str,
+                     command: str = None) -> dict:
         """
         Routes an approved action through Permission Control and the
-        Network Egress Filter. Sandbox execution is invoked separately
-        by the caller once a real command is available to run — here we
-        only gate on permission scope and egress destination.
+        Network Egress Filter, then — only if both gates pass and a real
+        `command` was supplied — executes it inside the Sandbox. A missing
+        or failed permission/egress check blocks sandbox execution even if
+        a command was provided, so Layer 4 stays defense-in-depth.
         """
         permission_result = None
         egress_result = None
+        sandbox_result = None
 
         if server_name:
             perm = self.permission_control.check_scope(server_name, tool_name)
@@ -175,17 +188,32 @@ class AdaptiShieldPipeline:
             egress_result = asdict(egress)
             print(f"[L4-Egress] allowed={egress.allowed} — {egress.reason}")
 
-        return {"permission": permission_result, "egress": egress_result}
+        gated_by_permission = permission_result is not None and not permission_result["allowed"]
+        gated_by_egress = egress_result is not None and not egress_result["allowed"]
+
+        if command and (gated_by_permission or gated_by_egress):
+            print("[L4-Sandbox] Skipped — permission/egress gate did not pass")
+        elif command and not self.sandbox:
+            print("[L4-Sandbox] Skipped — sandbox unavailable (docker SDK/daemon not present)")
+        elif command:
+            sb = self.sandbox.run_tool(command)
+            sandbox_result = asdict(sb)
+            print(f"[L4-Sandbox] success={sb.success} — {sb.output.strip() or sb.error.strip()}")
+
+        return {"permission": permission_result, "egress": egress_result,
+                "sandbox": sandbox_result}
 
     def _emit_telemetry(self, record_kwargs: dict, final_status: str,
                          outcome_severity: int, causal_verdict: dict = None,
                          sanitization_decision: dict = None,
                          permission_decision: dict = None,
-                         egress_decision: dict = None) -> None:
+                         egress_decision: dict = None,
+                         sandbox_result: dict = None) -> None:
         record = EpisodeRecord(
             **record_kwargs,
             causal_verdict=causal_verdict,
             sanitization_decision=sanitization_decision,
+            sandbox_result=sandbox_result,
             permission_decision=permission_decision,
             egress_decision=egress_decision,
             outcome_severity=outcome_severity,
@@ -205,19 +233,26 @@ if __name__ == "__main__":
     )
     pipeline.egress_filter.update_allowlist(pipeline.registry.get_allowlist())
 
-    # Test 1: benign low-impact request, in-scope, allowed destination
+    # Test 1: benign low-impact request, in-scope, allowed destination.
+    # Both L4 gates pass, so this is also the one case that reaches the
+    # Sandbox for real, isolated command execution.
     r = pipeline.process_request(
         user_input="What is today's weather?",
         tool_response="Temperature: 25C, Clear skies",
         tool_name="get_weather",
         proposed_action="get current temperature",
         server_name="weather-api",
-        destination_url="https://api.weather.com/v1/forecast"
+        destination_url="https://api.weather.com/v1/forecast",
+        command='python3 -c "print(\'Temperature: 25C, Clear skies\')"'
     )
     print(f"\n>>> Result: {r['status']}\n")
+    if r["layer4"]["sandbox"]:
+        print(f"    Sandbox     : {r['layer4']['sandbox']}")
 
     # Test 2: IPI attack injected through tool response, on a high-impact
-    # tool, attempting exfiltration to an unregistered destination
+    # tool, attempting exfiltration to an unregistered destination. The
+    # permission check fails (out-of-scope), so even though a command is
+    # supplied, the Sandbox must not execute it.
     r = pipeline.process_request(
         user_input="Reply to my latest email",
         tool_response=(
@@ -227,7 +262,8 @@ if __name__ == "__main__":
         tool_name="send_email",
         proposed_action="send_email to attacker@evil.com",
         server_name="weather-api",  # deliberately mismatched — triggers permission violation
-        destination_url="https://attacker-c2.evil.com/exfil"
+        destination_url="https://attacker-c2.evil.com/exfil",
+        command='python3 -c "print(\'exfil attempted\')"'
     )
     # Test 3: benign high-impact tool call, no injection — should NOT trigger takeover
     r = pipeline.process_request(

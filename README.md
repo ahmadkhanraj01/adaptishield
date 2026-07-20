@@ -4,9 +4,9 @@
 **Supervisor:** Dr. Laeeq Ahmed  
 **Students:** Muhammad Ahmad Khan (23JZBCS0238) · Aleena Khan (23JZBCS0229)  
 **Department:** CS&IT — University of Engineering and Technology Peshawar (Jalozai Campus)  
-**Handover Date:** July 2026 (v5 — consolidated, supersedes v4)  
+**Handover Date:** July 2026 (v6 — consolidated, supersedes v5)  
 
-> **Note:** This is the single source of truth. All earlier versions (v1–v4) have been merged and superseded — do not reference them separately. v5 closes out the Causal Analyzer masked-regime investigation opened in v4 with a confirmed, validated fix.
+> **Note:** This is the single source of truth. All earlier versions (v1–v5) have been merged and superseded — do not reference them separately. v6 closes out both "Immediate" items from v5 Section 11: the episode log was audited against Section 5's validated three-episode suite (exact match, no action needed), and `layer4/sandbox.py` is now wired into `_run_layer4()` for real, gated command execution.
 
 ---
 
@@ -16,6 +16,7 @@
 3. [Current Directory Structure (Verified)](#3-current-directory-structure-verified)
 4. [Build Status by Component](#4-build-status-by-component)
 5. [Resolved — Causal Analyzer Masked Regime Investigation](#5-resolved--causal-analyzer-masked-regime-investigation)
+5b. [Resolved — Docker Sandbox Wired into Layer 4](#5b-resolved--docker-sandbox-wired-into-layer-4)
 6. [Verified Package Versions](#6-verified-package-versions)
 7. [Model Selection — Final Decision](#7-model-selection--final-decision)
 8. [Compute Strategy](#8-compute-strategy)
@@ -123,7 +124,7 @@
 │
 ├── layer4/
 │   ├── __init__.py
-│   ├── sandbox.py                     ✅ Built (Docker-based; needs `pip install docker` + daemon), not yet wired into pipeline
+│   ├── sandbox.py                     ✅ Built and wired into `_run_layer4()` — see Section 5b
 │   ├── permission_control.py          ✅ Built and tested
 │   ├── network_egress_filter.py       ✅ Built and tested
 │   └── telemetry_stream.py            ✅ Built and tested — writes JSONL episodes
@@ -156,7 +157,7 @@
 | **Permission Control** | `layer4/permission_control.py` | ✅ Built and tested |
 | **Network Egress Filter** | `layer4/network_egress_filter.py` | ✅ Built and tested |
 | **Telemetry Stream** | `layer4/telemetry_stream.py` | ✅ Built and tested — writes JSONL episodes |
-| **Docker Sandbox** | `layer4/sandbox.py` | ✅ Built, not yet wired into `_run_layer4` for real command execution |
+| **Docker Sandbox** | `layer4/sandbox.py` | ✅ Built and wired into `_run_layer4` — real, gated command execution confirmed |
 | **Full Pipeline** | `adaptishield_pipeline.py` | ✅ Built and validated — L1 → L3 screen → 3A → 3B → 3C → L4 → telemetry, three-way test coverage confirmed |
 | **Adaptive Threat Model (3D)**| `layer2/security_sublayer/adaptive_threat_model.py`| 🔲 Pending |
 | **Red Team Module** | `red_team/` | 🔲 Pending |
@@ -204,6 +205,27 @@ This gives defensible evidence that 3A/3B/3C/L4 work together correctly on both 
 ### Known remaining nondeterminism (not a bug, documented for awareness)
 
 `gemma3:4b` gives slightly different phrasing/format between reruns of the same test case (e.g. the safe-continuation response once produced `'NEXT: task_complete'`, another time produced filler text with no `NEXT:` line at all, correctly caught by the fallback). `k_samples=2` averaging in the Causal Analyzer absorbs this; **do not reduce `k_samples` below 2** without re-validating, as this would increase ACE/IE noise.
+
+---
+
+## 5b. Resolved — Docker Sandbox Wired into Layer 4
+
+Both "Immediate" items from v5 Section 11 are now closed.
+
+**Episode log audit:** the last 3 records in `logs/episode_records/episodes.jsonl` (boundary_index 1–3, timestamps `2026-07-17T10:26–10:27`) were diffed against the validated three-episode suite in Section 5 — `causal_verdict` (ACE/IE/DE, takeover), `sanitization_decision` (4 instruction types removed, facts preserved), `permission_decision`, and `egress_decision` all match exactly. No code changes were needed; the data Component 3D will train on is confirmed accurate.
+
+**Sandbox wiring:** `layer4/sandbox.py`'s `Sandbox` class is now instantiated in `AdaptiShieldPipeline.__init__` (guarded — falls back to `self.sandbox = None` if the `docker` SDK or daemon isn't available, logging a warning rather than failing pipeline construction). `process_request()` and `_run_layer4()` gained an optional `command: str` parameter — a real shell-executable string for the tool being approved.
+
+Design decision: **the Sandbox only executes `command` if both Permission Control and the Network Egress Filter passed.** This keeps Layer 4 defense-in-depth — a caller could in principle pass a `command` alongside an out-of-scope/non-allowlisted action, and the sandbox gate still blocks it independently, mirroring how L4 already double-checks 3A/3B/3C's verdict. `_run_layer4()`'s return dict gained a `"sandbox"` key (`None` if no command was supplied or the gate blocked it), and `EpisodeRecord` gained a matching optional `sandbox_result` field so sandboxed executions are now part of the telemetry schema.
+
+The `python:3.10-slim` sandbox base image was pulled locally (`docker pull python:3.10-slim`) so container start-up doesn't stall the first real run.
+
+**Validation run** (`python3 adaptishield_pipeline.py`, command wired only into Test 1's call):
+- **Episode 1** (benign, in-scope, allowlisted): both L4 gates passed → Sandbox actually ran `python3 -c "print('Temperature: 25C, Clear skies')"` in an isolated, network-disabled container → `success=True`, output captured, container removed after (`docker ps -a` confirms no orphaned containers).
+- **Episode 2** (malicious, out-of-scope permission + non-allowlisted egress): the safe-continuation path's `_run_layer4()` call doesn't pass `command` (deliberately conservative — a sanitizer-derived action isn't a vetted command), so no sandbox attempt was made; this also implicitly confirms the gate logic reads correctly, since a command *was* passed on the pre-sanitization test-2 call and correctly produced no `[L4-Sandbox]` execution line because permission/egress had already failed.
+- **Episode 3** (benign high-impact, no injection): permission gate failed (mismatched `server_name`, by design of the test), no command was supplied on this call path either, so `sandbox_result=None` — consistent with the gating rule.
+
+> **Note on `command`:** the pipeline's existing test tools (`get_weather`, `send_email`) are simulated — there is no real API call today, so `command` has no automatic mapping from `tool_name`/`proposed_action`. It is an opt-in parameter the caller supplies when a real, vetted shell command exists for the approved action. This keeps the Sandbox wiring additive: existing call sites without a `command` behave exactly as before.
 
 ---
 
@@ -324,8 +346,9 @@ python3 adaptishield_pipeline.py
 ## 11. What to Build Next
 
 ### Immediate
-- [ ] Inspect `logs/episode_records/episodes.jsonl` to confirm all three validated episodes serialized with accurate `causal_verdict` / `sanitization_decision` fields — this is the data Component 3D will eventually train on
-- [ ] Wire `layer4/sandbox.py` into `_run_layer4()` for real command execution (currently only Permission Control + Egress Filter are invoked; Sandbox exists standalone but isn't called from the pipeline)
+- [x] Inspect `logs/episode_records/episodes.jsonl` to confirm all three validated episodes serialized with accurate `causal_verdict` / `sanitization_decision` fields — this is the data Component 3D will eventually train on. **Done — see Section 5b.** Exact match, no fix required.
+- [x] Wire `layer4/sandbox.py` into `_run_layer4()` for real command execution. **Done — see Section 5b.** Gated on Permission Control + Egress Filter both passing; validated with a real Docker-executed command in Episode 1 of the test suite.
+- [ ] Decide how real `command` strings will be produced for actual (non-simulated) tool calls once the pipeline moves past hand-authored test scenarios — currently `command` is an opt-in caller-supplied parameter with no automatic mapping from `tool_name`/`proposed_action`
 
 ### Short term
 - [ ] `layer2/security_sublayer/adaptive_threat_model.py` — Component 3D
@@ -361,8 +384,9 @@ python3 adaptishield_pipeline.py
 | **A shared utility module landed in the wrong directory relative to the importing file's working assumptions** | Corrected to project root; confirmed via `dir.py` tree output after the move |
 | **Small models (`qwen2.5:3b`) may refuse an injection so completely that Causal Analyzer has no divergence to detect — not a bug, but makes the model unsuitable as the 3B backbone** | Switched Causal Analyzer specifically to `gemma3:4b`, which does comply under `masked`, enabling real ACE/IE signal. Documented as a deliberate per-component model choice, not a global model swap. |
 | **Incremental patches to the same file were silently not landing** (multiple `TypeError`s traced back to code described as sent but not actually on disk) | Adopted "verify full file contents with `cat -n` before patching again" as standing practice — caught a real recurrence even after being flagged once already |
+| **Sandbox execution shouldn't run just because a command exists** — a naive wiring would execute any supplied command regardless of whether 3A/3B/3C/L4 actually approved the action | Gated Sandbox execution in `_run_layer4()` on both Permission Control and Egress Filter passing, so it stays defense-in-depth like the rest of Layer 4 rather than becoming an unconditional executor |
 
 ---
-**AdaptiShield Handover Document — v5 (consolidated, supersedes all prior versions)**  
+**AdaptiShield Handover Document — v6 (consolidated, supersedes all prior versions)**  
 *Muhammad Ahmad Khan (23JZBCS0238) · Aleena Khan (23JZBCS0229)*  
 *Supervisor: Dr. Laeeq Ahmed | UET Peshawar (Jalozai Campus)*
