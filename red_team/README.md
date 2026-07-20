@@ -22,14 +22,21 @@ Attack Generator → Execution Agent → Evaluator → Optimizer.
 ## What's done
 - Full generate → execute → evaluate → optimize → re-run loop, validated
   locally.
-- **Key finding (root README Section 5c):** keyword-softened generation-2
+- **Key finding (root README Section 6c):** keyword-softened generation-2
   attacks dropped 3B's `caught_by_causal` from 2/4 to 0/4 across all four
   families. ASR stayed 0% only because the static egress allowlist caught
   them — concrete evidence for why 3D is needed.
+- `ExecutionResult` now carries `tool_name`, `proposed_action`, and the full
+  `causal_verdict` (ACE/IE/DE **plus** the per-regime severities), so a report
+  can say *why* a case was caught, not just whether. This also fixed a bug in
+  3D's `from_execution_results()`, which had been reading `case_id` into
+  `tool_name` and would have nominated case IDs as high-impact tools.
 
 ## What's pending
 - Scale campaigns up (more directives/targets/families); move bulk runs to
-  Kaggle (root README Section 8).
+  Kaggle (root README Section 10). **Hold out at least one attacker target
+  from training** — root README Section 6d is a direct consequence of
+  evaluating a 3D update on the same address it was trained on.
 - Extend beyond `send_email` once the pipeline models more real tools.
 - Tighten the **WCR proxy** — it currently infers task completion from
   `final_status == safe_continuation` rather than verifying the user's

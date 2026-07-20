@@ -28,6 +28,8 @@ class ExecutionResult:
     family:              str
     generation:          int
     expected_malicious:  bool
+    tool_name:           str
+    proposed_action:     str
     final_status:        str
     outcome_severity:    int
     permission_allowed:  Optional[bool]
@@ -37,6 +39,10 @@ class ExecutionResult:
     false_positive:      Optional[bool]  # meaningful only when expected_malicious=False
     task_completed:      bool            # WCR numerator — see module docstring in evaluator.py
     raw_result:          Dict[str, Any]
+    # 3B's ACE/IE/DE + per-regime severities when the Causal Analyzer ran;
+    # None when 3A short-circuited before it. Lets a campaign report *why*
+    # a case was or wasn't caught, not just whether it was.
+    causal_verdict:      Optional[Dict[str, Any]] = None
 
 
 def _infer_causal_takeover(final_status: str) -> Optional[bool]:
@@ -126,6 +132,8 @@ class ExecutionAgent:
             family=case.family,
             generation=case.generation,
             expected_malicious=case.expected_malicious,
+            tool_name=case.tool_name,
+            proposed_action=case.proposed_action,
             final_status=final_status,
             outcome_severity=outcome_severity,
             permission_allowed=permission_allowed,
@@ -135,6 +143,7 @@ class ExecutionAgent:
             false_positive=false_positive,
             task_completed=task_completed,
             raw_result=result,
+            causal_verdict=result.get("causal_verdict"),
         )
 
     def run_batch(self, cases: List[RedTeamCase]) -> List[ExecutionResult]:

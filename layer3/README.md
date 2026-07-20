@@ -19,6 +19,12 @@ tools.
 ## What's done
 - LLM + keyword dual screening with disagreement logging
 - Wired into `adaptishield_pipeline.py` ahead of the Policy Engine
+- `ScreenResult.matched_markers` reports **every** keyword marker that hit,
+  not just the first, and the pipeline forwards it into `EpisodeRecord`
+  alongside a truncated mediator snippet. Component 3D consumes these as
+  candidate `blocked_patterns`, so it needs the full set — and a flagged
+  response with an *empty* marker list is itself the signal that the
+  injection's phrasing has drifted away from `KEYWORD_MARKERS`.
 
 ## What's pending
 - The actual tool-execution surface (APIs / DBs / file systems) is

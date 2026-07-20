@@ -22,6 +22,15 @@ class CausalDiagnostic:
     takeover:       bool
     boundary_index: int
     reason:         str
+    # Per-regime severities behind ACE/IE/DE. Kept because the aggregate
+    # contrasts hide *why* a boundary scored as it did: an IE of 0 can mean
+    # "the mediator carried no instruction" (masked=0) or "sanitisation
+    # failed to remove it" (masked=masked_san=2), and those call for
+    # opposite fixes. 3D and the red team both need to tell them apart.
+    orig_severity:       float = 0.0
+    masked_severity:     float = 0.0
+    masked_san_severity: float = 0.0
+    orig_san_severity:   float = 0.0
 
 class CausalAnalyzer:
     def __init__(self, model_name: str = "gemma3:4b", k_samples: int = 2):
@@ -187,5 +196,9 @@ class CausalAnalyzer:
             ace=ace, ie=ie, de=de,
             takeover=takeover,
             boundary_index=boundary_index,
-            reason=reason
+            reason=reason,
+            orig_severity=orig.severity,
+            masked_severity=masked.severity,
+            masked_san_severity=masked_san.severity,
+            orig_san_severity=orig_san.severity,
         )

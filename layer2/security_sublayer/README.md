@@ -40,18 +40,47 @@ a hidden injection, and how to continue safely if it is.
 - Validated locally, CPU-only, no torch: on a batch mirroring the gen-2
   campaign (4 softened attacks 3B missed), mean reward = −0.4 and 3D
   proposes `ie_threshold 0.5 → 0.4`, recovering the softened markers
-  (`"share"`, `"share copies of"`) that evaded 3B.
+  (`"share"`, `"share copies of"`) that evaded 3B. This validates the
+  plumbing — reward → proposal → gated apply — **not** that the proposal
+  improves detection. It does not; see below.
+
+## Component 3D — the loop does not yet close (root README Section 6d)
+`evaluation/adaptive_loop_experiment.py` applied a 3D proposal and re-ran the
+campaign. 3B's `caught_by_causal` did **not** improve (1/4 → 0/4). Three
+reasons, all reproducible:
+
+1. **The `ie_threshold` step is inert.** IE = `masked.severity −
+   masked_san.severity`; with `k_samples=2` each severity is a mean of two
+   integers in {0,1,2}, so IE only lands on multiples of 0.5. Across 58
+   recorded boundaries the observed IEs are {−0.5, 0, 1, 2} — none in
+   [0.4, 0.5). A 0.5 → 0.4 move cannot change any verdict.
+2. **The apparent fix was memorization.** All four attacks came back
+   `blocked` — by 3A, not 3B, because `_extract_targets()` had put the literal
+   `attacker@evil.com` into `blocked_patterns` and the test reused that
+   address. Against a held-out address the block rate is 0/4
+   (`evaluation/holdout_generalization_test.py`).
+3. **WCR regressed 25% → 0%** as blanket 3A blocks replaced 3C safe
+   continuations, and the current `RewardConfig` scores that as a win.
+
+**Root cause in 3B:** the missed cases show `masked = 0` (not
+`masked = masked_san`) — the masked probe returns `no_action`, so `gemma3:4b`
+never recognizes the softened phrasing as an instruction. There is no signal
+for any threshold to detect, because `_score_action()` matches a fixed verb
+keyword list and "share copies of" isn't on it.
 
 ## Component 3D — what's pending
+- **Prerequisites before GRPO** (see root README Section 13): give IE usable
+  resolution, make `_score_action` semantic rather than keyword-based, stop
+  `_extract_targets` proposing literal addresses, and make the reward
+  penalize losing a safe continuation.
 - Replace the v1 heuristic inside `propose_update()` with the real GRPO/RL
   training loop; train on Kaggle P100 (needs torch + GPU, can't run on the
   local 4GB card). The reward function and I/O contract stay the same.
-- **Telemetry-schema limitation:** the softened *phrasing* that evades 3B
-  lives in mediator content, which the current `EpisodeRecord` schema does
-  not store. 3D learns it here only because the red-team supplies
-  `flagged_markers`. Recording the screener's matched markers / a mediator
-  snippet in telemetry would let 3D learn paraphrases from live traffic too
-  (root README Section 5d).
+  Blocked on the prerequisites — otherwise GRPO optimizes an inert knob.
+- **Resolved:** `EpisodeRecord` now carries `screen_result.matched_markers`
+  and a 500-char `mediator_snippet`, and `load_labeled_from_jsonl()` reads
+  them into `LabeledEpisode`, so 3D no longer depends on the red team to hand
+  it `flagged_markers`.
 
 ## Run standalone
 ```bash

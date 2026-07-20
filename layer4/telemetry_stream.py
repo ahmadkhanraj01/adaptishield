@@ -16,6 +16,14 @@ class EpisodeRecord:
     tool_name:              str
     proposed_action:        str
     causal_verdict:          Optional[Dict[str, Any]] = None   # ACE/IE/DE + takeover from 3B
+    screen_result:           Optional[Dict[str, Any]] = None   # from Layer 3 screener: flagged/source/matched markers
+    # Truncated mediator (untrusted tool-response) content. 3D's blocked_pattern
+    # learning previously had to be fed markers by the red team, because the
+    # phrasing that evades 3B lives here and the record didn't keep it — so
+    # paraphrases could never be learned from live traffic. Truncated rather
+    # than stored whole: enough to recover the wording, bounded so the JSONL
+    # doesn't grow without limit. Note this log now contains untrusted text.
+    mediator_snippet:        Optional[str] = None
     sanitization_decision:   Optional[Dict[str, Any]] = None   # from 3C, if triggered
     permission_decision:     Optional[Dict[str, Any]] = None   # from Layer 4 Permission Control
     egress_decision:         Optional[Dict[str, Any]] = None   # from Layer 4 Egress Filter

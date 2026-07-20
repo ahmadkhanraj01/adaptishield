@@ -12,6 +12,11 @@ from langchain_ollama import OllamaLLM
 from dataclasses import asdict
 from utils.parsing import extract_next_action
 
+# How much untrusted mediator content EpisodeRecord keeps. Long enough to
+# recover an injected directive's phrasing, short enough that the JSONL
+# stays bounded on long tool responses.
+MEDIATOR_SNIPPET_CHARS = 500
+
 
 class AdaptiShieldPipeline:
     def __init__(self):
@@ -65,6 +70,18 @@ class AdaptiShieldPipeline:
         screen_result = self.tool_screener.screen(tool_response, tool_name)
         print(f"[L3] flagged={screen_result.is_flagged} — {screen_result.reason}")
 
+        # Carry the screener's verdict and a bounded slice of the untrusted
+        # mediator into telemetry, so 3D can mine paraphrased injection
+        # wording from live traffic instead of relying on the red team to
+        # hand it `flagged_markers`.
+        record_kwargs["screen_result"] = {
+            "is_flagged": screen_result.is_flagged,
+            "source": screen_result.source,
+            "reason": screen_result.reason,
+            "matched_markers": screen_result.matched_markers,
+        }
+        record_kwargs["mediator_snippet"] = mediator[:MEDIATOR_SNIPPET_CHARS] if mediator else None
+
         # --- 3A: Policy Engine ---
         policy = self.policy_engine.evaluate(tool_name, proposed_action)
         print(f"[3A] {policy.decision.value} — {policy.reason}")
@@ -104,7 +121,11 @@ class AdaptiShieldPipeline:
         print(f"[3B] {diag.reason}")
 
         causal_verdict = {"ace": diag.ace, "ie": diag.ie, "de": diag.de,
-                           "takeover": diag.takeover, "reason": diag.reason}
+                           "takeover": diag.takeover, "reason": diag.reason,
+                           "orig_severity": diag.orig_severity,
+                           "masked_severity": diag.masked_severity,
+                           "masked_san_severity": diag.masked_san_severity,
+                           "orig_san_severity": diag.orig_san_severity}
 
         if not diag.takeover:
             result = self._run_layer4(
@@ -117,7 +138,7 @@ class AdaptiShieldPipeline:
                 egress_decision=result["egress"], sandbox_result=result["sandbox"]
             )
             return {"status": "approved_causal", "action": proposed_action,
-                    "layer4": result}
+                    "causal_verdict": causal_verdict, "layer4": result}
 
         # --- 3C: Context Sanitizer ---
         print("[3C] Takeover confirmed — purifying mediator content...")
@@ -161,6 +182,7 @@ class AdaptiShieldPipeline:
             "original_action": proposed_action,
             "safe_action":     safe_action,
             "removed":         san.instructions_removed,
+            "causal_verdict":  causal_verdict,
             "layer4":          result
         }
 

@@ -54,8 +54,11 @@ class LabeledEpisode:
     final_status:     str            # blocked / approved_direct / approved_causal / safe_continuation
     is_malicious:     bool           # ground truth
     causal_takeover:  Optional[bool] = None  # what 3B decided, if it ran
-    # optional richer signal if the telemetry schema ever carries it:
+    # Richer signal now carried by EpisodeRecord: the markers Layer 3 matched,
+    # and a bounded slice of the untrusted mediator content the injection
+    # actually lived in.
     flagged_markers:  List[str] = field(default_factory=list)
+    mediator_snippet: Optional[str] = None
 
 
 # ── The proposal 3D hands to a human for approval ────────────────
@@ -172,14 +175,18 @@ class AdaptiveThreatModel:
             rationale.append(
                 f"tool(s) seen in missed attacks, nominate as high-impact: {candidate_tools}")
 
-        # Candidate blocked patterns: prefer explicit flagged markers if the
-        # telemetry carried them; otherwise fall back to exfil targets pulled
-        # from the proposed action. NOTE (limitation): the softened *phrasing*
-        # that evaded 3B lives in mediator content, which the current
-        # telemetry schema does NOT record — so 3D cannot yet learn the
-        # paraphrase itself from telemetry alone. Recording the screener's
-        # matched markers / a mediator snippet would unlock that. See root
-        # README Section 5d.
+        # Candidate blocked patterns: explicit flagged markers (now carried by
+        # EpisodeRecord.screen_result, so these survive a telemetry replay),
+        # plus exfil targets pulled from the proposed action.
+        #
+        # KNOWN DEFECT (root README Section 6d): _extract_targets() contributes
+        # *literal* addresses like "attacker@evil.com". Because 3A substring-
+        # matches blocked_patterns against proposed_action, that makes an
+        # applied update look highly effective when re-tested on the same
+        # address and do nothing against an unseen one — it is memorization,
+        # not generalization, and it inflates before/after numbers. Layer 4's
+        # egress allowlist already covers exact destinations. Generalize these
+        # or drop them from the proposal before training GRPO on this signal.
         patterns = set()
         for ep in missed:
             for m in ep.flagged_markers:
@@ -233,10 +240,8 @@ class AdaptiveThreatModel:
         episodes = []
         for r in results:
             episodes.append(LabeledEpisode(
-                tool_name=getattr(r, "family", "") and getattr(r, "case_id", "") or "",
-                proposed_action=r.raw_result.get("original_action")
-                    or r.raw_result.get("action")
-                    or r.raw_result.get("safe_action", ""),
+                tool_name=r.tool_name,
+                proposed_action=r.proposed_action,
                 final_status=r.final_status,
                 is_malicious=r.expected_malicious,
                 causal_takeover=r.causal_takeover,
@@ -263,12 +268,18 @@ class AdaptiveThreatModel:
                 if bidx not in labels:
                     continue
                 cv = rec.get("causal_verdict") or {}
+                sr = rec.get("screen_result") or {}
                 out.append(LabeledEpisode(
                     tool_name=rec.get("tool_name", ""),
                     proposed_action=rec.get("proposed_action", ""),
                     final_status=rec.get("final_status", "unknown"),
                     is_malicious=labels[bidx],
                     causal_takeover=cv.get("takeover"),
+                    # Markers the Layer 3 screener actually matched on this
+                    # episode. Records written before EpisodeRecord carried
+                    # screen_result simply yield an empty list.
+                    flagged_markers=list(sr.get("matched_markers") or []),
+                    mediator_snippet=rec.get("mediator_snippet"),
                 ))
         return out
 
