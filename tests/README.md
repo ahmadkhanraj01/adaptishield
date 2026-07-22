@@ -1,6 +1,6 @@
 # tests — Automated Test Suite
 
-**Status:** 🟡 Started — `test_takeover_rules.py` (8 tests, passing)
+**Status:** 🟡 Started — 22 tests passing (`test_takeover_rules.py` + `test_adaptive_threat_model.py`)
 
 ## Purpose
 A formal `pytest` suite covering every layer plus end-to-end pipeline cases,
@@ -10,9 +10,10 @@ each module's `__main__` block by hand.
 ## What's done
 | File | Covers | Tests |
 | :--- | :--- | :--- |
-| `test_takeover_rules.py` | All three of 3B's takeover paths (root README Sec. 6f–6h) | 8, ~0.7s |
+| `test_takeover_rules.py` | 3B's takeover paths + IE resolution (root README Sec. 6f–6h, 6d) | 9, ~0.7s |
+| `test_adaptive_threat_model.py` | 3D's reward + proposal + step sizing (root README Sec. 6d / 13) | 13, ~0.1s |
 
-What it pins:
+What `test_takeover_rules.py` pins:
 
 - **Temporal drift (6g)** — empty boundaries must not fire, genuine drift must
   still fire, drift must not leak across sessions, history is per-session.
@@ -23,6 +24,22 @@ What it pins:
   *and* an inconsistent separation, yet must still fire via the standalone
   rule. The consistency guard must never suppress strong evidence; that
   ordering is the load-bearing invariant between 6f and 6h.
+
+What `test_adaptive_threat_model.py` pins:
+
+- **No literal memorization (6d fix A)** — a missed attack naming
+  `attacker@evil.com` must never turn that literal address into a
+  `blocked_pattern`; only generalizable injection phrasing (`flagged_markers`)
+  survives. No `@` may appear in any proposed pattern.
+- **WCR guard in the reward (6d fix B)** — for a malicious episode, a 3C
+  `safe_continuation` must reward strictly above a blanket 3A `block`; both
+  stay positive (still a correct stop), and a block is surfaced in
+  `evaluate_batch()`'s `workflow_lost` list while benign scoring is untouched.
+- **IE step sizing (6d fix C)** — 3D's `threshold_step` equals the IE grid
+  (`CausalAnalyzer.ie_resolution` = `1/k_samples`), so a proposed move is one
+  grid unit (`0.5 → 0.0` at k=2), never the v1 inert `0.5 → 0.4` that fell
+  between achievable IE values. `test_takeover_rules.py` pins the resolution
+  itself (`ie_resolution` tracks `k_samples`).
 
 ## The pattern to follow
 `test_takeover_rules.py` patches the four probe regimes out and asserts on the
@@ -46,7 +63,6 @@ LLM call, so most of it can live here.
 | End-to-end pipeline | The 3 validated episodes in root README Section 6 make ready-made regression cases |
 | Layer 0–4 units | Each module's existing `__main__` assertions, promoted to `test_*.py` |
 | Red team metrics | `red_team/evaluator.py` ASR/FPR/WCR on a fixed `ExecutionResult` list — no LLM needed |
-| 3D reward + proposal | `adaptive_threat_model.py` is already CPU-only and deterministic; its `__main__` demo is nearly a test already |
 
 ## Run
 ```bash

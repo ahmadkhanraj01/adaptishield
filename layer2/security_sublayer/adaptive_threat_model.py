@@ -29,7 +29,6 @@ mutates the live engines. This matches PolicyEngine.update_rules()'s
 "called after human approval" contract.
 """
 
-import re
 import json
 import os
 from dataclasses import dataclass, field
@@ -40,7 +39,15 @@ from statistics import mean
 # ── Reward configuration ─────────────────────────────────────────
 @dataclass
 class RewardConfig:
-    correct_stop:   float =  1.0   # malicious -> blocked / safe_continuation
+    # Malicious episodes that were stopped are split by whether the legitimate
+    # workflow survived. WCR (Workflow Continuation Rate) is a first-class
+    # project metric, so a 3C safe_continuation (attack neutralized AND the
+    # user's task still completes) must out-reward a blanket 3A block (attack
+    # stopped, but the legitimate workflow is lost). Root README Section 6d:
+    # the applied 3D update traded safe_continuations for blocks and the reward
+    # scored it as a wash — this split stops GRPO from optimizing toward that.
+    correct_stop:   float =  1.0   # malicious -> safe_continuation (workflow preserved)
+    correct_block:  float =  0.7   # malicious -> blocked (attack stopped, workflow lost — WCR hit)
     correct_pass:   float =  0.8   # benign    -> approved
     missed_attack:  float = -1.0   # malicious -> approved by the security chain
     false_positive: float = -0.5   # benign    -> blocked / safe_continuation
@@ -85,11 +92,22 @@ APPROVED_STATUSES = {"approved_direct", "approved_causal"}
 
 class AdaptiveThreatModel:
     def __init__(self, reward_config: Optional[RewardConfig] = None,
-                 threshold_step: float = 0.1,
-                 min_ie_threshold: float = 0.1,
-                 max_ie_threshold: float = 1.0):
+                 threshold_step: Optional[float] = None,
+                 ie_resolution: float = 0.5,
+                 min_ie_threshold: float = 0.0,
+                 max_ie_threshold: float = 2.0):
         self.reward_config    = reward_config or RewardConfig()
-        self.threshold_step   = threshold_step
+        # IE is quantized to multiples of `ie_resolution` (= 1/k_samples on the
+        # CausalAnalyzer — pass `ie_resolution=ca.ie_resolution`). Root README
+        # Section 6d point 1 showed the v1 default (0.1) was a no-op: it moved
+        # ie_threshold 0.5 -> 0.4, but no IE ever lands in [0.4, 0.5), so no
+        # verdict could change. Unless a caller overrides it, one step is now
+        # exactly one grid unit — the finest move that can actually flip a
+        # decision. min/max are grid-aligned too (0.0 .. 2.0, IE's full range),
+        # so a down-step from 0.5 reaches 0.0 rather than clamping at 0.1 and
+        # re-opening the same sub-resolution gap.
+        self.ie_resolution    = ie_resolution
+        self.threshold_step   = threshold_step if threshold_step is not None else ie_resolution
         self.min_ie_threshold = min_ie_threshold
         self.max_ie_threshold = max_ie_threshold
 
@@ -97,9 +115,12 @@ class AdaptiveThreatModel:
     def compute_reward(self, ep: LabeledEpisode) -> float:
         rc = self.reward_config
         if ep.is_malicious:
-            if ep.final_status in STOPPED_STATUSES:
-                return rc.correct_stop
-            return rc.missed_attack        # approved a real attack (3B miss)
+            if ep.final_status not in STOPPED_STATUSES:
+                return rc.missed_attack     # approved a real attack (3B miss)
+            # Stopped — but reward the WCR-preserving outcome above the one
+            # that kills the legitimate workflow.
+            return (rc.correct_stop if ep.final_status == "safe_continuation"
+                    else rc.correct_block)
         else:
             if ep.final_status in APPROVED_STATUSES:
                 return rc.correct_pass
@@ -111,12 +132,15 @@ class AdaptiveThreatModel:
                     "false_positives": [], "correct": 0}
 
         missed, false_pos, correct = [], [], 0
+        workflow_lost = []   # malicious attacks stopped by a block, WCR forfeited
         rewards = []
         for ep in episodes:
             r = self.compute_reward(ep)
             rewards.append(r)
             if r > 0:
                 correct += 1
+                if ep.is_malicious and ep.final_status == "blocked":
+                    workflow_lost.append(ep)
             elif ep.is_malicious:
                 missed.append(ep)
             else:
@@ -128,6 +152,7 @@ class AdaptiveThreatModel:
             "correct":         correct,
             "missed_attacks":  missed,
             "false_positives": false_pos,
+            "workflow_lost":   workflow_lost,
         }
 
     # ---- Proposal (the "learning" step) ---------------------------
@@ -138,8 +163,11 @@ class AdaptiveThreatModel:
           - missed attacks push the IE threshold DOWN (make 3B more sensitive)
           - false positives push it UP (make 3B less trigger-happy)
         Net movement is one `threshold_step` in the direction of the larger
-        error class, clamped to [min, max]. Also surfaces candidate
-        blocked_patterns and high-impact tools drawn from missed attacks.
+        error class, clamped to [min, max]. `threshold_step` defaults to the IE
+        grid unit (`ie_resolution`), so the move always lands on an achievable
+        IE value and can actually change a verdict — see the __init__ note and
+        root README Section 6d point 1. Also surfaces candidate blocked_patterns
+        and high-impact tools drawn from missed attacks.
         """
         stats = self.evaluate_batch(episodes)
         missed   = stats["missed_attacks"]
@@ -175,23 +203,34 @@ class AdaptiveThreatModel:
             rationale.append(
                 f"tool(s) seen in missed attacks, nominate as high-impact: {candidate_tools}")
 
-        # Candidate blocked patterns: explicit flagged markers (now carried by
-        # EpisodeRecord.screen_result, so these survive a telemetry replay),
-        # plus exfil targets pulled from the proposed action.
+        # Surface WCR-forfeiting outcomes: attacks correctly stopped, but by a
+        # blanket block that killed the legitimate workflow. Still positively
+        # rewarded (the attack was stopped), just below a 3C safe_continuation.
+        if stats["workflow_lost"]:
+            rationale.append(
+                f"{len(stats['workflow_lost'])} attack(s) stopped by a block rather than "
+                f"a safe continuation — WCR forfeited (rewarded {self.reward_config.correct_block:+.1f} "
+                f"vs {self.reward_config.correct_stop:+.1f})")
+
+        # Candidate blocked patterns: the injection phrasing Layer 3 flagged
+        # (now carried by EpisodeRecord.screen_result, so these survive a
+        # telemetry replay). These are generalizable directive fragments like
+        # "share copies of" — they describe *how* an injection is worded, not
+        # the specific destination it targets.
         #
-        # KNOWN DEFECT (root README Section 6d): _extract_targets() contributes
-        # *literal* addresses like "attacker@evil.com". Because 3A substring-
-        # matches blocked_patterns against proposed_action, that makes an
-        # applied update look highly effective when re-tested on the same
-        # address and do nothing against an unseen one — it is memorization,
-        # not generalization, and it inflates before/after numbers. Layer 4's
-        # egress allowlist already covers exact destinations. Generalize these
-        # or drop them from the proposal before training GRPO on this signal.
+        # We deliberately do NOT harvest literal exfil targets (emails/URLs)
+        # from the proposed action anymore. Root README Section 6d showed why:
+        # 3A substring-matches blocked_patterns against proposed_action, so a
+        # literal "attacker@evil.com" makes an applied update look highly
+        # effective when re-tested on the same address and do nothing against
+        # an unseen one — memorization, not generalization, which silently
+        # inflated the before/after numbers. Layer 4's egress allowlist already
+        # covers exact destinations as defense-in-depth, so nothing is lost by
+        # dropping them here.
         patterns = set()
         for ep in missed:
             for m in ep.flagged_markers:
                 patterns.add(m.lower().strip())
-            patterns.update(self._extract_targets(ep.proposed_action))
         new_patterns = sorted(p for p in patterns if p)
         if new_patterns:
             rationale.append(f"candidate blocked_patterns from missed attacks: {new_patterns}")
@@ -204,12 +243,6 @@ class AdaptiveThreatModel:
             rationale=rationale,
             mean_reward=stats["mean_reward"],
         )
-
-    @staticmethod
-    def _extract_targets(text: str) -> List[str]:
-        emails = re.findall(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", text or "")
-        urls   = re.findall(r"https?://[^\s]+", text or "")
-        return [t.lower() for t in emails + urls]
 
     # ---- Apply (human-gated) --------------------------------------
     def apply_update(self, update: ProposedUpdate, policy_engine,
@@ -311,7 +344,15 @@ if __name__ == "__main__":
                        "approved_direct", is_malicious=False),
     ]
 
-    model = AdaptiveThreatModel()
+    # Size 3D's threshold step to 3B's IE grid (root README Section 6d point 1):
+    # at k_samples=2 the grid is 0.5, so a step of 0.5 is the finest move that
+    # can actually change a verdict. The v1 default of 0.1 moved 0.5 -> 0.4 and
+    # provably changed nothing.
+    from layer2.security_sublayer.causal_analyzer import CausalAnalyzer
+    ca = CausalAnalyzer()
+    model = AdaptiveThreatModel(ie_resolution=ca.ie_resolution)
+    print(f"[3D] IE grid = {ca.ie_resolution} (k_samples={ca.k_samples}); "
+          f"threshold_step = {model.threshold_step}")
 
     print("=== Per-episode reward ===")
     for ep in batch:
@@ -334,9 +375,7 @@ if __name__ == "__main__":
 
     # Demonstrate the human-approval gate
     from layer2.security_sublayer.policy_engine import PolicyEngine
-    from layer2.security_sublayer.causal_analyzer import CausalAnalyzer
     pe = PolicyEngine()
-    ca = CausalAnalyzer()
     print("\n=== Apply without approval (should refuse) ===")
     model.apply_update(proposal, pe, ca, approved=False)
     print("=== Apply with approval ===")

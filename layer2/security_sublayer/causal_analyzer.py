@@ -94,6 +94,26 @@ class CausalAnalyzer:
         # to 3C sanitisation and the takeover rule (root README Section 6e).
         self.semantic_scoring = semantic_scoring
         self._judge_cache: dict = {}
+
+    @property
+    def ie_resolution(self) -> float:
+        """
+        Smallest gap between two distinct IE values this analyzer can produce.
+
+        IE = mean(masked.samples) - mean(masked_san.samples), and every sample
+        is an integer severity in {0,1,2}, so each regime mean lands on a
+        multiple of 1/k_samples and so does IE. At the default k_samples=2 the
+        grid is 0.5; nothing 3B measures ever falls between two grid points.
+
+        Component 3D reads this to size its ie_threshold step: a step smaller
+        than one grid unit provably cannot change any verdict (root README
+        Section 6d, point 1 — "3D's step size is finer than the metric's
+        resolution"). Raising k_samples shrinks the grid (finer 3D control) at
+        the cost of k_samples LLM calls per regime; re-validate 3B first, per
+        the design note on k_samples in the root README.
+        """
+        return 1.0 / self.k_samples
+
     def _extract_next_action(self, response: str) -> str:
         return extract_next_action(response)
     def _extract_suspicious_targets(self, mediator: str) -> List[str]:

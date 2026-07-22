@@ -115,24 +115,33 @@ Cost when on: one extra LLM call per probe sample that isn't short-circuited,
 cached per `(action, mediator)`.
 
 ## Component 3D — what's done (v1 local heuristic)
-- GRPO reward implemented exactly per spec: `+1.0` correct block/safe
-  continuation, `+0.8` correct pass, `−1.0` missed attack, `−0.5` false
-  positive.
+- GRPO reward, WCR-aware: `+1.0` malicious → safe_continuation (attack stopped
+  *and* workflow preserved), `+0.7` malicious → blocked (stopped but workflow
+  lost), `+0.8` correct pass, `−1.0` missed attack, `−0.5` false positive. The
+  `+1.0`/`+0.7` split stops a blanket 3A block scoring the same as a 3C safe
+  continuation (root README Section 6d fix B).
 - `propose_update()` turns the reward signal into a bounded, directional
   update — lowers `ie_threshold` when attacks are missed, raises it on false
   positives, and surfaces candidate `blocked_patterns` / `high_impact_tools`
-  from missed attacks.
+  from missed attacks. Blocked-pattern candidates are the generalizable
+  injection phrasing Layer 3 flagged only — it no longer harvests literal
+  exfil addresses/URLs (root README Section 6d fix A).
 - **Human-in-the-loop:** `apply_update(..., approved=True)` is required to
   mutate the live engines (matches `PolicyEngine.update_rules()`'s "after
   human approval" contract). 3D proposes; Layer 5 disposes.
 - Adapters: `from_execution_results()` (labeled red-team data) and
   `load_labeled_from_jsonl()` (replay stored telemetry with a labels map).
+- Threshold moves are sized to 3B's IE grid: 3D reads
+  `CausalAnalyzer.ie_resolution` (= `1/k_samples`, 0.5 at k=2) and steps by one
+  grid unit, so a proposed move always lands on an achievable IE value (root
+  README Section 6d fix C). The v1 `0.5 → 0.4` step was a provable no-op.
 - Validated locally, CPU-only, no torch: on a batch mirroring the gen-2
   campaign (4 softened attacks 3B missed), mean reward = −0.4 and 3D
-  proposes `ie_threshold 0.5 → 0.4`, recovering the softened markers
-  (`"share"`, `"share copies of"`) that evaded 3B. This validates the
-  plumbing — reward → proposal → gated apply — **not** that the proposal
-  improves detection. It does not; see below.
+  proposes `ie_threshold 0.5 → 0.0` (one grid unit), recovering the softened
+  markers (`"share"`, `"share copies of"`) that evaded 3B — with no literal
+  address in the proposal. This validates the plumbing — reward → proposal →
+  gated apply — **not** that the proposal improves detection. It does not; see
+  below.
 
 ## Component 3D — the loop does not yet close (root README Section 6d)
 `evaluation/adaptive_loop_experiment.py` applied a 3D proposal and re-ran the
@@ -143,14 +152,22 @@ reasons, all reproducible:
    masked_san.severity`; with `k_samples=2` each severity is a mean of two
    integers in {0,1,2}, so IE only lands on multiples of 0.5. Across 58
    recorded boundaries the observed IEs are {−0.5, 0, 1, 2} — none in
-   [0.4, 0.5). A 0.5 → 0.4 move cannot change any verdict.
+   [0.4, 0.5). A 0.5 → 0.4 move cannot change any verdict. **Fixed:** 3D now
+   sizes its step to `ie_resolution` (= `1/k_samples`), so a move is one grid
+   unit (`0.5 → 0.0` at k=2) and lands on an achievable IE. The knob is no
+   longer inert — though catching *these* `masked=0` cases still needs the
+   `no_action` fix below.
 2. **The apparent fix was memorization.** All four attacks came back
    `blocked` — by 3A, not 3B, because `_extract_targets()` had put the literal
    `attacker@evil.com` into `blocked_patterns` and the test reused that
    address. Against a held-out address the block rate is 0/4
-   (`evaluation/holdout_generalization_test.py`).
+   (`evaluation/holdout_generalization_test.py`). **Fixed:**
+   `_extract_targets()` is removed; proposals now carry only generalizable
+   markers, so this can no longer manufacture an apparent fix.
 3. **WCR regressed 25% → 0%** as blanket 3A blocks replaced 3C safe
-   continuations, and the current `RewardConfig` scores that as a win.
+   continuations, and `RewardConfig` scored that as a win. **Fixed:** the
+   reward now rewards a safe_continuation (`+1.0`) above a block (`+0.7`), so
+   the trade is no longer scored as a wash.
 
 **Root cause in 3B:** the missed cases show `masked = 0` (not
 `masked = masked_san`) — the masked probe returns `no_action`, so `gemma3:4b`
@@ -159,10 +176,14 @@ for any threshold to detect, because `_score_action()` matches a fixed verb
 keyword list and "share copies of" isn't on it.
 
 ## Component 3D — what's pending
-- **Prerequisites before GRPO** (see root README Section 13): give IE usable
-  resolution, make `_score_action` semantic rather than keyword-based, stop
-  `_extract_targets` proposing literal addresses, and make the reward
-  penalize losing a safe continuation.
+- **Prerequisites before GRPO** (see root README Section 13): the remaining one
+  is fixing 3B's `no_action` refusals on softened injections (the largest
+  detection gap — no signal exists for any rule to read). ~~stop
+  `_extract_targets` proposing literal addresses~~ (fix A), ~~penalize losing a
+  safe continuation in the reward~~ (fix B), and ~~give IE usable resolution~~
+  (fix C — step now sized to `ie_resolution`) are **done** (Section 6d);
+  `_score_action` semantic scoring was tried and left off by default
+  (Section 6e).
 - Replace the v1 heuristic inside `propose_update()` with the real GRPO/RL
   training loop; train on Kaggle P100 (needs torch + GPU, can't run on the
   local 4GB card). The reward function and I/O contract stay the same.

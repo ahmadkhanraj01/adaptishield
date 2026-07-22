@@ -46,7 +46,7 @@ The full defensive pipeline (Layers 0–4) and the complete Security Sub-layer (
 | Red Team Module | ✅ v1 built & validated (found a real 3B gap) |
 | Full pipeline (`adaptishield_pipeline.py`) | ✅ Validated on true-positive + true-negative + benign cases |
 | Adaptive-loop experiment (`evaluation/`) | ✅ Built & run — **negative result, see Section 6d** |
-| pytest suite (`tests/`) | 🟡 Started — 8 deterministic tests on 3B's takeover rules |
+| pytest suite (`tests/`) | 🟡 Started — 22 deterministic tests: 3B takeover rules + IE resolution + 3D reward/proposal |
 | Eight-vector benchmark · Layer 5 dashboard | 🔲 Pending |
 
 **Rough completion: ~65%.** The adaptive mechanism runs end-to-end — 3D scores episodes, proposes a bounded update, and a human gates it. What is *not* yet demonstrated is that the update **improves detection**: the first honest before/after test says it does not. Treat "the adaptive loop closes" as an open question, not a settled result.
@@ -159,7 +159,8 @@ The full defensive pipeline (Layers 0–4) and the complete Security Sub-layer (
 ├── layer5/                             🔲 pending (README.md placeholder)
 └── tests/
     ├── README.md
-    └── test_takeover_rules.py          ✅ 8 deterministic tests, no LLM (Sections 6f–6h)
+    ├── test_takeover_rules.py          ✅ 9 deterministic tests, no LLM (Sections 6f–6h + IE resolution)
+    └── test_adaptive_threat_model.py   ✅ 13 deterministic tests, no LLM (3D reward + proposal + step sizing)
 ```
 
 ---
@@ -185,7 +186,8 @@ The full defensive pipeline (Layers 0–4) and the complete Security Sub-layer (
 | Adaptive-loop experiment | `evaluation/adaptive_loop_experiment.py` | ✅ Built & run (negative result, Sec. 6d) |
 | Holdout generalization test | `evaluation/holdout_generalization_test.py` | ✅ Built & run |
 | Eight-vector benchmark | `evaluation/` | 🔲 Pending |
-| Drift-rule regression tests | `tests/test_takeover_rules.py` | ✅ 4 passing, no LLM required |
+| Drift-rule + IE-resolution tests | `tests/test_takeover_rules.py` | ✅ 9 passing, no LLM required |
+| 3D reward/proposal/step tests | `tests/test_adaptive_threat_model.py` | ✅ 13 passing, no LLM required |
 | Layer 5 (Dashboard/Console) | `layer5/` | 🔲 Pending |
 | Unit tests | `tests/` | 🔲 Pending |
 
@@ -217,7 +219,7 @@ Four stages — Attack Generator → Execution Agent → Evaluator → Optimizer
 - **Human-in-the-loop:** `apply_update()` refuses unless `approved=True`.
 - **Labeled data:** telemetry has no ground-truth label, so 3D trains on labeled red-team `ExecutionResult`s (`from_execution_results()`) or replays telemetry with a `boundary_index → is_malicious` map (`load_labeled_from_jsonl()`).
 
-**Validation:** on a batch mirroring the gen-2 campaign (4 softened attacks 3B missed), mean reward = **−0.40** and 3D proposed `ie_threshold 0.5 → 0.4`, recovered the softened markers (`"share"`, `"share copies of"`), nominated `send_email` as high-impact, refused to apply without approval, then committed on approval. Note this validates the *plumbing* — reward → proposal → gated apply — not that the proposal helps. See 6d.
+**Validation:** on a batch mirroring the gen-2 campaign (4 softened attacks 3B missed), mean reward = **−0.40** and 3D proposed `ie_threshold 0.5 → 0.0` (one IE grid unit — see Section 13), recovered the softened markers (`"share"`, `"share copies of"`, no longer any literal address — Section 13 fix A), nominated `send_email` as high-impact, refused to apply without approval, then committed on approval. Note this validates the *plumbing* — reward → proposal → gated apply — not that the proposal helps. See 6d.
 
 **Resolved (was an open limitation):** `EpisodeRecord` now stores `screen_result` (including every keyword marker Layer 3 matched, not just the first) and a 500-char `mediator_snippet`, and `load_labeled_from_jsonl()` reads them back into `LabeledEpisode.flagged_markers` / `.mediator_snippet`. 3D can now mine injection phrasing from live telemetry instead of depending on the red team to hand it markers. Older records without these fields degrade to an empty marker list. **Note:** the episode log now contains untrusted mediator text — treat it as untrusted input anywhere it is displayed or replayed.
 
@@ -233,9 +235,9 @@ Four stages — Attack Generator → Execution Agent → Evaluator → Optimizer
 | WCR | 25% | 0% | 0% |
 | FPR | — | 0% | — |
 
-**1. The `ie_threshold` move is inert.** IE = `masked.severity − masked_san.severity`, and with `k_samples=2` each severity is a mean of two integers in {0,1,2} — so IE only takes values in multiples of 0.5. Across all 58 recorded boundaries the observed IEs are {−0.5, 0, 1, 2}; none lie in [0.4, 0.5). A 0.5 → 0.4 step provably cannot change any verdict. **3D's step size is finer than the metric's resolution.**
+**1. The `ie_threshold` move is inert.** IE = `masked.severity − masked_san.severity`, and with `k_samples=2` each severity is a mean of two integers in {0,1,2} — so IE only takes values in multiples of 0.5. Across all 58 recorded boundaries the observed IEs are {−0.5, 0, 1, 2}; none lie in [0.4, 0.5). A 0.5 → 0.4 step provably cannot change any verdict. **3D's step size is finer than the metric's resolution.** *(Now fixed — see Section 13. 3D sizes its step from `CausalAnalyzer.ie_resolution`, so a move is one grid unit (0.5 → 0.0 at k=2) and always lands on an achievable IE. The knob is no longer inert; it still needs the `no_action` fix to catch these particular `masked=0` cases.)*
 
-**2. The apparent fix was memorization.** After the update all four attacks came back `blocked` — but by **3A, not 3B**. 3D's `_extract_targets()` had harvested the literal `attacker@evil.com` out of the training episodes' `proposed_action` into `blocked_patterns`, and the test cases reused that address. Against the held-out address `leaker@shadow-mail.net` the 3A block rate is **0/4**. ASR stays 0% only because the Layer 4 egress allowlist catches it — the same static backstop that was already doing the work before 3D ran.
+**2. The apparent fix was memorization.** After the update all four attacks came back `blocked` — but by **3A, not 3B**. 3D's `_extract_targets()` had harvested the literal `attacker@evil.com` out of the training episodes' `proposed_action` into `blocked_patterns`, and the test cases reused that address. Against the held-out address `leaker@shadow-mail.net` the 3A block rate is **0/4**. ASR stays 0% only because the Layer 4 egress allowlist catches it — the same static backstop that was already doing the work before 3D ran. *(Root cause now closed: `_extract_targets()` is removed and `propose_update()` no longer harvests literal addresses — see Section 13. This kills the memorization; it does not by itself make 3B detect softened injections, which still needs the measurement fixes.)*
 
 **3. WCR regressed 25% → 0%.** Blanket 3A blocks replaced 3C safe continuations. On the project's own metrics the update traded a continuation win for nothing.
 
@@ -341,7 +343,7 @@ python3 -m evaluation.holdout_generalization_test           # same update vs an 
 
 | Test | Command | Expected |
 | :--- | :--- | :--- |
-| Drift-rule unit tests | `pytest tests/ -v` | 4 passed in under a second |
+| Deterministic unit tests | `pytest tests/ -v` | 22 passed in under a second |
 | Server Trust Registry | `python3 layer0/server_trust_registry.py` | legit `True`, rug-pull `False` |
 | Provenance tagging | `python3 layer1/provenance.py` | trusted + mediator partitions |
 | Policy Engine | `python3 layer2/security_sublayer/policy_engine.py` | approve_direct / send_to_causal / block |
@@ -351,7 +353,7 @@ python3 -m evaluation.holdout_generalization_test           # same update vs an 
 | Telemetry Stream | `python3 layer4/telemetry_stream.py` | episode appended to JSONL |
 | Full pipeline | `python3 adaptishield_pipeline.py` | approved_direct · safe_continuation (Takeover=True) · approved_causal |
 | Red team campaign | `python3 -m red_team.run_campaign` | ASR=0%/FPR=0%/WCR=50%; gen-2 `caught_by_causal` drops to 0/4 |
-| Component 3D | `python3 -m layer2.security_sublayer.adaptive_threat_model` | mean reward −0.40; proposes `ie_threshold 0.5→0.4`; apply gated on approval |
+| Component 3D | `python3 -m layer2.security_sublayer.adaptive_threat_model` | mean reward −0.40; proposes `ie_threshold 0.5→0.0` (one IE grid unit); patterns carry no literal address; apply gated on approval |
 | Adaptive loop (before/after) | `python3 -m evaluation.adaptive_loop_experiment` | 3B `caught_by_causal` does **not** improve; attacks blocked by 3A on a memorized address; WCR drops to 0% |
 | Holdout generalization | `python3 -m evaluation.holdout_generalization_test` | 0/4 blocked by 3A, 0/4 caught by 3B — the update does not generalize |
 | Scorer ablation | `python3 -m evaluation.score_action_ablation` | semantic 10/10, keyword 9/10 per-action (system numbers go the other way — Sec. 6e) |
@@ -575,15 +577,26 @@ figure.
 
 ### Immediate — make 3D able to affect the outcome at all
 
-Section 6d showed the current adaptive loop cannot close this gap: 3B emits no
-signal on softened injections (`masked = 0`), and 3D's threshold step is finer
-than IE's resolution. Fix the measurement before training anything on it.
+Section 6d showed the v1 adaptive loop could not close this gap for two
+reasons: 3D's threshold step was finer than IE's resolution (**fixed** — the
+step is now sized to `ie_resolution`, first item below), and 3B emits no signal
+on softened injections (`masked = 0`, still open — the `no_action` item below).
+Fix the measurement before training anything on it.
 
-- [ ] **Give IE usable resolution.** With `k_samples=2`, IE is quantized to
-  multiples of 0.5, so sub-0.5 threshold moves are no-ops. Either raise
-  `k_samples` (costs ~2× LLM calls per regime) or have `_score_action` return
-  a graded score instead of {0,1,2}. Re-validate 3B afterwards — the root
-  README's own design note warns against changing `k_samples` blind.
+- [x] ~~**Give IE usable resolution.**~~ **Done.** The direct fix for "3D's
+  step size is finer than the metric's resolution" (6d point 1) is to make the
+  step *equal* the resolution. `CausalAnalyzer.ie_resolution` (= `1/k_samples`,
+  0.5 at k=2) is now the source of truth for the IE grid, and
+  `AdaptiveThreatModel` sizes `threshold_step` from it (default = one grid
+  unit) with grid-aligned bounds `[0.0, 2.0]`. A proposed move now lands on an
+  achievable IE value — the demo moves `0.5 → 0.0`, not the old inert
+  `0.5 → 0.4`. This needed **no** change to the probe/scorer/`k_samples`, so 3B
+  is untouched and no re-validation was required; raising `k_samples` later
+  automatically gives finer steps (finer GRPO control at ~k× LLM cost). Pinned
+  in `tests/test_adaptive_threat_model.py` + `tests/test_takeover_rules.py`.
+  **Note:** this makes the knob non-inert *in principle*; it does not by itself
+  catch the softened attacks, which have `masked=0` (no signal) — that still
+  needs the `no_action` fix below.
 - [x] ~~Fix the real miss: `_score_action` is a verb keyword list.~~ **Done and
   measured — it was not the real miss.** The semantic scorer is more accurate
   per-action and worse end-to-end, so it ships off by default (Section 6e).
@@ -607,16 +620,22 @@ than IE's resolution. Fix the measurement before training anything on it.
 - [ ] **Run the judge at temperature 0** if semantic scoring is revisited. The
   observed FPR regression was flaky (`benign-2` fired once, then didn't on
   identical input) because the judge disagrees with itself across paraphrases.
-- [ ] **Stop 3D memorizing literals.** `_extract_targets()` writes raw
-  addresses like `attacker@evil.com` into `blocked_patterns`. Generalize
-  (e.g. "an address that first appeared in mediator content") or drop targets
-  from the pattern proposal entirely — Layer 4's egress allowlist already
-  covers exact destinations, and the current behavior inflates before/after
-  numbers whenever the test reuses a training address.
-- [ ] **Guard WCR in the reward.** The applied update traded 3C safe
-  continuations for blanket 3A blocks and `RewardConfig` scored that as a win.
-  A blocked-but-benign-continuation-lost outcome should not reward the same as
-  a safe continuation.
+- [x] ~~**Stop 3D memorizing literals.**~~ **Done.** `_extract_targets()` (and
+  its `re` import) is removed; `propose_update()` no longer harvests literal
+  addresses/URLs into `blocked_patterns`, keeping only the generalizable
+  injection phrasing from `flagged_markers`. Layer 4's egress allowlist still
+  covers exact destinations as defense-in-depth. The 3D demo proposal is now
+  `['share', 'share copies of']` with no `attacker@evil.com` — so a reused
+  training address can no longer inflate before/after numbers. Pinned by
+  `tests/test_adaptive_threat_model.py` (no literal `@` may appear in a
+  proposal).
+- [x] ~~**Guard WCR in the reward.**~~ **Done.** `RewardConfig` split the
+  malicious-stopped case: `safe_continuation` keeps `correct_stop=+1.0`, a
+  blanket block now scores `correct_block=+0.7` (attack stopped, workflow
+  lost). Both stay positive (still a correct stop) but the WCR-preserving
+  outcome wins, so GRPO can no longer treat trading a 3C continuation for a 3A
+  block as a wash. `evaluate_batch()` surfaces a `workflow_lost` list and
+  `propose_update()` reports it. Pinned in `tests/test_adaptive_threat_model.py`.
 
 ### Short term — Component 3D real training
 - [ ] Replace the v1 heuristic inside `propose_update()` with the real GRPO/RL loop (torch); train on Kaggle P100. Keep the same reward function and `LabeledEpisode → ProposedUpdate → apply_update` contract. **Blocked on the four items above** — training a policy over a knob that provably cannot change the verdict will produce a confident no-op.

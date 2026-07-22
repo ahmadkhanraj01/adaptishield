@@ -155,7 +155,10 @@ def run_experiment(max_directives: int = 1, max_targets: int = 1,
 
     # ── Phase 3: 3D proposes ─────────────────────────────────────
     print(f"\n{'#'*64}\n# PHASE 3 — Component 3D proposes an update\n{'#'*64}")
-    model = AdaptiveThreatModel()
+    # Size 3D's threshold step to 3B's IE grid so a proposed move is at least
+    # one grid unit — otherwise it is a provable no-op (root README Sec. 6d).
+    model = AdaptiveThreatModel(
+        ie_resolution=agent_before.pipeline.causal_analyzer.ie_resolution)
     episodes = to_labeled(results_before, markers_by_case)
     stats = model.evaluate_batch(episodes)
     print(f"  mean_reward={stats['mean_reward']:+.3f}  correct={stats['correct']}/{stats['n']}  "

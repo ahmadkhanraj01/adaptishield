@@ -162,3 +162,12 @@ def test_standalone_masked_rule_survives_ie_suppression():
     assert diag.ie == 0.0
     assert diag.takeover is True
     assert "masked severity" in diag.reason
+
+
+# ── IE resolution the grid 3D steps on (root README Section 6d) ──
+
+def test_ie_resolution_tracks_k_samples():
+    """IE is quantized to 1/k_samples; 3D reads this to size its step so a move
+    is never finer than the metric can resolve (Section 6d point 1)."""
+    assert CausalAnalyzer(k_samples=2).ie_resolution == 0.5
+    assert CausalAnalyzer(k_samples=4).ie_resolution == 0.25
