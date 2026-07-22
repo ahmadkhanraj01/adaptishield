@@ -1,6 +1,6 @@
 # tests — Automated Test Suite
 
-**Status:** 🟡 Started — 22 tests passing (`test_takeover_rules.py` + `test_adaptive_threat_model.py`)
+**Status:** 🟡 Started — 23 tests passing (`test_takeover_rules.py` + `test_adaptive_threat_model.py`)
 
 ## Purpose
 A formal `pytest` suite covering every layer plus end-to-end pipeline cases,
@@ -11,7 +11,7 @@ each module's `__main__` block by hand.
 | File | Covers | Tests |
 | :--- | :--- | :--- |
 | `test_takeover_rules.py` | 3B's takeover paths + IE resolution (root README Sec. 6f–6h, 6d) | 9, ~0.7s |
-| `test_adaptive_threat_model.py` | 3D's reward + proposal + step sizing (root README Sec. 6d / 13) | 13, ~0.1s |
+| `test_adaptive_threat_model.py` | 3D's reward + proposal + step sizing + loop-closes (root README Sec. 6d / 6k / 13) | 14, ~0.1s |
 
 What `test_takeover_rules.py` pins:
 

@@ -22,10 +22,14 @@ Attack Generator → Execution Agent → Evaluator → Optimizer.
 ## What's done
 - Full generate → execute → evaluate → optimize → re-run loop, validated
   locally.
-- **Key finding (root README Section 6c):** keyword-softened generation-2
-  attacks dropped 3B's `caught_by_causal` from 2/4 to 0/4 across all four
-  families. ASR stayed 0% only because the static egress allowlist caught
-  them — concrete evidence for why 3D is needed.
+- **Key finding (root README Section 6c), and its resolution:** keyword-softened
+  generation-2 attacks originally dropped 3B's `caught_by_causal` to 0/4 — ASR
+  stayed 0% only because the static egress allowlist caught them, concrete
+  evidence for why the causal detector needed work. This gap is **now closed by
+  fix D** (§6i, the masked-probe rewrite): across five repeated campaigns gen-2
+  `caught_by_causal` is **4/4 in 4 of 5 runs** (3/4 in one), FPR and ASR 0%. The
+  campaign remains the instrument that surfaced the gap and now measures its
+  closure.
 - `ExecutionResult` now carries `tool_name`, `proposed_action`, and the full
   `causal_verdict` (ACE/IE/DE **plus** the per-regime severities), so a report
   can say *why* a case was caught, not just whether. This also fixed a bug in

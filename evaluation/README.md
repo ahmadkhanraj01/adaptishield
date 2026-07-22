@@ -1,7 +1,13 @@
 # Evaluation Framework
 
-**Status:** 🟡 Partial — the adaptive-loop experiment is built and has produced
-a result; the formal eight-vector benchmark is still pending.
+**Status:** 🟡 Partial — the adaptive-loop experiment ran (negative result,
+Sec. 6d), the four causes were fixed (A–D), and the loop was re-run (Phase 5)
+and shown to close a controlled gap (Phase 5b). The formal eight-vector
+benchmark is still pending.
+
+> **Reading order:** the 6d result below is the **historical** negative result
+> that motivated fixes A–D. What happened *after* the fixes is in
+> "Post-fix results" (Phase 5 / 5b) further down, and in root README §6i–6k.
 
 ## Purpose
 The formal benchmark: run a fixed set of attack vectors against a **static
@@ -28,14 +34,29 @@ the update):
 python3 -m evaluation.adaptive_loop_experiment
 ```
 
-### `holdout_generalization_test.py` — was it learning or memorization?
+### `holdout_generalization_test.py` — was it learning or memorization? *(historical)*
 Re-applies the same proposal, then attacks with a **held-out** attacker
 address the update never saw (`leaker@shadow-mail.net`; training used
-`attacker@evil.com` only). This is what separates a real defense improvement
-from recognition of one memorized string.
+`attacker@evil.com` only). This is what separated a real defense improvement
+from recognition of one memorized string. **Now historical:** it hardcodes the
+old memorized proposal, which fix A means 3D no longer produces; retained as the
+artifact that motivated fix A.
 
 ```bash
 python3 -m evaluation.holdout_generalization_test
+```
+
+### `mechanism_validation.py` — does the loop close a gap when one exists? *(Phase 5b)*
+Deterministic (patched regimes, <1s, no LLM). Constructs an honest gap — a
+diagnostic-style injection with `masked=1` so the standalone rule cannot fire,
+missed only because `ie_threshold` is set too high — then drives the real loop:
+miss → 3D proposes (`1.5→1.0`, no literal address) → apply → catch, on both the
+training attack **and a held-out attacker address 3D never saw**. Demonstrates
+the loop closing *and* generalizing, in explicit contrast to 6d. Pinned in
+`tests/test_adaptive_threat_model.py`. (Root README §6k.)
+
+```bash
+python3 -m evaluation.mechanism_validation
 ```
 
 ### `score_action_ablation.py` — keyword vs semantic severity scoring
@@ -48,7 +69,7 @@ end-to-end, so this script should always be read next to the system numbers.
 python3 -m evaluation.score_action_ablation
 ```
 
-## Result (2026-07-20) — the adaptive loop did **not** close
+## Result (2026-07-20, HISTORICAL) — the adaptive loop did **not** close
 
 | Measure | Before | After (training address) | After (held-out address) |
 | :--- | :--- | :--- | :--- |
@@ -88,6 +109,29 @@ candidates: scoring the masked probe on *semantic* compliance rather than a
 verb keyword list (`_score_action`), raising `k_samples` to give IE finer
 resolution, or generalizing harvested patterns instead of storing literals.
 This is the concrete finding the GRPO work should be aimed at.
+
+## Post-fix results (2026-07-22) — Phase 5 and 5b
+
+All four causes above were fixed (root README §6d "Immediate" → fixes A–D):
+A stopped literal memorization, B made the reward WCR-aware, C tied the
+threshold step to the IE resolution, and D rewrote the masked probe so softened
+injections produce a signal.
+
+**Fix D result (§6i).** Across five repeated campaigns, 3B's detection of
+softened attacks rose from 1/4 to **4/4 in 4 of 5 runs** (3/4 in one), FPR **0%**
+throughout, ASR **0%** throughout. `masked_hypothetical` is the only swing case.
+
+**Phase 5 — re-run the loop (§6j).** With the base gap closed by D, the BEFORE
+phase already caught 4/4, so 3D saw reward +1.0, **0 missed**, and correctly
+proposed a **no-op**. The loop had nothing to close — the leverage was in the
+measurement (D) and reward hygiene (A/B/C), not 3D's knobs. 3D is now *honest*
+(it fabricates no phantom fix), but its added value is unproven on this set.
+
+**Phase 5b — the loop does close a matching gap (§6k).** `mechanism_validation.py`
+constructs a gap 3D's `ie_threshold` knob can close and shows the loop closes it
+**and generalizes** to a held-out address — the exact pair 6d failed. This
+proves the mechanism; it does not claim such a gap arises naturally on the
+current attack set (Phase 5 showed it does not).
 
 ## What's pending
 | Planned piece | Purpose |

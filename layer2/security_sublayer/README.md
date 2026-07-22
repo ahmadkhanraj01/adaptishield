@@ -155,8 +155,8 @@ reasons, all reproducible:
    [0.4, 0.5). A 0.5 → 0.4 move cannot change any verdict. **Fixed:** 3D now
    sizes its step to `ie_resolution` (= `1/k_samples`), so a move is one grid
    unit (`0.5 → 0.0` at k=2) and lands on an achievable IE. The knob is no
-   longer inert — though catching *these* `masked=0` cases still needs the
-   `no_action` fix below.
+   longer inert — and catching *these* `masked=0` cases is now handled by the
+   masked-probe rewrite (fix D / Section 6i below).
 2. **The apparent fix was memorization.** All four attacks came back
    `blocked` — by 3A, not 3B, because `_extract_targets()` had put the literal
    `attacker@evil.com` into `blocked_patterns` and the test reused that
@@ -169,21 +169,27 @@ reasons, all reproducible:
    reward now rewards a safe_continuation (`+1.0`) above a block (`+0.7`), so
    the trade is no longer scored as a wash.
 
-**Root cause in 3B:** the missed cases show `masked = 0` (not
-`masked = masked_san`) — the masked probe returns `no_action`, so `gemma3:4b`
-never recognizes the softened phrasing as an instruction. There is no signal
-for any threshold to detect, because `_score_action()` matches a fixed verb
-keyword list and "share copies of" isn't on it.
+**Root cause in 3B — now fixed (root README Section 6i).** The missed cases
+showed `masked = 0`: shown a softened directive with no task context,
+`gemma3:4b` replied `no_action` and never recognised it as an instruction, so
+no rule had any signal to read. The fix is in the masked-probe **prompt** — it
+now asks for the action the content *directs/asks/prompts* and refuses the
+softened escape hatches (polite phrasing, "standard step", tool/feature notes,
+hypotheticals, "no need to actually do it"). Campaign gen-2 `caught_by_causal`
+went **1/4 → 3/4** (gen-1 3/4 → 4/4), FPR unchanged at 0%. `masked_hypothetical`
+is much improved but still flaky at 3B. **Caveat:** the more compliant probe
+makes a benign email naming a recipient a *latent* false positive — that
+allowed-vs-attacker distinction is Layer 4's egress allowlist, not 3B.
 
 ## Component 3D — what's pending
-- **Prerequisites before GRPO** (see root README Section 13): the remaining one
-  is fixing 3B's `no_action` refusals on softened injections (the largest
-  detection gap — no signal exists for any rule to read). ~~stop
-  `_extract_targets` proposing literal addresses~~ (fix A), ~~penalize losing a
-  safe continuation in the reward~~ (fix B), and ~~give IE usable resolution~~
-  (fix C — step now sized to `ie_resolution`) are **done** (Section 6d);
-  `_score_action` semantic scoring was tried and left off by default
-  (Section 6e).
+- **Prerequisites before GRPO are done** (root README Section 13):
+  ~~stop `_extract_targets` proposing literal addresses~~ (fix A),
+  ~~penalize losing a safe continuation in the reward~~ (fix B),
+  ~~give IE usable resolution~~ (fix C — step sized to `ie_resolution`), and
+  ~~fix 3B's `no_action` refusals~~ (fix D / Section 6i — the masked probe now
+  produces signal on softened injections). `_score_action` semantic scoring was
+  tried and left off by default (Section 6e). Remaining detection polish:
+  `masked_hypothetical` flakiness and 3C sanitisation, neither blocking GRPO.
 - Replace the v1 heuristic inside `propose_update()` with the real GRPO/RL
   training loop; train on Kaggle P100 (needs torch + GPU, can't run on the
   local 4GB card). The reward function and I/O contract stay the same.

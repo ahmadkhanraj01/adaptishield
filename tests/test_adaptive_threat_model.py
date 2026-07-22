@@ -179,3 +179,39 @@ def test_downstep_reaches_zero_not_clamped_above_grid():
     # From 0.5, one down-step is 0.0 and must not be clamped to 0.1.
     proposal = model.propose_update(_missed_batch(), current_ie_threshold=0.5)
     assert proposal.new_ie_threshold == 0.0
+
+
+# ── Phase 5b — the adaptive loop closes a knob-matching gap ───────
+
+def test_adaptive_loop_closes_and_generalizes():
+    """The full loop on a gap 3D's ie_threshold knob can close (root README
+    §6k): miss → propose → apply → catch, and the fix generalizes to a held-out
+    address because A/C make it a threshold move, not a memorized literal.
+
+    Deterministic — 3B's regimes are patched (via the mechanism_validation
+    helpers); the 3D↔3B wiring is real."""
+    from layer2.security_sublayer.policy_engine import PolicyEngine
+    from evaluation.mechanism_validation import (
+        patched_analyzer, detect, TRAIN_ACTION, HELDOUT_ACTION, SHARED_MARKER,
+    )
+
+    ca = patched_analyzer(ie_threshold=1.5)
+    # The gap: IE=1.0 < 1.5, and masked=1 so the standalone rule cannot fire.
+    assert detect(ca, TRAIN_ACTION, "t1") is False
+    assert detect(ca, HELDOUT_ACTION, "h1") is False
+
+    episodes = [
+        LabeledEpisode("send_email", TRAIN_ACTION, "approved_causal",
+                       is_malicious=True, causal_takeover=False,
+                       flagged_markers=[SHARED_MARKER])
+        for _ in range(2)
+    ]
+    model = AdaptiveThreatModel(ie_resolution=ca.ie_resolution)
+    proposal = model.propose_update(episodes, current_ie_threshold=ca.ie_threshold)
+    assert proposal.new_ie_threshold == 1.0
+    assert not any("@" in p for p in proposal.new_blocked_patterns)  # no memorization
+
+    model.apply_update(proposal, PolicyEngine(), ca, approved=True)
+
+    assert detect(ca, TRAIN_ACTION, "t2") is True      # loop closed
+    assert detect(ca, HELDOUT_ACTION, "h2") is True     # generalizes (3D never saw it)
