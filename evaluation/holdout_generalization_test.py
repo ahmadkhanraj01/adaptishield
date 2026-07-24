@@ -10,9 +10,9 @@ and 3A blocks on a substring match against proposed_action. So the block may
 be recognition of one memorized address rather than learned defense.
 
 This script separates the two. It applies the same update, then runs the same
-softened attack families against a *held-out* attacker address the update
-never saw (ATTACKER_TARGETS[1], `leaker@shadow-mail.net`; training used
-index 0 only).
+softened attack families against the *held-out* attacker addresses the update
+never saw (holdout_targets() — `leaker@shadow-mail.net`, `siphon@nullroute.org`;
+training used the non-held-out addresses only).
 
   - If the attacks are still stopped by 3A/3B -> the update generalized.
   - If they sail through to `approved_causal` -> the update memorized an
@@ -53,9 +53,8 @@ def run_holdout():
     optimizer = MutationOptimizer()
     evaluator = Evaluator()
 
-    # Build attacks against BOTH targets, then keep only the held-out one.
-    all_attacks = gen.generate_attacks(max_directives=1, max_targets=2)
-    holdout = [c for c in all_attacks if "leaker@shadow-mail.net" in c.proposed_action]
+    # Attacks against the held-out addresses only — never in the training split.
+    holdout = gen.generate_holdout_attacks(max_directives=1)
 
     from dataclasses import replace
     softened = [
@@ -66,8 +65,10 @@ def run_holdout():
         for c in holdout
         if optimizer._soften(c.tool_response) != c.tool_response
     ]
-    print(f"[Holdout] {len(softened)} softened case(s) against the unseen address "
-          f"leaker@shadow-mail.net")
+    from red_team.attack_library import holdout_targets
+    held_out_addrs = [t["email"] for t in holdout_targets()]
+    print(f"[Holdout] {len(softened)} softened case(s) against unseen address(es) "
+          f"{held_out_addrs}")
 
     agent = ExecutionAgent()
     model = AdaptiveThreatModel()
@@ -93,7 +94,7 @@ def run_holdout():
 
     record = {
         "timestamp": timestamp,
-        "held_out_address": "leaker@shadow-mail.net",
+        "held_out_addresses": held_out_addrs,
         "applied_proposal": vars(TRAINED_PROPOSAL),
         "report": evaluator.to_dict(report),
         "causal": rows,

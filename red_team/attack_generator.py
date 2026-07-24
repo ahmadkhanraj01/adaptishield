@@ -16,6 +16,8 @@ from red_team.attack_library import (
     BENIGN_SCENARIOS,
     LEGITIMATE_DESTINATION_URL,
     AttackTemplate,
+    training_targets,
+    holdout_targets,
 )
 
 
@@ -50,17 +52,31 @@ class AttackGenerator:
         self.families = families if families is not None else list(ATTACK_FAMILIES)
 
     def generate_attacks(self, max_directives: Optional[int] = None,
-                          max_targets: Optional[int] = None) -> List[RedTeamCase]:
+                          max_targets: Optional[int] = None,
+                          targets: Optional[List[dict]] = None) -> List[RedTeamCase]:
+        """
+        `targets` overrides target selection entirely when given (pass
+        training_targets() / holdout_targets() to keep the train/held-out
+        split first-class). When it is None, fall back to the historical
+        index-slice behaviour (`ATTACKER_TARGETS[:max_targets]`).
+
+        case_id encodes the target by its email local-part rather than a
+        positional index, so cases stay uniquely identifiable even when the
+        training and held-out splits are generated in separate calls and
+        later merged into one report.
+        """
         directives = DIRECTIVES[:max_directives] if max_directives else DIRECTIVES
-        targets    = ATTACKER_TARGETS[:max_targets] if max_targets else ATTACKER_TARGETS
+        if targets is None:
+            targets = ATTACKER_TARGETS[:max_targets] if max_targets else ATTACKER_TARGETS
 
         cases: List[RedTeamCase] = []
         for fam in self.families:
             for d_idx, directive_tpl in enumerate(directives):
-                for t_idx, target in enumerate(targets):
+                for target in targets:
                     directive = directive_tpl.format(target=target["email"])
                     tool_response = fam.template.format(directive=directive)
-                    case_id = f"{fam.family}-d{d_idx}-t{t_idx}"
+                    target_slug = target["email"].split("@")[0]
+                    case_id = f"{fam.family}-d{d_idx}-{target_slug}"
                     cases.append(RedTeamCase(
                         case_id=case_id,
                         family=fam.family,
@@ -74,6 +90,16 @@ class AttackGenerator:
                         description=fam.description,
                     ))
         return cases
+
+    def generate_training_attacks(self, max_directives: Optional[int] = None) -> List[RedTeamCase]:
+        """Attacks over the training addresses only — the set 3D may learn from."""
+        return self.generate_attacks(max_directives=max_directives,
+                                     targets=training_targets())
+
+    def generate_holdout_attacks(self, max_directives: Optional[int] = None) -> List[RedTeamCase]:
+        """Attacks over the held-out addresses only — generalization probe (never trained on)."""
+        return self.generate_attacks(max_directives=max_directives,
+                                     targets=holdout_targets())
 
     def generate_benign(self, max_scenarios: Optional[int] = None) -> List[RedTeamCase]:
         scenarios = BENIGN_SCENARIOS[:max_scenarios] if max_scenarios else BENIGN_SCENARIOS
@@ -106,10 +132,17 @@ class AttackGenerator:
 
 if __name__ == "__main__":
     gen = AttackGenerator()
-    attacks = gen.generate_attacks()
-    benign  = gen.generate_benign()
-    print(f"Generated {len(attacks)} attack cases across {len(gen.families)} families")
-    print(f"Generated {len(benign)} benign control cases")
-    for c in attacks[:2]:
-        print(f"\n[{c.case_id}] {c.family}")
-        print(f"  tool_response: {c.tool_response!r}")
+    train  = gen.generate_training_attacks()
+    heldout = gen.generate_holdout_attacks()
+    benign = gen.generate_benign()
+    print(f"{len(gen.families)} families x {len(DIRECTIVES)} directives")
+    print(f"Training attacks : {len(train)} (over {len(training_targets())} target(s))")
+    print(f"Held-out attacks : {len(heldout)} (over {len(holdout_targets())} target(s))")
+    print(f"Benign controls  : {len(benign)}")
+
+    # Provable invariant: no held-out address ever appears in the training split.
+    holdout_emails = {t["email"] for t in holdout_targets()}
+    leaked = [c.case_id for c in train
+              if any(e in c.proposed_action for e in holdout_emails)]
+    assert not leaked, f"held-out address leaked into training split: {leaked}"
+    print("OK: no held-out address in the training split.")

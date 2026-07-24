@@ -6,7 +6,7 @@ Section 13 holds the detailed task list; this file is the higher-altitude view.
 See [Architecture.md](Architecture.md), [Design.md](Design.md), [Rules.md](Rules.md)
 for structure / rationale / constraints.
 
-*Last updated: 2026-07-22. Rough completion: ~70%.*
+*Last updated: 2026-07-24. Rough completion: ~72%.*
 
 ---
 
@@ -91,16 +91,109 @@ closes *and* generalizes, the exact pair 6d failed. Deterministic; pinned in
 the current attack set (Phase 5 showed it does not). The natural-gap question
 and the learned-vs-heuristic comparison move to Phase 6.
 
-## Phase 6 — real GRPO training (unblocked, pending)
+## Phase 6 — real GRPO training on Kaggle (unblocked, pending)
 
 Now cleared: the measurement carries signal (D), the knob is non-inert (C), the
 reward is honest (A/B), and the loop demonstrably closes a knob-matching gap
 (5b). Replace the v1 heuristic inside `propose_update()` with a policy-gradient
-loop (torch, Kaggle P100), same reward + `LabeledEpisode → ProposedUpdate →
-apply_update` contract. Open question to answer with it: does the *learned*
-policy beat the directional heuristic, and does a knob-matching gap arise
-naturally on a larger, held-out attack set? Scale red-team campaigns (more
-directives/targets/families) on Kaggle.
+loop (torch, Kaggle P100), keeping the **same reward + `LabeledEpisode →
+ProposedUpdate → apply_update` contract** (already pinned by the deterministic
+tests, so training cannot silently regress it).
+
+**Two open questions Phase 6 must answer:** (1) does a knob-matching gap arise
+*naturally* on a larger, held-out attack set — Phase 5 showed the current small
+set has none; and (2) does a *learned* GRPO policy beat the directional
+heuristic (if the heuristic already closes every reachable gap, GRPO may add
+nothing — itself a valid finding).
+
+### Why Kaggle, and the hard boundary
+
+The local card is 4 GB — it cannot host torch GRPO or 7B+ models. Kaggle gives a
+free **P100 (16 GB)**. But **Kaggle cannot host the live pipeline** (no Ollama /
+MCP server there). So the split is fixed:
+
+```
+LOCAL (this machine)                     KAGGLE (P100, training/eval only)
+────────────────────                     ─────────────────────────────────
+run pipeline + red-team campaigns        GRPO training (torch) over the
+  → generate LABELED EPISODES     ──►      labeled episodes, same reward
+apply the trained ProposedUpdate   ◄──   → emits a ProposedUpdate
+  via existing apply_update()               (ie_threshold, patterns, tools)
+  then re-run campaigns locally
+```
+
+The `LabeledEpisode → ProposedUpdate → apply_update` seam is exactly what lets
+training live elsewhere and the result come back. Nothing about the local
+pipeline changes.
+
+### Data flow / artifacts to move
+
+1. **Local → Kaggle:** a serialized labeled-episode dataset. Source it from
+   `AdaptiShield.from_execution_results()` (red-team `ExecutionResult`s, which
+   carry ground-truth labels) or `load_labeled_from_jsonl()` (telemetry replay
+   with a labels map). Ship as JSONL in a Kaggle **Dataset**.
+2. **Kaggle → Local:** the trained `ProposedUpdate` (JSON: `new_ie_threshold`,
+   `new_blocked_patterns`, `new_high_impact_tools`, rationale, mean_reward),
+   applied locally via `AdaptiveThreatModel.apply_update(..., approved=True)`,
+   then validated by re-running the campaign (`caught_by_causal` before/after,
+   FPR distribution — same protocol as §6i/§6k).
+
+### How Kaggle is driven — **decided: Path A** (2026-07-24)
+
+**Path A — Kaggle API, driven from the Claude Code session.** Chosen over the
+manual Path B for tight train→pull→apply→re-run iteration. Setup status:
+
+- ✅ `kaggle` CLI 1.7.4.5 installed in the project venv; `~/.kaggle/` created.
+- 🔲 **Only remaining step (human, browser):** kaggle.com → Settings → API →
+  *Create New Token* → `! mv ~/Downloads/kaggle.json ~/.kaggle/ && chmod 600
+  ~/.kaggle/kaggle.json`. After that, push dataset + run GPU kernel + pull the
+  `ProposedUpdate` are all automatable from Bash here.
+
+*(Path B — self-contained `.ipynb` uploaded/run/downloaded by hand — was the
+rejected alternative; no credentials but manual every cycle.)*
+
+### Buildable now, independent of Kaggle access
+
+- [ ] **Episode-dataset packager** (local script): run campaigns → serialize
+  `LabeledEpisode`s to JSONL in the training format. Reuses existing adapters.
+- [ ] **GRPO training notebook** (torch): reads the JSONL, keeps the exact
+  `RewardConfig`, outputs a `ProposedUpdate` JSON. Same reward/contract as v1.
+- [ ] **(Path A only)** CLI setup + push/run/pull scripts.
+- [ ] **Apply-and-validate script** (local): load the trained proposal, apply,
+  re-run the campaign, report before/after.
+
+### Do FIRST — the expanded held-out attack set (gates Phase 6's value)
+
+Phase 5 showed the current 4-family / 1-directive / 1-target set has **no natural
+gap** for 3D's knobs. Training GRPO over a knob with nothing to learn is a
+confident no-op. So before (or alongside) the notebook:
+
+- [x] **Attack set expanded** (2026-07-24): **6 families** (added
+  `authority_citation`, `delegated_followup`), **4 directives** (added two
+  subtler single-recipient "bcc / add a recipient" phrasings with no
+  "forward all" keyword), **4 targets split first-class** into
+  `training_targets()` = {attacker@evil.com, exfil@darkpost.io} and
+  `holdout_targets()` = {leaker@shadow-mail.net, siphon@nullroute.org}. The
+  held-out split is enforced by construction (`generate_training_attacks()` /
+  `generate_holdout_attacks()`), not by index-slicing — a `__main__` assertion
+  proves no held-out address enters the training split (Rules.md §5). Full
+  training grid = 6 × 4 × 2 = **48 gen-1 attacks** + gen-2 mutations + a
+  held-out generalization pass. `run_campaign(run_holdout=True, max_*=None)`
+  drives it; deterministic tests still 23/23.
+- [ ] **Run the expanded campaign** to answer the natural-gap question
+  (LLM-dependent, ~15-20s/case → Kaggle-scale; record ASR/`caught_by_causal`
+  as a distribution per §6h). *This is the next step.*
+
+### Session-continuity checklist (start here next time)
+
+1. ✅ Path A chosen; CLI installed. **Human still owes the `kaggle.json` token**
+   (browser) — that is the only thing gating Kaggle access.
+2. Run the expanded held-out campaign (done: set is expanded; running it
+   answers the natural-gap question) + build the episode-dataset packager.
+3. Write the GRPO notebook (same reward/contract).
+4. Train on Kaggle P100; pull the `ProposedUpdate`.
+5. Apply locally, re-run the campaign, report before/after (distribution, not
+   one run — §6h caveat).
 
 ## Phases 7–9 — later
 

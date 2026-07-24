@@ -11,8 +11,8 @@ Attack Generator → Execution Agent → Evaluator → Optimizer.
 ## Files
 | File | Purpose | Status |
 | :--- | :--- | :--- |
-| `attack_library.py` | Raw payloads: 4 attack families (`blunt_override`, `important_instructions`, `tool_knowledge_injection`, `masked_hypothetical`), directives, attacker targets, and benign controls. | ✅ |
-| `attack_generator.py` | Combines the library into concrete `RedTeamCase` objects (attacks + benign counterparts for FPR). | ✅ |
+| `attack_library.py` | Raw payloads: **6 attack families** (`blunt_override`, `important_instructions`, `tool_knowledge_injection`, `authority_citation`, `delegated_followup`, `masked_hypothetical`), **4 directives**, 4 attacker targets tagged `held_out` and split via `training_targets()` / `holdout_targets()`, and benign controls. | ✅ |
+| `attack_generator.py` | Combines the library into concrete `RedTeamCase` objects (attacks + benign counterparts for FPR). `generate_training_attacks()` / `generate_holdout_attacks()` keep the train/held-out split first-class; `case_id` encodes the target by email local-part so merged reports stay unique. | ✅ |
 | `execution_agent.py` | Runs cases through a live `AdaptiShieldPipeline` (dry-run — no `command`, so the sandbox never fires). Registers `send_email` in-scope so a campaign isolates 3B/3C detection from the egress backstop. | ✅ |
 | `evaluator.py` | Computes ASR/FPR/WCR, per-family, plus a `caught_by_causal` vs `caught_by_egress_only` breakdown. | ✅ |
 | `optimizer.py` | **v1 heuristic:** takes fully-defended families and keyword-softens their payloads to probe for detection gaps. Not the RL optimizer — that belongs with 3D. | ✅ |
@@ -37,10 +37,12 @@ Attack Generator → Execution Agent → Evaluator → Optimizer.
   `tool_name` and would have nominated case IDs as high-impact tools.
 
 ## What's pending
-- Scale campaigns up (more directives/targets/families); move bulk runs to
-  Kaggle (root README Section 10). **Hold out at least one attacker target
-  from training** — root README Section 6d is a direct consequence of
-  evaluating a 3D update on the same address it was trained on.
+- **Attack set expanded (2026-07-24):** 6 families × 4 directives × 2 training
+  targets = 48 gen-1 attacks, with 2 addresses **held out by construction**
+  (`generate_holdout_attacks()`; a `__main__` assertion proves no held-out
+  address leaks into the training split — Rules.md §5 / root README §6d). Still
+  to do: **run** the expanded campaign to answer the natural-gap question
+  (LLM-dependent, Kaggle-scale) — `run_campaign(run_holdout=True, max_*=None)`.
 - Extend beyond `send_email` once the pipeline models more real tools.
 - Tighten the **WCR proxy** — it currently infers task completion from
   `final_status == safe_continuation` rather than verifying the user's
@@ -50,6 +52,9 @@ Attack Generator → Execution Agent → Evaluator → Optimizer.
 
 ## Run
 ```bash
-python3 -m red_team.run_campaign          # local-scale campaign, gen1 + gen2
-# scale up via run_campaign(max_directives=2, max_targets=2)
+python3 -m red_team.run_campaign          # fast smoke: 1 directive x 1 training target
+python3 -m red_team.attack_generator      # no-LLM: print the grid + held-out invariant check
+# full natural-gap run (Kaggle-scale):
+#   run_campaign(max_directives=None, max_train_targets=None,
+#                max_holdout_targets=None, run_holdout=True)
 ```
