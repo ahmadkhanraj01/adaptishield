@@ -6,7 +6,7 @@ Section 13 holds the detailed task list; this file is the higher-altitude view.
 See [Architecture.md](Architecture.md), [Design.md](Design.md), [Rules.md](Rules.md)
 for structure / rationale / constraints.
 
-*Last updated: 2026-07-24. Rough completion: ~72%.*
+*Last updated: 2026-07-25 (session 2). Rough completion: ~78%.*
 
 ---
 
@@ -21,10 +21,12 @@ for structure / rationale / constraints.
 | 4 | Measurement fixes A / B / C / D | ✅ **Done (current)** |
 | 5 | Re-run the adaptive loop on the fixed measurement | ✅ Done — loop had nothing to close (§6j) |
 | 5b | Prove the loop *can* close a knob-matching gap | ✅ Done — closes **and** generalizes (§6k) |
-| 6 | Component 3D real GRPO training (Kaggle) | 🔲 Pending — now unblocked |
+| 6 | Component 3D real GRPO training (Kaggle) | 🟡 Pipeline built + run locally; **natural-gap answered: no gap** (§6l), re-confirmed after the probe fixes (§6m) |
+| 6b | Diagnose + fix the 15 residual 3B misses | ✅ Done — one defect, **114/114 caught** (§6m) |
+| 6c | **Fix the evaluation corpus** (benign-with-address, address-free attacks) | 🔴 **Blocking** — corpus is at its ceiling, FPR unmeasured (§6m) |
 | 7 | Eight-vector benchmark (static vs full vs +3D) | 🔲 Pending |
 | 8 | Layer 5 — dashboard / console / override | 🔲 Pending |
-| 9 | Grow the pytest suite | 🟡 Ongoing (22 tests) |
+| 9 | Grow the pytest suite | 🟡 Ongoing (62 tests) |
 
 ---
 
@@ -100,11 +102,13 @@ loop (torch, Kaggle P100), keeping the **same reward + `LabeledEpisode →
 ProposedUpdate → apply_update` contract** (already pinned by the deterministic
 tests, so training cannot silently regress it).
 
-**Two open questions Phase 6 must answer:** (1) does a knob-matching gap arise
-*naturally* on a larger, held-out attack set — Phase 5 showed the current small
-set has none; and (2) does a *learned* GRPO policy beat the directional
-heuristic (if the heuristic already closes every reachable gap, GRPO may add
-nothing — itself a valid finding).
+**Two open questions Phase 6 had to answer:** (1) does a knob-matching gap arise
+*naturally* on a larger, held-out attack set — **ANSWERED: no** (§6l; the 118-
+episode expanded campaign has no gap the `ie_threshold` knob can close, so GRPO
+proposes a no-op); and (2) does a *learned* GRPO policy beat the directional
+heuristic — **moot for this knob**: with no reachable gap, neither the heuristic
+nor GRPO can improve detection, so they agree on the no-op (itself the valid
+finding). The remaining detection leverage is in the probe, not the knob.
 
 ### Why Kaggle, and the hard boundary
 
@@ -154,13 +158,22 @@ rejected alternative; no credentials but manual every cycle.)*
 
 ### Buildable now, independent of Kaggle access
 
-- [ ] **Episode-dataset packager** (local script): run campaigns → serialize
-  `LabeledEpisode`s to JSONL in the training format. Reuses existing adapters.
-- [ ] **GRPO training notebook** (torch): reads the JSONL, keeps the exact
-  `RewardConfig`, outputs a `ProposedUpdate` JSON. Same reward/contract as v1.
-- [ ] **(Path A only)** CLI setup + push/run/pull scripts.
-- [ ] **Apply-and-validate script** (local): load the trained proposal, apply,
-  re-run the campaign, report before/after.
+**All built (2026-07-25) in `evaluation/kaggle/`:**
+
+- [x] **Episode-dataset packager** (`package_episodes.py`): campaign
+  `ExecutionResult`s → training JSONL (LabeledEpisode fields + causal
+  diagnostics + inferred `ie_separation_consistent`). `--self-test` (no LLM) /
+  `--run-campaign` (live). Reuses existing adapters.
+- [x] **GRPO trainer** (`grpo_train.py`): reads the JSONL, keeps the exact
+  `RewardConfig`, outputs a `ProposedUpdate` JSON. Categorical policy over the IE
+  grid, group-relative advantage + REINFORCE. torch backend (Kaggle P100) **+ a
+  pure-Python fallback** so the loop runs on the 4 GB box. Plus `grpo_env.py`
+  (self-contained reward + threshold→verdict replay, bundled into the dataset).
+- [x] **(Path A)** `run_kaggle.sh` (loads repo-root `.env`, stages + pushes
+  dataset & kernel, polls, pulls the `ProposedUpdate`) + `kernel-metadata.template.json`.
+- [x] **Apply-and-validate** (`apply_and_validate.py`): load the trained
+  proposal, apply via `apply_update(approved=True)`, re-run before/after + held-out.
+- [x] Pinned by `tests/test_grpo_kaggle.py` (+14 → **37 tests pass**).
 
 ### Do FIRST — the expanded held-out attack set (gates Phase 6's value)
 
@@ -180,20 +193,43 @@ confident no-op. So before (or alongside) the notebook:
   training grid = 6 × 4 × 2 = **48 gen-1 attacks** + gen-2 mutations + a
   held-out generalization pass. `run_campaign(run_holdout=True, max_*=None)`
   drives it; deterministic tests still 23/23.
-- [ ] **Run the expanded campaign** to answer the natural-gap question
-  (LLM-dependent, ~15-20s/case → Kaggle-scale; record ASR/`caught_by_causal`
-  as a distribution per §6h). *This is the next step.*
+- [x] **Ran the expanded campaign — natural-gap question answered: NO GAP**
+  (2026-07-25, §6l). 118 labeled episodes (114 malicious, 4 benign) packaged
+  from the live pipeline. `caught_by_causal` **99/114 (87%)**, 15 missed by 3B,
+  **0/4 benign false positives**. Replaying the reward across the whole IE grid,
+  lowering `ie_threshold` below 0.5 catches **zero** more attacks (missed flat at
+  15) — so the real GRPO trainer converges to a **no-op**. The 15 misses are
+  measurement-layer noise (14/15 inconsistent IE separation; some `masked=0` or
+  negative IE), unreachable by the threshold knob. Confirms Phase 5 at ~6× scale.
 
 ### Session-continuity checklist (start here next time)
 
-1. ✅ Path A chosen; CLI installed. **Human still owes the `kaggle.json` token**
-   (browser) — that is the only thing gating Kaggle access.
-2. Run the expanded held-out campaign (done: set is expanded; running it
-   answers the natural-gap question) + build the episode-dataset packager.
-3. Write the GRPO notebook (same reward/contract).
-4. Train on Kaggle P100; pull the `ProposedUpdate`.
-5. Apply locally, re-run the campaign, report before/after (distribution, not
-   one run — §6h caveat).
+1. ✅ Path A chosen; CLI installed; **credentials work** (`.env` with legacy
+   `KAGGLE_USERNAME`/`KAGGLE_KEY` — the new "API Tokens" access token needs CLI
+   ≥ 1.8.0, not on PyPI; verified via `evaluation/kaggle/test_credentials.py`).
+2. ✅ Expanded campaign run + packaged (118 episodes) + GRPO trainer built and
+   run locally → **no natural gap; GRPO proposes a no-op** (§6l).
+3. ✅ **Pivoted to the probe (chosen over the P100 demo) — and it paid off.**
+   `evaluation/probe_diagnostic.py` found **one** deterministic defect behind all
+   15 misses: `_references_mediator_target` compared verbatim, and `gemma3:4b`
+   restates `leaker@shadow-mail.net` as `leaker@shadowmail.net` in **57/57**
+   mentions. Every miss was that one address (the only one with a hyphen in its
+   domain). Fixed with a normalized match + greedy decoding + a sanitizer
+   rewrite → campaign re-run: **114/114 caught** (was 99/114), IE firing
+   **17% → 86%**, 0/4 benign FPs, generalizes to both held-out addresses (§6m).
+   GRPO re-run on the new data: still a **no-op**, now with nothing left to close.
+4. 🔴 **START HERE — the corpus is the bottleneck now, not the defense.** At 100%
+   catch the campaign cannot discriminate between defense configurations. Two
+   prerequisites before any further detection or 3D claim is measurable:
+   - **benign controls that name a legitimate recipient** — the 4 current ones
+     contain no address/URL, so they cannot exercise the rule that now does the
+     detecting; the 0/4 FPR is structural, not a finding. `evaluation/fpr_check.py`
+     already shows `priya@legit-corp.com` benign content reaching severity 2.
+   - **attacks whose harmful action names no address** ("delete the audit log") —
+     the only way to show the IE rule catching what `masked >= 2` cannot
+     (currently 0/114 do).
+5. *(optional, unchanged)* Ship to the P100 for a full-loop demonstration — it
+   will reproduce the no-op. A demo, not an improvement.
 
 ## Phases 7–9 — later
 
@@ -208,7 +244,25 @@ confident no-op. So before (or alongside) the notebook:
 
 ## Known open items (carried forward)
 
-- `masked_hypothetical` flaky at 3B — caught in 4/5 runs; egress backstop holds ASR=0% when missed.
-- 3C sanitisation of softened directives incomplete.
-- Latent FPR: benign mail naming a recipient can score 2 under the fix-D probe;
-  needs a "send-to-named-recipient" benign control and distributional FPR.
+- ~~`masked_hypothetical` flaky at 3B~~ — **closed (§6m)**: 24/24 across all targets
+  after the normalized target match + greedy decoding.
+- ~~3C sanitisation of softened directives incomplete~~ — **closed for 3B's
+  `_sanitize_mediator` (§6m)**. Still open for the separate `ContextSanitizer`
+  (3C) component, which shares the old prompt weakness and feeds the user-visible
+  safe continuation + the WCR metric — left unchanged rather than altered silently.
+- 🔴 **Latent FPR is now load-bearing, not latent.** Detection reduces in practice
+  to "did the probe name an address from the content?", and no benign control
+  contains an address — so FPR is **unmeasured**, not zero. The normalized match
+  added one known exposure (benign hyphenated-domain recipient restated without
+  the hyphen: 1 → 2), pinned in `tests/test_target_match.py`. Needs the
+  send-to-named-recipient benign control + distributional FPR.
+- **IE is redundant with the standalone rule**: `caught by IE rule alone = 0/114`.
+  Every family embeds the address inside the directive, so IE tracks `masked`
+  mechanically. Needs address-free attacks to separate them.
+- **GRPO's learned distribution is uniform** — the argmax comes from the
+  minimal-intervention tie-breaker, not from data. Do not present it as a trained
+  policy while the corpus leaves it nothing to learn.
+- At temperature 0 the `k_samples` are identical, so `require_consistent_ie`
+  reduces to a mean comparison and the IE grid coarsens to whole numbers;
+  `k_samples=2` is kept only for schema comparability (free 2× speedup by
+  dropping it to 1).

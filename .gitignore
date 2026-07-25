@@ -20,3 +20,10 @@ logs/
 # Python environment
 .env
 session.txt
+
+# Phase 6 Kaggle generated artifacts (packager / trainer / run_kaggle.sh recreate these)
+evaluation/kaggle/dataset/
+evaluation/kaggle/output/
+evaluation/kaggle/kernel/
+evaluation/kaggle/proposed_update.json
+evaluation/kaggle/*.log
