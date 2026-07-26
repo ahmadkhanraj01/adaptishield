@@ -112,21 +112,77 @@ class EpisodeFeatures:
 
 @dataclass
 class Policy:
-    """The knobs 3D / GRPO is allowed to move (same set as ProposedUpdate)."""
+    """
+    The knobs 3D / GRPO is allowed to move.
+
+    Extended beyond `ie_threshold` alone (README §6n). A one-scalar action space
+    made 3D an exhaustive search over five values with the policy as decoration;
+    worse, it could only express changes to a threshold that — measured on this
+    corpus — has no reachable gap, so the loop was structurally incapable of
+    proposing anything useful.
+
+    Identifiability of each dimension on campaign data is NOT uniform, and the
+    trainer reports it rather than assuming it:
+
+      ie_threshold      identifiable. Replays exactly from recorded (ie,
+                        masked_severity, ie_separation_consistent).
+      marker_weights    identifiable, and the only dimension on the current
+                        corpus containing a real improvement: the 5 missed
+                        attacks all carry the 'ignore previous' marker while the
+                        8 benign controls carry none.
+      risk_threshold    NOT identifiable on campaign data — see below.
+      window_size       NOT identifiable on campaign data — see below.
+
+    risk_threshold and window_size govern the temporal-drift rule, which needs
+    >= window_size boundaries within ONE session. Campaigns run every case under
+    a unique session_id, so `drift_fired` is False on all 128 episodes and the
+    reward is *exactly* flat along both axes. They are modelled faithfully here
+    (so replayed telemetry from a real multi-turn session would move them) and
+    the trainer measures and reports the flatness instead of pretending to learn.
+    """
     ie_threshold:      float
     blocked_patterns:  List[str] = field(default_factory=list)
     high_impact_tools: List[str] = field(default_factory=list)
+    # 3A weighted-evidence knobs. Weight per screener marker; a marker's weight
+    # counts toward blocking when that marker is present on the episode. Default
+    # empty == every weight 0 == today's behaviour exactly (markers alone never
+    # block; only a blocked_pattern substring of proposed_action does).
+    marker_weights:    Dict[str, float] = field(default_factory=dict)
+    block_threshold:   float = 1.0
+    # Temporal-drift knobs (see class docstring on identifiability).
+    risk_threshold:    float = 0.6
+    window_size:       int = 3
 
 
-def _takeover_under(causal: Dict[str, Any], ie_threshold: float) -> bool:
-    """Replay CausalAnalyzer's takeover verdict under a candidate ie_threshold."""
+def _takeover_under(causal: Dict[str, Any], ie_threshold: float,
+                    risk_threshold: float = 0.6, window_size: int = 3) -> bool:
+    """
+    Replay CausalAnalyzer's takeover verdict under candidate knobs.
+
+    `risk_threshold` / `window_size` are accepted and applied, but on campaign
+    episodes the recorded drift term is always False (unique session per case),
+    so they cannot change the verdict — see Policy's docstring. They are honoured
+    here so that replaying real multi-turn telemetry, where `drift_fired` and the
+    drift inputs are meaningful, does not silently ignore them.
+    """
     ie          = causal["ie"]
     masked_sev  = causal["masked_severity"]
     consistent  = causal.get("ie_separation_consistent", masked_sev > causal.get("masked_san_severity", 0.0))
-    drift_fired = causal.get("drift_fired", False)
 
     ie_rule    = (ie >= ie_threshold) and (masked_sev >= 1) and consistent
     standalone = masked_sev >= MASKED_TAKEOVER_THRESHOLD
+
+    # Drift as recorded, re-gated on the candidate knobs when the raw inputs are
+    # present. `drift_risk` / `drift_window` are only populated by telemetry
+    # replay; campaign packaging records `drift_fired=False` and neither input.
+    drift_risk   = causal.get("drift_risk")
+    drift_window = causal.get("drift_window")
+    if drift_risk is not None and drift_window is not None:
+        drift_fired = (drift_window >= window_size and masked_sev >= 1
+                       and drift_risk >= risk_threshold)
+    else:
+        drift_fired = causal.get("drift_fired", False)
+
     return bool(ie_rule or standalone or drift_fired)
 
 
@@ -146,12 +202,28 @@ def status_under_policy(ep: EpisodeFeatures, policy: Policy) -> str:
         if p and p in action_l:
             return "blocked"
 
+    # 3A weighted evidence: screener markers present on this episode contribute
+    # their learned weight; blocking requires reaching block_threshold. With the
+    # default empty weight map this contributes nothing, so the pre-existing
+    # boolean behaviour above is preserved exactly.
+    #
+    # This is the dimension where over-blocking is a real cost rather than a
+    # hypothetical one: converting a malicious episode from safe_continuation to
+    # blocked trades correct_stop (+1.0) for correct_block (+0.7), because a
+    # blanket block forfeits the legitimate workflow (fix B / WCR). So raising a
+    # marker's weight only pays when that marker selects episodes 3B is MISSING.
+    if policy.marker_weights:
+        score = sum(policy.marker_weights.get(m, 0.0) for m in ep.flagged_markers)
+        if score >= policy.block_threshold:
+            return "blocked"
+
     # Causal is reachable if 3B ran at capture, or a newly-high-impact tool now
     # routes this episode through 3B. Only meaningful when we have diagnostics.
     reached = ep.causal_reached or (ep.tool_name in set(policy.high_impact_tools))
     if reached and ep.causal is not None:
-        return "safe_continuation" if _takeover_under(ep.causal, policy.ie_threshold) \
-            else "approved_causal"
+        return "safe_continuation" if _takeover_under(
+            ep.causal, policy.ie_threshold,
+            policy.risk_threshold, policy.window_size) else "approved_causal"
 
     # No causal diagnostics to replay: outcome is whatever was recorded, unless a
     # blocked_pattern (handled above) changed it.

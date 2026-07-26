@@ -56,20 +56,42 @@ def main():
         print(f"[test] FAIL — authenticate() error: {e}")
         sys.exit(1)
 
-    # One cheap authenticated call. 401/403 => bad credentials.
+    # Shape check BEFORE any network call, because it explains the most common
+    # failure without needing one. A legacy key is 32 lowercase hex characters.
+    # The new "API Tokens" access tokens are longer and not hex, and the pinned
+    # CLI (1.7.4.5, the newest on PyPI as of July 2026) cannot use them for
+    # writes — reads may appear to succeed while every upload returns 401.
+    looks_legacy = len(key) == 32 and all(c in "0123456789abcdef" for c in key.lower())
+    if not looks_legacy:
+        print(f"[test] WARNING — key is {len(key)} chars and "
+              f"{'not ' if not all(c in '0123456789abcdef' for c in key.lower()) else ''}"
+              f"hex; a legacy key is 32 hex chars. This is very likely a new-style "
+              f"API Token, which CLI {getattr(api, '__version__', '1.7.x')} cannot "
+              f"use to push datasets or kernels.")
+
+    # This MUST be an endpoint that genuinely 401s on bad credentials.
+    #
+    # It previously called dataset_list(mine=True), which returns an EMPTY LIST
+    # rather than raising when auth fails — so the test printed PASS against
+    # credentials that could not upload a single byte, and two sessions recorded
+    # "credentials work" on the strength of it. kernels_list_cli hits an endpoint
+    # that authenticates properly.
     try:
-        datasets = api.dataset_list(user=user, page=1)
-        print(f"[test] PASS — authenticated as {user!r}. "
-              f"API reachable (your dataset list returned {len(list(datasets))} item(s)).")
+        api.kernels_list_cli(mine=True, page_size=1)
     except Exception as e:  # noqa: BLE001
         msg = str(e)
-        if "401" in msg or "403" in msg or "Unauthorized" in msg or "Forbidden" in msg:
+        if any(t in msg for t in ("401", "403", "Unauthorized", "Forbidden")):
             print(f"[test] FAIL — credentials rejected (auth error): {e}")
-            print("[test] The installed CLI (1.7.4.5) needs a LEGACY username+key. "
-                  "The new 'API Tokens' access token will NOT work here.")
+            print("[test] Fix: kaggle.com -> Settings -> API -> 'Create New Token'.")
+            print("[test] That downloads kaggle.json containing a LEGACY 32-hex key.")
+            print("[test] Put its username/key in .env. The 'API Tokens' page issues")
+            print("[test] a different, longer token that this CLI cannot use.")
         else:
             print(f"[test] FAIL — API call error: {e}")
         sys.exit(1)
+
+    print(f"[test] PASS — authenticated as {user!r} against an endpoint that "
+          f"rejects bad credentials.")
 
 
 if __name__ == "__main__":

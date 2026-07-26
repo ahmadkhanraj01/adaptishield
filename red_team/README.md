@@ -11,12 +11,14 @@ Attack Generator → Execution Agent → Evaluator → Optimizer.
 ## Files
 | File | Purpose | Status |
 | :--- | :--- | :--- |
-| `attack_library.py` | Raw payloads: **6 attack families** (`blunt_override`, `important_instructions`, `tool_knowledge_injection`, `authority_citation`, `delegated_followup`, `masked_hypothetical`), **4 directives**, 4 attacker targets tagged `held_out` and split via `training_targets()` / `holdout_targets()`, and benign controls. | ✅ |
-| `attack_generator.py` | Combines the library into concrete `RedTeamCase` objects (attacks + benign counterparts for FPR). `generate_training_attacks()` / `generate_holdout_attacks()` keep the train/held-out split first-class; `case_id` encodes the target by email local-part so merged reports stay unique. | ✅ |
+| `attack_library.py` | Raw payloads: **6 attack families** (`blunt_override`, `important_instructions`, `tool_knowledge_injection`, `authority_citation`, `delegated_followup`, `masked_hypothetical`), **4 directives** + **3 `ADDRESSLESS_DIRECTIVES`** (recon/disclosure actions naming no recipient — §6n), 4 attacker targets tagged `held_out` and split via `training_targets()` / `holdout_targets()`, and 8 benign controls (the last 4 name a legitimate recipient, so they can actually exercise the rule that does the detecting). | ✅ |
+| `attack_generator.py` | Combines the library into concrete `RedTeamCase` objects. `generate_training_attacks()` / `generate_holdout_attacks()` keep the train/held-out split first-class; `case_id` encodes the target by email local-part so merged reports stay unique. Also `generate_addressless_attacks()` (18 cases where the IE rule is the *only* detection path and Layer 4 cannot backstop a miss) and `generate_agentdojo_benign()` (60 externally-authored true negatives; returns `[]` with a warning if the vendored file is absent). | ✅ |
 | `execution_agent.py` | Runs cases through a live `AdaptiShieldPipeline` (dry-run — no `command`, so the sandbox never fires). Registers `send_email` in-scope so a campaign isolates 3B/3C detection from the egress backstop. | ✅ |
 | `evaluator.py` | Computes ASR/FPR/WCR, per-family, plus a `caught_by_causal` vs `caught_by_egress_only` breakdown. | ✅ |
 | `optimizer.py` | **v1 heuristic:** takes fully-defended families and keyword-softens their payloads to probe for detection gaps. Not the RL optimizer — that belongs with 3D. | ✅ |
 | `run_campaign.py` | Wires all four stages; saves a JSON report per run to `logs/red_team_runs/`. | ✅ |
+| `vendor_agentdojo.py` | **Reproducible vendoring** of AgentDojo's *benign* environment content (MIT, ETH SPY Lab, v0.1.35) into `data/agentdojo_benign.json`. Excludes `injection_vectors.yaml` and every field carrying a `{*_injection}` placeholder — attack scaffolding, one of it embedded in ordinary prose. Teaches PyYAML the `!include` tag. Harvested 63 → vendored **60** (56 workspace, 4 slack) after 10 exclusions and 3 duplicates. | ✅ |
+| `data/agentdojo_benign.json` | The vendored corpus, with provenance metadata (source, citation, suites, fields, exclusions, counts). Not generated at campaign time — committed output of the script above. | ✅ |
 | `__init__.py` | Package marker | ✅ |
 
 ## What's done

@@ -21,6 +21,13 @@ logs/
 .env
 session.txt
 
+# Kaggle credentials. kaggle.json holds a live API key in plaintext; the CLI
+# also looks for it in ~/.kaggle/, so a copy sitting in the repo root is easy to
+# forget about and trivially committed by `git add .`.
+kaggle.json
+**/kaggle.json
+.kaggle/
+
 # Phase 6 Kaggle generated artifacts (packager / trainer / run_kaggle.sh recreate these)
 evaluation/kaggle/dataset/
 evaluation/kaggle/output/

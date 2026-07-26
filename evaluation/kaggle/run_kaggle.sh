@@ -21,6 +21,14 @@ ROOT="$(cd "$HERE/../.." && pwd)"
 DATASET_DIR="$HERE/dataset"
 KERNEL_DIR="$HERE/kernel"
 OUT_DIR="$HERE/output"
+# Credential file location. A kaggle.json downloaded from the browser most often
+# lands in the project directory the user is working in, not in ~/.kaggle, so
+# check the repo root too and point the CLI at whichever we find — otherwise the
+# run fails with "Unauthenticated" while a perfectly good key sits two
+# directories away. (.gitignore excludes kaggle.json anywhere in the tree.)
+if [ -z "${KAGGLE_CONFIG_DIR:-}" ] && [ -f "$ROOT/kaggle.json" ]; then
+  export KAGGLE_CONFIG_DIR="$ROOT"
+fi
 KJSON="${KAGGLE_CONFIG_DIR:-$HOME/.kaggle}/kaggle.json"
 
 # Use the project venv's kaggle CLI + python3.
@@ -109,23 +117,69 @@ else
   "$KAGGLE" datasets create -p "$DATASET_DIR" --dir-mode zip
 fi
 
+# ── wait for the dataset to finish processing ────────────────────────
+# Upload returns as soon as the bytes are accepted, but Kaggle then processes
+# the version asynchronously and only mounts it into /kaggle/input once it is
+# "ready". Pushing the kernel immediately is a race the kernel loses: it starts
+# against an empty input directory and dies with
+#   ModuleNotFoundError: No module named 'grpo_env'
+# which reads like a packaging bug and is not one. Observed on the first real
+# run, 2026-07-26.
+echo "[run_kaggle] waiting for the dataset to become ready…"
+for i in $(seq 1 60); do
+  DS_STATUS="$("$KAGGLE" datasets status "$DATASET_ID" 2>/dev/null | tr -d '\r' || true)"
+  case "$(printf '%s' "$DS_STATUS" | tr '[:upper:]' '[:lower:]')" in
+    *ready*)
+      echo "[run_kaggle] dataset ready (after ~$((i * 10))s)"
+      break ;;
+    *error*|*fail*)
+      echo "[run_kaggle] dataset processing failed: $DS_STATUS" >&2
+      exit 1 ;;
+  esac
+  if [ "$i" -eq 60 ]; then
+    echo "[run_kaggle] dataset still not ready after 10 min (last: $DS_STATUS)" >&2
+    exit 1
+  fi
+  sleep 10
+done
+
 # ── push kernel + poll to completion ─────────────────────────────────
 echo "[run_kaggle] pushing kernel…"
 "$KAGGLE" kernels push -p "$KERNEL_DIR"
 
+# The CLI reports e.g. '... has status "KernelWorkerStatus.ERROR"' — UPPERCASE.
+# The patterns here were lowercase and `case` is case-sensitive, so NEITHER the
+# success nor the failure branch could ever match: the loop ran its full 60
+# iterations against a kernel that had already died, fell through, downloaded
+# whatever happened to exist, printed "done" and exited 0. A failed run was
+# reported as a successful one. Lowercase the status before matching, and treat
+# "fell out of the loop" as a timeout rather than as success.
 echo "[run_kaggle] waiting for the kernel to finish…"
+KSTATE="timeout"
 for _ in $(seq 1 60); do
   sleep 20
   STATUS="$("$KAGGLE" kernels status "$KERNEL_ID" 2>/dev/null | tr -d '\r' || true)"
   echo "    $STATUS"
-  case "$STATUS" in
-    *complete*) break ;;
-    *error*|*cancel*) echo "[run_kaggle] kernel failed:"; "$KAGGLE" kernels output "$KERNEL_ID" -p "$OUT_DIR" || true; exit 1 ;;
+  case "$(printf '%s' "$STATUS" | tr '[:upper:]' '[:lower:]')" in
+    *complete*)          KSTATE="complete"; break ;;
+    *error*|*cancel*)    KSTATE="failed";   break ;;
   esac
 done
 
-# ── pull the ProposedUpdate ──────────────────────────────────────────
 mkdir -p "$OUT_DIR"
+
+if [ "$KSTATE" != "complete" ]; then
+  echo "[run_kaggle] kernel did not complete (state: $KSTATE) — pulling the log" >&2
+  "$KAGGLE" kernels output "$KERNEL_ID" -p "$OUT_DIR" || true
+  echo "[run_kaggle] log: $OUT_DIR/${KERNEL_ID#*/}.log" >&2
+  exit 1
+fi
+
+# ── pull the ProposedUpdate ──────────────────────────────────────────
 "$KAGGLE" kernels output "$KERNEL_ID" -p "$OUT_DIR"
+if [ ! -f "$OUT_DIR/proposed_update.json" ]; then
+  echo "[run_kaggle] kernel reported COMPLETE but produced no proposed_update.json" >&2
+  exit 1
+fi
 echo "[run_kaggle] done → $OUT_DIR/proposed_update.json"
 echo "[run_kaggle] apply it:  python -m evaluation.kaggle.apply_and_validate --proposal $OUT_DIR/proposed_update.json"

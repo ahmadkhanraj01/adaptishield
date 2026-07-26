@@ -106,6 +106,7 @@ def _all_cases() -> Dict[str, Any]:
 
     gen = AttackGenerator()
     cases = gen.generate_attacks(targets=training_targets() + holdout_targets())
+    cases += gen.generate_addressless_attacks()
     cases += gen.generate_benign()
     return {c.case_id: c for c in cases}
 

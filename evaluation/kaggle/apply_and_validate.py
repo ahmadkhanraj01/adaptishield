@@ -96,6 +96,23 @@ def validate(proposal_path: str, max_directives=1, max_train_targets=1,
     agent_after = ExecutionAgent()
     model = AdaptiveThreatModel(
         ie_resolution=agent_after.pipeline.causal_analyzer.ie_resolution)
+    # `approved=True` here is a MEASUREMENT approval, not a governance one.
+    #
+    # This script exists to answer "what would this proposal do to the metrics?",
+    # which requires applying it to a throwaway ExecutionAgent. That is a
+    # different act from committing a change to a live control, and conflating
+    # the two is what made the human gate a rubber stamp: for a long time this
+    # literal was the only thing standing where Layer 5 belongs.
+    #
+    # The governance path is `python -m layer5.review`, which recomputes the
+    # evidence independently, shows the reviewer what the policy wanted versus
+    # what the verifier said, and records a reason in an append-only log before
+    # anything is committed. Nothing here is persisted, so no approval is being
+    # granted — but say so out loud, because a reader who finds `approved=True`
+    # in a diff is right to be suspicious of it.
+    print("[apply] NOTE: applying to a throwaway agent to measure the effect. "
+          "This is not an approval — use `python -m layer5.review` to approve, "
+          "which records who decided and why (Layer 5).")
     applied = model.apply_update(proposal,
                                  agent_after.pipeline.policy_engine,
                                  agent_after.pipeline.causal_analyzer,

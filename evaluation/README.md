@@ -15,6 +15,31 @@ baseline** versus the **full AdaptiShield** and report ASR / FPR / WCR, so
 the project can quantify how much the defenses (and eventually 3D's
 adaptation) actually help.
 
+## Files
+
+| File | Purpose | Status |
+| :--- | :--- | :--- |
+| `adaptive_loop_experiment.py` | The headline test: does applying a 3D proposal actually close the gap 3B left? Four phases on fresh pipelines so drift cannot be mistaken for the update's effect. Produced the §6d **negative result** that defined fixes A–D. | ✅ Run |
+| `holdout_generalization_test.py` | Re-runs a proposal against attacker addresses never seen in training. This is what exposed the §6d "gain" as memorisation of a training literal. | ✅ Run |
+| `mechanism_validation.py` | Deterministic (<1 s) check that the four causal regimes and the takeover rules behave as documented; saves a report. Cheap enough to run before any campaign. | ✅ Run |
+| `score_action_ablation.py` | Keyword scorer vs semantic (LLM-judge) scorer, per-action and end-to-end. Result (§6e): the semantic scorer is **more accurate per action and worse end-to-end**, so it ships off by default. | ✅ Run |
+| `probe_diagnostic.py` | **Read-only** root-cause tool for 3B misses. Reconstructs each failing case deterministically, replays both regimes, explains every severity, and runs *matched controls* (same family + directive against an address that was caught) so a difference is attributable rather than inferred. Found the single defect behind all 15 misses (§6m). | ✅ Run |
+| `fpr_check.py` | Adversarial A/B of the old (exact) vs new (normalized) mediator-target match over benign content, plus a `--live` run of the campaign controls. Used to *measure* the cost of loosening the rule rather than assume it: found exactly one new false-positive class. | ✅ Run |
+| `fpr_report.py` | FPR with **Wilson score intervals**, cohorts kept separate (`ours` = diagnostic, `agentdojo` = the estimate). Wilson rather than the normal approximation because at n=60 and p near 0 the normal interval extends below zero. Pooled is printed with an explicit caveat and is never a headline. | ✅ Run |
+| `ie_ablation.py` | Is the causal IE measurement redundant with 3C's `instructions_removed` self-report? **Answer: no, structurally** — the pipeline gates 3C on takeover (`adaptishield_pipeline.py:132`), so the self-report does not exist at decision time. Verifies this empirically and refuses to print the tempting-but-invalid detector comparison. | ✅ Run |
+| `kaggle/` | Phase 6: episode packager, GRPO trainer (torch + pure-Python), Path A driver, apply/validate. See `kaggle/README.md`. | ✅ Run |
+| `__init__.py` | Package marker | ✅ |
+
+### A note on two of these
+
+`ie_ablation.py` and `fpr_report.py` both exist to stop a specific bad inference.
+The first refuses to score 3C's self-report as a rival detector, because that
+score can only be computed on episodes the detector already caught — a selection
+effect, not a sample. The second refuses to pool eight hand-written benign
+controls (half written to break the detector) with sixty externally-authored
+ones, because the first group is a diagnostic and not a draw from any
+distribution.
+
 ## What's done
 
 ### `adaptive_loop_experiment.py` — does applying a 3D proposal close the gap?

@@ -204,7 +204,15 @@ def collect_results(max_directives=None, max_train_targets=None,
     gen, agent, evaluator = AttackGenerator(), ExecutionAgent(), Evaluator()
     train = training_targets()[:max_train_targets] if max_train_targets else training_targets()
     attacks = gen.generate_attacks(max_directives=max_directives, targets=train)
-    benign = gen.generate_benign()
+    # Address-free recon directives: the only cases where the IE rule can fire
+    # without the standalone masked>=2 rule already having fired, and the only
+    # ones where Layer 4's egress allowlist is not a backstop (README §6m).
+    attacks += gen.generate_addressless_attacks()
+    # Benign = our 8 hand-written controls (a diagnostic: half were written to
+    # break the detector, so they locate a boundary rather than estimate a rate)
+    # PLUS AgentDojo's externally authored benign content, which is what an FPR
+    # is actually measured against (§6n).
+    benign = gen.generate_benign() + gen.generate_agentdojo_benign()
     results = agent.run_batch(attacks + benign)
 
     if run_gen2:

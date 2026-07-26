@@ -1,6 +1,6 @@
 # tests — Automated Test Suite
 
-**Status:** 🟡 Started — 23 tests passing (`test_takeover_rules.py` + `test_adaptive_threat_model.py`)
+**Status:** ✅ **110 tests passing**, ~2 s, no LLM / network / GPU required
 
 ## Purpose
 A formal `pytest` suite covering every layer plus end-to-end pipeline cases,
@@ -10,8 +10,37 @@ each module's `__main__` block by hand.
 ## What's done
 | File | Covers | Tests |
 | :--- | :--- | :--- |
-| `test_takeover_rules.py` | 3B's takeover paths + IE resolution (root README Sec. 6f–6h, 6d) | 9, ~0.7s |
-| `test_adaptive_threat_model.py` | 3D's reward + proposal + step sizing + loop-closes (root README Sec. 6d / 6k / 13) | 14, ~0.1s |
+| `test_takeover_rules.py` | 3B's takeover paths + IE resolution (root README §6f–6h, §6d) | 9, ~1.4s |
+| `test_adaptive_threat_model.py` | 3D's reward + proposal + step sizing + loop-closes (§6d / §6k / §13) | 14, ~1.0s |
+| `test_target_match.py` | The normalized mediator-target match and the one new false-positive class it introduced (§6m) | 14, ~1.7s |
+| `test_probe_diagnostic.py` | The read-only root-cause tool, including the classifier-ordering bug that mislabelled 3 healthy probes (§6m) | 11, ~0.9s |
+| `test_corpus.py` | Corpus invariants that are easy to destroy by editing a directive: address-free attacks must expose no target, benign controls must carry one, AgentDojo cases must carry no `{*_injection}` placeholder; plus the Wilson interval and the IE-ablation join (§6n) | 19, ~0.9s |
+| `test_grpo_kaggle.py` | GRPO env + trainer: threshold replay, reward table, the joint action space, and the tied-reward no-op regression guard (§6l–§6n) | 23, ~0.7s |
+| `test_layer5.py` | The human gate: evidence recomputation, regression/claim-mismatch/inert-pattern warnings, "recommends but never decides", append-only decision log, and that untrusted mediator text cannot escape the dashboard's embedded JSON (§6n) | 20, ~0.6s |
+| `__init__.py` | Package marker | — |
+
+**110 tests, ~2 s for the whole suite, no LLM / no network / no GPU.** That
+constraint is deliberate: anything requiring Ollama lives in `evaluation/`, so
+this suite can run on every edit. The four probe regimes are patched out so 3B's
+decision logic is tested deterministically.
+
+### Why several of these exist at all
+
+Three were written *because* a bug had already shipped, and they pin the exact
+mistake rather than the general area:
+
+- `test_probe_diagnostic.py` — the diagnostic's own classifier ordered a
+  `severity == 0` check before the garbled-address check, so it labelled 3
+  healthy probes `PROBE_NO_ACTION`. That misdiagnosis would have sent the repair
+  at the probe prompt, which was not at fault.
+- `test_corpus.py` — the AgentDojo injection filter first searched for
+  `"{injection"` and matched **nothing**; the real format is
+  `{email_facebook_injection}`. Without the test, 10 pieces of attack
+  scaffolding would have entered the benign denominator, one of them inside
+  otherwise ordinary prose.
+- `test_grpo_kaggle.py` — the trainer proposed a threshold change its own reward
+  table scored *lower*. The tied-reward test asserts a no-op, so that cannot
+  return silently.
 
 What `test_takeover_rules.py` pins:
 

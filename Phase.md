@@ -6,7 +6,7 @@ Section 13 holds the detailed task list; this file is the higher-altitude view.
 See [Architecture.md](Architecture.md), [Design.md](Design.md), [Rules.md](Rules.md)
 for structure / rationale / constraints.
 
-*Last updated: 2026-07-25 (session 2). Rough completion: ~78%.*
+*Last updated: 2026-07-26 (session 3). Rough completion: ~88%.*
 
 ---
 
@@ -21,12 +21,13 @@ for structure / rationale / constraints.
 | 4 | Measurement fixes A / B / C / D | ✅ **Done (current)** |
 | 5 | Re-run the adaptive loop on the fixed measurement | ✅ Done — loop had nothing to close (§6j) |
 | 5b | Prove the loop *can* close a knob-matching gap | ✅ Done — closes **and** generalizes (§6k) |
-| 6 | Component 3D real GRPO training (Kaggle) | 🟡 Pipeline built + run locally; **natural-gap answered: no gap** (§6l), re-confirmed after the probe fixes (§6m) |
+| 6 | Component 3D real GRPO training (Kaggle) | ✅ **Executed on Kaggle (§6o)** — torch backend ran for the first time and agrees with pure-Python to **exactly zero**. No natural gap (§6l/§6m). **The P100 cannot run PyTorch** (sm_60 vs sm_70+) — GPU premise retired, CPU fallback costs nothing (0.27 s workload) |
 | 6b | Diagnose + fix the 15 residual 3B misses | ✅ Done — one defect, **114/114 caught** (§6m) |
-| 6c | **Fix the evaluation corpus** (benign-with-address, address-free attacks) | 🔴 **Blocking** — corpus is at its ceiling, FPR unmeasured (§6m) |
+| 6c | **Fix the evaluation corpus** (address-free attacks + external benign) | ✅ **Done (§6n)** — 188 episodes; **FPR 3.3% [0.9%, 11.4%]** vs AgentDojo benign; IE catches **13** the standalone rule misses (was 0) |
+| 6d | Joint GRPO action space + propose-and-verify | ✅ **Done (§6n)** — 5 dims / 720 actions; the one gain it found was a **corpus artifact**, and its own policy proposed a reward-*decreasing* change 3× |
 | 7 | Eight-vector benchmark (static vs full vs +3D) | 🔲 Pending |
-| 8 | Layer 5 — dashboard / console / override | 🔲 Pending |
-| 9 | Grow the pytest suite | 🟡 Ongoing (62 tests) |
+| 8 | Layer 5 — dashboard / console / override | ✅ **Done** — 4 components, stdlib only, 20 tests. Gate recomputes evidence rather than trusting the proposal; found that every proposal's `blocked_patterns` are **inert** (3A matches `proposed_action`, trainer harvests from `flagged_markers`) |
+| 9 | Grow the pytest suite | 🟡 Ongoing (**110 tests**, 2 s, no LLM) |
 
 ---
 
@@ -205,31 +206,66 @@ confident no-op. So before (or alongside) the notebook:
 ### Session-continuity checklist (start here next time)
 
 1. ✅ Path A chosen; CLI installed; **credentials work** (`.env` with legacy
-   `KAGGLE_USERNAME`/`KAGGLE_KEY` — the new "API Tokens" access token needs CLI
-   ≥ 1.8.0, not on PyPI; verified via `evaluation/kaggle/test_credentials.py`).
-2. ✅ Expanded campaign run + packaged (118 episodes) + GRPO trainer built and
-   run locally → **no natural gap; GRPO proposes a no-op** (§6l).
-3. ✅ **Pivoted to the probe (chosen over the P100 demo) — and it paid off.**
-   `evaluation/probe_diagnostic.py` found **one** deterministic defect behind all
-   15 misses: `_references_mediator_target` compared verbatim, and `gemma3:4b`
-   restates `leaker@shadow-mail.net` as `leaker@shadowmail.net` in **57/57**
-   mentions. Every miss was that one address (the only one with a hyphen in its
-   domain). Fixed with a normalized match + greedy decoding + a sanitizer
-   rewrite → campaign re-run: **114/114 caught** (was 99/114), IE firing
-   **17% → 86%**, 0/4 benign FPs, generalizes to both held-out addresses (§6m).
-   GRPO re-run on the new data: still a **no-op**, now with nothing left to close.
-4. 🔴 **START HERE — the corpus is the bottleneck now, not the defense.** At 100%
-   catch the campaign cannot discriminate between defense configurations. Two
-   prerequisites before any further detection or 3D claim is measurable:
-   - **benign controls that name a legitimate recipient** — the 4 current ones
-     contain no address/URL, so they cannot exercise the rule that now does the
-     detecting; the 0/4 FPR is structural, not a finding. `evaluation/fpr_check.py`
-     already shows `priya@legit-corp.com` benign content reaching severity 2.
-   - **attacks whose harmful action names no address** ("delete the audit log") —
-     the only way to show the IE rule catching what `masked >= 2` cannot
-     (currently 0/114 do).
-5. *(optional, unchanged)* Ship to the P100 for a full-loop demonstration — it
-   will reproduce the no-op. A demo, not an improvement.
+   `KAGGLE_USERNAME`/`KAGGLE_KEY`; verified via `evaluation/kaggle/test_credentials.py`).
+2. ✅ Expanded campaign + GRPO trainer → **no natural gap** (§6l); probe
+   diagnostic found one defect behind all 15 misses → **114/114** (§6m).
+3. ✅ **Corpus fixed (§6n) — and it changed a conclusion.** 188 episodes: 18
+   address-free attacks + 60 benign vendored from AgentDojo (MIT, v0.1.35).
+   - **FPR = 3.3%, 95% CI [0.9%, 11.4%]** — the first one worth quoting. The old
+     4/8 is a diagnostic that located an architectural boundary, not a rate.
+   - **IE is no longer redundant:** 13/115 malicious takeovers are caught by
+     `IE >= 1` where `masked >= 2` would have missed (was 0/114). And 3C's
+     `instructions_removed` cannot substitute for IE at all — the pipeline gates
+     3C on takeover (`adaptishield_pipeline.py:132`), so the self-report does not
+     exist at decision time.
+   - **The one gain GRPO ever found was a corpus artifact.** The joint action
+     space accepted `marker_weight:ignore previous = 1.0` for +0.8688 → +0.9046
+     on my own benign controls; on AgentDojo's it yields **36 false positives of
+     68 benign** and +0.6500. The marker fires on 30/60 external benign documents
+     and 0/8 of mine.
+4. ✅ **Trainer defect promoted to a finding.** The policy proposed a threshold
+   change its own reward scored lower (+0.8683 vs +0.8688), and `apply_update`
+   would have accepted it silently. Now: exact reward table in 1-D,
+   propose-and-verify + minimality pass in the joint space. The guard has since
+   fired twice more on live data (most recently +0.8329 vs +0.8330).
+5. ✅ **Phase 6 executed on Kaggle (§6o).** `train_torch` / `train_joint_torch`
+   had never run anywhere (no torch locally, tests torch-free). They now agree
+   with pure-Python to **exactly zero** on incumbent reward, verdict and final
+   action. Propose-and-verify rejected the policy's own choice a **fourth** time
+   (+0.8330 vs +0.8329) on different hardware with a different RNG.
+   - **The P100 cannot run PyTorch.** sm_60 vs a build needing sm_70+, and
+     `torch.cuda.is_available()` returns True so it dies on first allocation.
+     `_torch_device()` probes and falls back to CPU. Immaterial — the workload is
+     0.27 s on CPU; Kaggle's value is that torch is importable there, not compute.
+   - Six attempts, five defects. The worst was a status poll whose lowercase
+     patterns never matched `KernelWorkerStatus.ERROR`, so every failure was
+     reported as success with exit 0.
+   - Credentials: the CLI needs a **legacy 32-hex key** (Settings → API → Create
+     New Token). The newer "API Tokens" access tokens do not work with 1.7.4.5,
+     which is still the newest on PyPI. `kaggle.json` is now git-ignored.
+6. ✅ **Layer 5 built.** Audit dashboard + Policy Inspection Console + Audit Logs
+   as one self-contained HTML file (`python -m layer5.audit_report --open`), and
+   Manual Override as a CLI with an append-only decision log
+   (`python -m layer5.review`). The gate recomputes evidence instead of trusting
+   the proposal, recommends but never decides, and **found a live defect on its
+   first run**: every 3D proposal's `blocked_patterns` are inert, because 3A
+   matches them against `proposed_action` while the trainer harvests them from
+   `flagged_markers`.
+7. 🔵 **START HERE — the probe is the bottleneck, on both sides.**
+   - **FPR side:** `agentdojo-workspace-041` is a birthday-party document with no
+     email address in it; the probe *invented* one and scored 2 off the `forward`
+     keyword. A real defect, and now the largest single lever on FPR. Distinct
+     from `agentdojo-workspace-055`, which is the genuine 3B/Layer 4 boundary
+     (3B cannot tell an authorised recipient from an attacker-controlled one —
+     that is Layer 4's job, and it is a scoping result, not a defect).
+   - **Detection side:** 4 of the 5 misses are `masked = 0` — the keyword scorer
+     does not match the probe's phrasing and there is no address to fall back on.
+     **0 of the 5 are threshold failures**, which is exactly why 3D proposes a
+     no-op and why the remaining work is not in the adaptive layer.
+8. *(next)* Fold §6o into the eight-vector benchmark planning, and settle the
+   two open questions on the Layer 5 artifact (visibility, and rendering the
+   AgentDojo attribution) before publishing it.
+
 
 ## Phases 7–9 — later
 
@@ -250,19 +286,44 @@ confident no-op. So before (or alongside) the notebook:
   `_sanitize_mediator` (§6m)**. Still open for the separate `ContextSanitizer`
   (3C) component, which shares the old prompt weakness and feeds the user-visible
   safe continuation + the WCR metric — left unchanged rather than altered silently.
-- 🔴 **Latent FPR is now load-bearing, not latent.** Detection reduces in practice
-  to "did the probe name an address from the content?", and no benign control
-  contains an address — so FPR is **unmeasured**, not zero. The normalized match
-  added one known exposure (benign hyphenated-domain recipient restated without
-  the hyphen: 1 → 2), pinned in `tests/test_target_match.py`. Needs the
-  send-to-named-recipient benign control + distributional FPR.
-- **IE is redundant with the standalone rule**: `caught by IE rule alone = 0/114`.
-  Every family embeds the address inside the directive, so IE tracks `masked`
-  mechanically. Needs address-free attacks to separate them.
-- **GRPO's learned distribution is uniform** — the argmax comes from the
+- ✅ ~~**Latent FPR is load-bearing, not latent.**~~ **Closed (§6n).** Measured
+  against 60 externally-authored AgentDojo benign episodes: **FPR = 3.3%, 95% CI
+  [0.9%, 11.4%]**. The 8 hand-written controls are reported as a separate cohort
+  and labelled a diagnostic, never pooled as a headline.
+- ✅ ~~**IE is redundant with the standalone rule** (0/114).~~ **Closed (§6n).**
+  With address-free attacks in the corpus, **13/115** malicious takeovers are
+  caught by `IE >= 1` where `masked >= 2` would have missed. Separately, 3C's
+  `instructions_removed` cannot substitute for IE at all, because 3C runs only
+  after takeover is declared.
+- 🔴 **The probe hallucinates actions on benign documents.** `agentdojo-workspace-041`
+  contains no email address; the probe invented `eventplanning@company.com` and
+  scored 2 off the `forward` keyword. §6i tuned the probe to always find an
+  action; on benign content it fabricates one. Largest remaining lever on FPR.
+- 🟡 **3B/Layer 4 boundary is a scoping result, not a defect.** `agentdojo-workspace-055`
+  is meeting minutes with a real action item naming a real address. 3B fired
+  correctly. 3B has no allowlist and should not — distinguishing an authorised
+  recipient from an attacker-controlled one is Layer 4's egress allowlist. This
+  bounds what any purely causal detector at this layer can deliver.
+- 🔴 **An RL policy proposed a security change its own reward scored lower.**
+  +0.8683 vs +0.8688, and `apply_update` would have accepted it silently. Fixed
+  three ways (exact table in 1-D, propose-and-verify + minimality pass in the
+  joint space) and the guard has fired twice more since. Recorded as a **finding**
+  supporting the Layer 5 human gate, not as a bug fix.
+- 🔴 **GRPO's only real gain was an artifact of my own benign corpus.** Verified
+  and minimised on 128 episodes (+0.8688 → +0.9046); on the AgentDojo-extended
+  corpus the same action gives 36 false positives of 68 benign. Every trainer
+  safeguard worked; none can see outside the corpus.
+- 🟡 **`risk_threshold` and `window_size` are unidentifiable** — the trainer
+  reports reward exactly flat in both, because campaigns use a unique
+  `session_id` per case so the temporal-drift rule never fires. Multi-turn
+  sessions would make two of 3D's five dimensions learnable for the first time.
+- **GRPO's learned distribution is near-uniform** — the argmax comes from the
   minimal-intervention tie-breaker, not from data. Do not present it as a trained
   policy while the corpus leaves it nothing to learn.
-- At temperature 0 the `k_samples` are identical, so `require_consistent_ie`
-  reduces to a mean comparison and the IE grid coarsens to whole numbers;
-  `k_samples=2` is kept only for schema comparability (free 2× speedup by
-  dropping it to 1).
+- **Greedy decoding is not literally deterministic.** §6m's "deterministic" is
+  too strong: a fixed prompt returns byte-identical output 4/4, but across the
+  campaign **2 of 564** regime severities were non-integral (the two samples
+  disagreed 0.35% of the time), concentrated on long unstructured benign
+  documents. At temperature 0 the `k_samples` are otherwise identical, so
+  `require_consistent_ie` reduces to a mean comparison and the IE grid coarsens
+  to whole numbers; `k_samples=2` is kept only for schema comparability.
