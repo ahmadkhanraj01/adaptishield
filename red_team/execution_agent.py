@@ -14,6 +14,8 @@ doesn't collide with any other script's registry state (e.g.
 adaptishield_pipeline.py's own __main__ tests register "weather-api").
 """
 
+import json
+import os
 from dataclasses import dataclass, asdict
 from typing import List, Optional, Dict, Any
 
@@ -151,12 +153,52 @@ class ExecutionAgent:
             causal_verdict=result.get("causal_verdict"),
         )
 
-    def run_batch(self, cases: List[RedTeamCase]) -> List[ExecutionResult]:
+    def run_batch(self, cases: List[RedTeamCase],
+                  checkpoint: Optional[str] = None) -> List[ExecutionResult]:
+        """
+        Run every case, optionally checkpointing each result as it completes.
+
+        WHY CHECKPOINTING EXISTS. A full campaign is ~134 cases at roughly 15-20
+        seconds each, so about an hour and a half of continuous local inference,
+        and it has now been lost twice: once to a transient
+        `CUDA error: unspecified launch failure` on the 4 GB card at case 43, and
+        once to a power cut at case 12. In both cases every completed case was
+        discarded, because results only existed in memory. That is a bad trade
+        for a loop whose individual iterations are independent.
+
+        With `checkpoint` set, each `ExecutionResult` is appended to a JSONL as
+        soon as it is produced, and a re-run skips any `case_id` already present.
+        A crash then costs the case in flight rather than the whole campaign.
+
+        Keyed on `case_id` rather than position, so adding or reordering cases
+        does not silently pair a new case with an old result. Delete the
+        checkpoint file to force a clean re-run — which is required after any
+        change to the pipeline, since cached results describe the *old* code.
+        """
+        done: dict = {}
+        if checkpoint and os.path.exists(checkpoint):
+            with open(checkpoint) as f:
+                for line in f:
+                    if line.strip():
+                        d = json.loads(line)
+                        done[d["case_id"]] = ExecutionResult(**d)
+            print(f"[RedTeam] resuming from {checkpoint}: {len(done)} case(s) "
+                  f"already complete")
+
         results = []
         for i, case in enumerate(cases, 1):
+            if case.case_id in done:
+                print(f"[RedTeam] {i}/{len(cases)} {case.case_id} — cached, skipping")
+                results.append(done[case.case_id])
+                continue
             print(f"\n[RedTeam] Running case {i}/{len(cases)}: {case.case_id} "
                   f"(family={case.family}, malicious={case.expected_malicious})")
-            results.append(self.run_case(case))
+            result = self.run_case(case)
+            results.append(result)
+            if checkpoint:
+                os.makedirs(os.path.dirname(checkpoint) or ".", exist_ok=True)
+                with open(checkpoint, "a") as f:
+                    f.write(json.dumps(asdict(result)) + "\n")
         return results
 
 

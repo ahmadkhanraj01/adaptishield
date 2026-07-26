@@ -187,7 +187,8 @@ def _write_dataset_metadata(dataset_dir: str) -> None:
 
 # ── live campaign collection (LLM-dependent) ─────────────────────────
 def collect_results(max_directives=None, max_train_targets=None,
-                    max_holdout_targets=None, run_gen2=True, run_holdout=True):
+                    max_holdout_targets=None, run_gen2=True, run_holdout=True,
+                    checkpoint_dir=None):
     """
     Run the expanded red-team campaign and return the LABELED ExecutionResults
     (gen-1 + gen-2 mutations + held-out pass). Mirrors run_campaign.py but
@@ -213,17 +214,27 @@ def collect_results(max_directives=None, max_train_targets=None,
     # PLUS AgentDojo's externally authored benign content, which is what an FPR
     # is actually measured against (§6n).
     benign = gen.generate_benign() + gen.generate_agentdojo_benign()
-    results = agent.run_batch(attacks + benign)
+    # Checkpoint each pass separately. A single file would work, but gen-2
+    # mutations reuse their parent's family and the holdout pass reuses directive
+    # indices, so keeping the passes in distinct files makes it obvious which
+    # stage a resume is picking up from — and makes it possible to invalidate one
+    # pass without discarding the other two.
+    def cp(stage):
+        return os.path.join(checkpoint_dir, f"{stage}.jsonl") if checkpoint_dir else None
+
+    results = agent.run_batch(attacks + benign, checkpoint=cp("gen1"))
 
     if run_gen2:
         report = evaluator.evaluate(results)
         mutated = MutationOptimizer().propose_next_generation(report, attacks)
         if mutated:
-            results += agent.run_batch(mutated)
+            results += agent.run_batch(mutated, checkpoint=cp("gen2"))
 
     if run_holdout:
         hold = holdout_targets()[:max_holdout_targets] if max_holdout_targets else holdout_targets()
-        results += agent.run_batch(gen.generate_attacks(max_directives=max_directives, targets=hold))
+        results += agent.run_batch(
+            gen.generate_attacks(max_directives=max_directives, targets=hold),
+            checkpoint=cp("holdout"))
 
     return results
 
@@ -274,10 +285,14 @@ def main():
                     help="run the expanded red-team campaign live (needs Ollama)")
     ap.add_argument("--self-test", action="store_true",
                     help="package a deterministic synthetic batch (no LLM)")
+    ap.add_argument("--checkpoint-dir", default="logs/campaign_checkpoint",
+                    help="resume a crashed campaign from per-case results here; "
+                         "pass '' to disable. DELETE IT after changing the "
+                         "pipeline — cached results describe the old code.")
     args = ap.parse_args()
 
     if args.run_campaign:
-        results = collect_results()
+        results = collect_results(checkpoint_dir=args.checkpoint_dir or None)
         capture_threshold = args.capture_threshold
     elif args.self_test:
         results = _synthetic_results()

@@ -17,6 +17,22 @@ class ScreenResult:
     matched_markers: List[str] = field(default_factory=list)
 
 
+    @classmethod
+    def permissive(cls, content: str = "", tool_name: str = "") -> "ScreenResult":
+        """
+        The verdict a disabled screener returns: nothing flagged.
+
+        Used by the Phase 7 ablation arms (`PipelineConfig.enable_screener=False`).
+        It returns a real `ScreenResult` rather than `None` so that every arm
+        emits the identical telemetry schema — if a disabled layer changed the
+        record shape, the arms would no longer be comparable, which is the one
+        thing an ablation cannot afford.
+        """
+        return cls(is_flagged=False, reason="screener disabled (ablation)",
+                   content=content, tool_name=tool_name, source="disabled",
+                   matched_markers=[])
+
+
 class ToolResponseScreener:
     """
     Layer 3 — Tool Response Screener.

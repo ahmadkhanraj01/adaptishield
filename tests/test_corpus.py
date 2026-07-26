@@ -214,3 +214,36 @@ def test_ablation_last_run_slices_the_append_only_log():
     from evaluation.ie_ablation import last_run
     rows = [{"boundary_index": i} for i in (1, 2, 3, 1, 2)]
     assert [r["boundary_index"] for r in last_run(rows)] == [1, 2]
+
+
+# ── dataset freshness guard (§6o) ─────────────────────────────────────
+def test_freshness_flags_a_dataset_older_than_the_record_log(tmp_path):
+    """
+    A campaign that dies part-way leaves the previous dataset in place, so the
+    FPR report reproduces the OLD numbers with no sign anything is wrong. That
+    happened after the probe-grounding fix: the campaign crashed on a transient
+    CUDA fault and the report printed the pre-fix rate.
+    """
+    from evaluation.fpr_report import freshness
+    import os, time
+    ds = tmp_path / "episodes.jsonl"; ds.write_text("{}\n")
+    rec = tmp_path / "records.jsonl"; rec.write_text("{}\n")
+    old = time.time() - 7200
+    os.utime(ds, (old, old))                      # dataset 2h older than records
+    msg = freshness(str(ds), str(rec))
+    assert "STALE" in msg
+
+
+def test_freshness_is_quiet_when_the_dataset_is_current(tmp_path):
+    from evaluation.fpr_report import freshness
+    import os, time
+    ds = tmp_path / "episodes.jsonl"; ds.write_text("{}\n")
+    rec = tmp_path / "records.jsonl"; rec.write_text("{}\n")
+    old = time.time() - 7200
+    os.utime(rec, (old, old))                     # records older than dataset
+    assert "STALE" not in freshness(str(ds), str(rec))
+
+
+def test_freshness_reports_a_missing_dataset(tmp_path):
+    from evaluation.fpr_report import freshness
+    assert "does not exist" in freshness(str(tmp_path / "nope.jsonl"))

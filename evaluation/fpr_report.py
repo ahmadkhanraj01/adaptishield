@@ -27,6 +27,7 @@ and its coverage collapses exactly where our numbers sit.
 import argparse
 import json
 import math
+import os
 from typing import Dict, List, Tuple
 
 DEFAULT_EPISODES = "evaluation/kaggle/dataset/episodes.jsonl"
@@ -45,6 +46,48 @@ def wilson(successes: int, n: int, z: float = 1.96) -> Tuple[float, float]:
 
 def cohort_of(ep: Dict) -> str:
     return "agentdojo" if ep["case_id"].startswith("agentdojo-") else "ours"
+
+
+def freshness(episodes_path: str,
+              records_path: str = "logs/episode_records/episodes.jsonl") -> str:
+    """
+    Say how old the dataset is, and shout if the live record log is newer.
+
+    This script reads whatever file is at `--episodes` and cannot tell whether it
+    reflects the code currently on disk. A campaign that dies part-way leaves the
+    previous dataset in place, so re-running this after a failed campaign prints
+    the OLD numbers with no indication anything is wrong — which is exactly what
+    happened after the probe-grounding fix (§6o): the campaign crashed on a
+    transient CUDA fault at case 43 of 134, never wrote the dataset, and this
+    report cheerfully reproduced the pre-fix false-positive rate.
+
+    The record log is appended by the live pipeline on every boundary crossing,
+    so if it is materially newer than the packaged dataset, a campaign has run
+    since the dataset was built and the dataset is stale.
+    """
+    import time
+
+    if not os.path.exists(episodes_path):
+        return f"  !! {episodes_path} does not exist"
+    ds = os.path.getmtime(episodes_path)
+    age_h = (time.time() - ds) / 3600
+    line = (f"  dataset: {episodes_path}\n"
+            f"           built {time.strftime('%Y-%m-%d %H:%M', time.localtime(ds))} "
+            f"({age_h:.1f}h ago)")
+
+    if os.path.exists(records_path):
+        rec = os.path.getmtime(records_path)
+        if rec > ds + 60:
+            gap = (rec - ds) / 3600
+            line += (f"\n  !! STALE — the live record log is {gap:.1f}h NEWER than "
+                     f"this dataset.\n"
+                     f"     A campaign has run since it was built. If that campaign "
+                     f"failed part-way,\n"
+                     f"     these numbers describe the PREVIOUS run, not the current "
+                     f"code.\n"
+                     f"     Re-package before quoting them: "
+                     f"python -m evaluation.kaggle.package_episodes --run-campaign")
+    return line
 
 
 def report(episodes: List[Dict]) -> Dict:
@@ -106,6 +149,8 @@ def main() -> None:
     ap.add_argument("--episodes", default=DEFAULT_EPISODES)
     ap.add_argument("--json-out", default=None)
     args = ap.parse_args()
+
+    print(freshness(args.episodes))
 
     with open(args.episodes) as f:
         episodes = [json.loads(line) for line in f if line.strip()]

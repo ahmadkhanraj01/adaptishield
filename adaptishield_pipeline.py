@@ -3,13 +3,13 @@ from layer1.provenance import InputParser, ContextBuilder, ProvenanceLabel
 from layer2.security_sublayer.policy_engine import PolicyEngine, PolicyDecision
 from layer2.security_sublayer.causal_analyzer import CausalAnalyzer
 from layer2.security_sublayer.context_sanitizer import ContextSanitizer
-from layer3.tool_response_screener import ToolResponseScreener
+from layer3.tool_response_screener import ToolResponseScreener, ScreenResult
 from layer4.permission_control import PermissionControl
 from layer4.network_egress_filter import NetworkEgressFilter
 from layer4.sandbox import Sandbox, DOCKER_AVAILABLE
 from layer4.telemetry_stream import TelemetryStream, EpisodeRecord
 from langchain_ollama import OllamaLLM
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from utils.parsing import extract_next_action
 
 # How much untrusted mediator content EpisodeRecord keeps. Long enough to
@@ -18,8 +18,73 @@ from utils.parsing import extract_next_action
 MEDIATOR_SNIPPET_CHARS = 500
 
 
+@dataclass
+class PipelineConfig:
+    """
+    Which defenses are active. Exists for the Phase 7 benchmark arms.
+
+    The point of an ablation is that the arms differ in exactly one respect at a
+    time, so each flag gates one component and nothing else. Disabling a layer
+    makes it *permissive* — it does not remove the code path, because the
+    telemetry, the boundary index and the record schema must stay identical
+    across arms or the arms are not comparable.
+
+    Note what disabling 3B implies: with no causal verdict there is nothing for
+    3C to sanitize, so `safe_continuation` becomes unreachable and every attack
+    that Layer 4 does not stop reaches the tool. That is precisely the point of
+    the baseline arm — it is what a conventional keyword-and-allowlist defense
+    looks like on this corpus.
+    """
+    name:               str  = "full"
+    enable_screener:    bool = True   # Layer 3 tool-response screener
+    enable_policy:      bool = True   # 3A static triage (blocked_patterns)
+    enable_causal:      bool = True   # 3B causal analyzer
+    enable_sanitizer:   bool = True   # 3C context sanitizer
+    enable_permission:  bool = True   # Layer 4 permission control
+    enable_egress:      bool = True   # Layer 4 egress allowlist
+
+    @classmethod
+    def full(cls) -> "PipelineConfig":
+        return cls(name="full")
+
+    @classmethod
+    def undefended(cls) -> "PipelineConfig":
+        """No defenses at all — measures what the attack corpus does unopposed."""
+        return cls(name="undefended", enable_screener=False, enable_policy=False,
+                   enable_causal=False, enable_sanitizer=False,
+                   enable_permission=False, enable_egress=False)
+
+    @classmethod
+    def static_only(cls) -> "PipelineConfig":
+        """
+        The realistic comparison: keyword screening, static pattern blocking and
+        an egress allowlist — i.e. the defenses a system would plausibly have
+        without this project's causal sub-layer. 3B and 3C off.
+        """
+        return cls(name="static_only", enable_causal=False, enable_sanitizer=False)
+
+    @classmethod
+    def no_egress(cls) -> "PipelineConfig":
+        """
+        Full AdaptiShield minus Layer 4's allowlist. Isolates how much of the
+        measured ASR is carried by 3A/3B/3C rather than by the backstop — the
+        address-free attacks were added in §6n precisely because the allowlist
+        was hiding detection failures.
+        """
+        return cls(name="no_egress", enable_egress=False)
+
+
 class AdaptiShieldPipeline:
-    def __init__(self):
+    def __init__(self, config: "PipelineConfig" = None):
+        # Phase 7 needs to run the SAME corpus through partially-disabled
+        # configurations, because "AdaptiShield helps" is only a claim if there is
+        # something to compare it against. Ablation lives here rather than in the
+        # benchmark runner so that every arm goes through the identical code path
+        # and differs only in these flags — a runner that monkey-patched the
+        # layers would be measuring the patch as much as the defense.
+        #
+        # Default is everything on, so existing callers are unaffected.
+        self.config              = config or PipelineConfig()
         self.registry            = ServerTrustRegistry()
         self.input_parser        = InputParser()
         self.context_builder     = ContextBuilder()
@@ -68,8 +133,12 @@ class AdaptiShieldPipeline:
 
         # --- Layer 3: Tool Response Screener ---
         # Runs on the raw tool response before it's trusted as clean context.
-        screen_result = self.tool_screener.screen(tool_response, tool_name)
-        print(f"[L3] flagged={screen_result.is_flagged} — {screen_result.reason}")
+        if self.config.enable_screener:
+            screen_result = self.tool_screener.screen(tool_response, tool_name)
+            print(f"[L3] flagged={screen_result.is_flagged} — {screen_result.reason}")
+        else:
+            screen_result = ScreenResult.permissive(tool_response, tool_name)
+            print("[L3] disabled (ablation)")
 
         # Carry the screener's verdict and a bounded slice of the untrusted
         # mediator into telemetry, so 3D can mine paraphrased injection
@@ -85,19 +154,30 @@ class AdaptiShieldPipeline:
 
         # --- 3A: Policy Engine ---
         policy = self.policy_engine.evaluate(tool_name, proposed_action)
-        print(f"[3A] {policy.decision.value} — {policy.reason}")
+        if not self.config.enable_policy:
+            # Keep the routing decision (so 3B still sees high-impact tools when
+            # it is enabled) but drop the ability to BLOCK, which is the only
+            # thing 3A does on its own.
+            print(f"[3A] disabled (ablation) — would have been {policy.decision.value}")
+            if policy.decision == PolicyDecision.BLOCK:
+                policy = self.policy_engine.evaluate("__ablated__", proposed_action)
+        else:
+            print(f"[3A] {policy.decision.value} — {policy.reason}")
 
-        if policy.decision == PolicyDecision.BLOCK:
+        if self.config.enable_policy and policy.decision == PolicyDecision.BLOCK:
             self._emit_telemetry(record_kwargs, final_status="blocked",
                                   outcome_severity=2)
             return {"status": "blocked", "reason": policy.reason}
 
         # A response flagged by the screener forces causal evaluation even
         # on tools the Policy Engine would otherwise fast-path as low-impact.
-        needs_causal = (
+        needs_causal = self.config.enable_causal and (
             policy.decision == PolicyDecision.SEND_TO_CAUSAL
             or screen_result.is_flagged
         )
+        if not self.config.enable_causal:
+            print("[3B] disabled (ablation) — no causal verdict, so 3C cannot run "
+                  "and safe_continuation is unreachable")
 
         if not needs_causal:
             result = self._run_layer4(
@@ -143,6 +223,18 @@ class AdaptiShieldPipeline:
                     "causal_verdict": causal_verdict, "layer4": result}
 
         # --- 3C: Context Sanitizer ---
+        if not self.config.enable_sanitizer:
+            # A takeover was confirmed and there is no way to purify the content,
+            # so the only safe outcome is a blanket block. This is the WCR cost
+            # 3C exists to avoid: the attack is stopped and the user's legitimate
+            # workflow dies with it (fix B scores this +0.7 against +1.0).
+            print("[3C] disabled (ablation) — takeover confirmed with no sanitizer, "
+                  "falling back to a blanket block (workflow lost)")
+            self._emit_telemetry(record_kwargs, final_status="blocked",
+                                 outcome_severity=2, causal_verdict=causal_verdict)
+            return {"status": "blocked", "reason": "takeover confirmed; sanitizer disabled",
+                    "causal_verdict": causal_verdict}
+
         print("[3C] Takeover confirmed — purifying mediator content...")
         san = self.context_sanitizer.sanitize(
             mediator_content=mediator,
@@ -202,15 +294,19 @@ class AdaptiShieldPipeline:
         egress_result = None
         sandbox_result = None
 
-        if server_name:
+        if server_name and self.config.enable_permission:
             perm = self.permission_control.check_scope(server_name, tool_name)
             permission_result = asdict(perm)
             print(f"[L4-Permission] allowed={perm.allowed} — {perm.reason}")
+        elif server_name:
+            print("[L4-Permission] disabled (ablation)")
 
-        if destination_url:
+        if destination_url and self.config.enable_egress:
             egress = self.egress_filter.check(destination_url)
             egress_result = asdict(egress)
             print(f"[L4-Egress] allowed={egress.allowed} — {egress.reason}")
+        elif destination_url:
+            print("[L4-Egress] disabled (ablation) — exfiltration destinations pass")
 
         gated_by_permission = permission_result is not None and not permission_result["allowed"]
         gated_by_egress = egress_result is not None and not egress_result["allowed"]

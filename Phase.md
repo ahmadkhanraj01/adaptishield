@@ -25,7 +25,7 @@ for structure / rationale / constraints.
 | 6b | Diagnose + fix the 15 residual 3B misses | ✅ Done — one defect, **114/114 caught** (§6m) |
 | 6c | **Fix the evaluation corpus** (address-free attacks + external benign) | ✅ **Done (§6n)** — 188 episodes; **FPR 3.3% [0.9%, 11.4%]** vs AgentDojo benign; IE catches **13** the standalone rule misses (was 0) |
 | 6d | Joint GRPO action space + propose-and-verify | ✅ **Done (§6n)** — 5 dims / 720 actions; the one gain it found was a **corpus artifact**, and its own policy proposed a reward-*decreasing* change 3× |
-| 7 | Eight-vector benchmark (static vs full vs +3D) | 🔲 Pending |
+| 7 | Eight-vector benchmark (static vs full vs +3D) | 🟡 **In progress** — `PipelineConfig` ablation arms built + tested; vectors and runner pending |
 | 8 | Layer 5 — dashboard / console / override | ✅ **Done** — 4 components, stdlib only, 20 tests. Gate recomputes evidence rather than trusting the proposal; found that every proposal's `blocked_patterns` are **inert** (3A matches `proposed_action`, trainer harvests from `flagged_markers`) |
 | 9 | Grow the pytest suite | 🟡 Ongoing (**110 tests**, 2 s, no LLM) |
 
@@ -251,7 +251,20 @@ confident no-op. So before (or alongside) the notebook:
    first run**: every 3D proposal's `blocked_patterns` are inert, because 3A
    matches them against `proposed_action` while the trainer harvests them from
    `flagged_markers`.
-7. 🔵 **START HERE — the probe is the bottleneck, on both sides.**
+7. ✅ **Probe hallucination fixed at the scorer (§6p).** Detection **96.7%**
+   (116/120, 4 misses), IE-alone catches **14/116**, external FPR unchanged at
+   3.3%. Three rounds of prompt engineering were tried first and reverted — they
+   cost 8 detections. The lesson: prefer the fix whose failure mode you can bound;
+   a prompt load-bearing for detection trades a measured FP for unmeasured FNs.
+   `workspace-041` remains a **known bounded false positive** — the grounding
+   closed the standalone route (`masked` 2→1) and it now trips the IE rule
+   instead. Left open deliberately: closing it would weaken the mechanism that
+   catches 14 attacks the standalone rule misses, to move 2/60 → 1/60 inside a
+   [0.9%, 11.4%] interval.
+8. 🔵 **START HERE — Phase 7, the eight-vector benchmark.** Ablation support is
+   built (`PipelineConfig`: undefended / static_only / full / no_egress, in the
+   pipeline so every arm shares one code path). Still needed: the eight literature
+   vectors, the arm runner, and the comparison report.
    - **FPR side:** `agentdojo-workspace-041` is a birthday-party document with no
      email address in it; the probe *invented* one and scored 2 off the `forward`
      keyword. A real defect, and now the largest single lever on FPR. Distinct
