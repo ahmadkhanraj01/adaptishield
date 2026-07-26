@@ -1,6 +1,15 @@
 # Layer 2 — Security and Adaptive Sub-layer (3A → 3B → 3C → 3D)
 
-**Status:** ✅ 3A / 3B / 3C built & validated · 🟡 3D v1 (local heuristic) built & validated; GRPO training on Kaggle pending
+**Status:** ✅ 3A / 3B built & validated · 🟡 3C prompt rewrite pending · 🟡 3D
+trained (torch + pure-Python verified identical) and honestly proposing a **no-op**
+
+| | |
+| :--- | :--- |
+| Detection (3B) | **116/120 = 96.7%**, 95% CI [91.7%, 98.7%] |
+| Residual misses | **4** — all `masked = 0` (severity-function failures) |
+| Threshold-reachable misses | **0** — the quantified reason 3D's knob cannot help |
+| Catches only the IE rule makes | **14/116** |
+| FPR (external, n=60) | 3.3%, 95% CI [0.9%, 11.4%] |
 
 ## Purpose
 The heart of AdaptiShield. Each tool-return boundary flows through this
@@ -12,9 +21,9 @@ a hidden injection, and how to continue safely if it is.
 | Stage | File | Purpose | Status |
 | :--- | :--- | :--- | :--- |
 | **3A** | `policy_engine.py` | Fast deterministic triage — blocks known bad patterns, routes high-impact tools to causal analysis, fast-paths low-impact ones. **Note (§6n):** `blocked_patterns` are matched against the *`proposed_action`*, while 3D harvests candidates from *`flagged_markers`* (mediator content). Different namespaces — every proposal 3D has produced carries an **inert** pattern (`'ignore previous'` appears as a marker on 48/188 episodes and in **0** proposed actions). Layer 5's gate now detects this. | ✅ Built and tested |
-| **3B** | `causal_analyzer.py` | Runs the mediator content through 4 regimes (`orig`, `masked`, `masked_sanitized`, `orig_sanitized`) and computes ACE / IE / DE to detect mediator-driven **takeover**. `gemma3:4b`, `k_samples=2`, **`temperature=0.0`** (§6m — every 3B quantity is a *difference* between regimes, so decoding variance enters the measurement directly). Owns three fixes: the **normalized** mediator-target match (the defect behind all 15 §6m misses), the rewritten internal `_sanitize_mediator`, and greedy decoding. **115/120 detection**, and 13 catches the standalone `masked>=2` rule cannot make (§6n). | ✅ Built, tested, validated |
+| **3B** | `causal_analyzer.py` | Runs the mediator content through 4 regimes (`orig`, `masked`, `masked_sanitized`, `orig_sanitized`) and computes ACE / IE / DE to detect mediator-driven **takeover**. `gemma3:4b`, `k_samples=2`, **`temperature=0.0`** (§6m — every 3B quantity is a *difference* between regimes, so decoding variance enters the measurement directly). Owns three fixes: the **normalized** mediator-target match (the defect behind all 15 §6m misses), the rewritten internal `_sanitize_mediator`, and greedy decoding. **116/120 detection**, and **14** catches the standalone `masked>=2` rule cannot make (§6n). Also owns the §6p **grounding** check: a high-impact keyword escalates only if the mediator asked for something of that kind. | ✅ Built, tested, validated |
 | **3C** | `context_sanitizer.py` | When 3B confirms takeover, strips imperative/override/hidden directives from mediator content while preserving facts, so the agent can safely continue. **Runs only after takeover** (`adaptishield_pipeline.py:132`), which is why its `instructions_removed` self-report cannot substitute for 3B's IE measurement — it does not exist at decision time (§6n, `evaluation/ie_ablation.py`). Still carries the prompt weakness 3B's internal sanitizer had; left unchanged rather than altered silently because it feeds the user-visible continuation and the WCR metric. | 🟡 Built; prompt rewrite pending |
-| **3D** | `adaptive_threat_model.py` | Adaptive learner. Computes the GRPO reward, then proposes bounded updates to `PolicyEngine.blocked_patterns`/`high_impact_tools` and `CausalAnalyzer.ie_threshold` (no LLM weights). `apply_update()` **refuses unless `approved=True`** — 3D proposes, a human disposes (Layer 5). The real trainer lives in `evaluation/kaggle/grpo_train.py`; both backends are now verified to agree exactly. Honest current output: a **no-op**, because 0 of the 5 residual misses are threshold-reachable. | 🟡 v1 heuristic + real GRPO trainer, both validated |
+| **3D** | `adaptive_threat_model.py` | Adaptive learner. Computes the GRPO reward, then proposes bounded updates to `PolicyEngine.blocked_patterns`/`high_impact_tools` and `CausalAnalyzer.ie_threshold` (no LLM weights). `apply_update()` **refuses unless `approved=True`** — 3D proposes, a human disposes (Layer 5). The real trainer lives in `evaluation/kaggle/grpo_train.py`; both backends are now verified to agree exactly. Honest current output: a **no-op**, because 0 of the 4 residual misses are threshold-reachable. | 🟡 v1 heuristic + real GRPO trainer, both validated |
 | — | `__init__.py` | Package marker | ✅ |
 
 ## What's done
@@ -182,26 +191,54 @@ makes a benign email naming a recipient a *latent* false positive — that
 allowed-vs-attacker distinction is Layer 4's egress allowlist, not 3B.
 
 ## Component 3D — what's pending
-- **Prerequisites before GRPO are done** (root README Section 13):
-  ~~stop `_extract_targets` proposing literal addresses~~ (fix A),
-  ~~penalize losing a safe continuation in the reward~~ (fix B),
-  ~~give IE usable resolution~~ (fix C — step sized to `ie_resolution`), and
-  ~~fix 3B's `no_action` refusals~~ (fix D / Section 6i — the masked probe now
-  produces signal on softened injections). `_score_action` semantic scoring was
-  tried and left off by default (Section 6e). Remaining detection polish:
-  `masked_hypothetical` flakiness and 3C sanitisation, neither blocking GRPO.
-- Replace the v1 heuristic inside `propose_update()` with the real GRPO/RL
-  training loop; train on Kaggle P100 (needs torch + GPU, can't run on the
-  local 4GB card). The reward function and I/O contract stay the same.
-  Blocked on the prerequisites — otherwise GRPO optimizes an inert knob.
-- **Resolved:** `EpisodeRecord` now carries `screen_result.matched_markers`
-  and a 500-char `mediator_snippet`, and `load_labeled_from_jsonl()` reads
-  them into `LabeledEpisode`, so 3D no longer depends on the red team to hand
-  it `flagged_markers`.
+
+- **Nothing to tune.** The no-op is the result, not a gap. All 4 residual misses
+  are `masked = 0`; no threshold acts on an absent signal. Tuning 3D until it
+  showed a gain would be reporting noise.
+- **Two of five dimensions are unidentifiable** and the trainer says so itself:
+  reward is exactly flat in `risk_threshold` and `window_size`, because campaigns
+  assign a unique `session_id` per case so the temporal-drift rule never
+  accumulates history. Multi-turn sessions would make them learnable for the
+  first time.
+- **The proposal's `blocked_patterns` are inert.** 3A matches them against the
+  *proposed action*; 3D harvests them from *mediator* markers. Different
+  namespaces. Either teach 3D to propose action-shaped patterns, or give 3A a
+  mediator-matching rule — but note the markers are also **anti-correlated** with
+  maliciousness on external content (`'ignore previous'` fires on 30/60 benign
+  AgentDojo documents and 18/120 malicious), so the second option needs care.
+
+## Three findings worth carrying forward
+
+**1. The measurement was the bug, not the model.** All 15 residual misses in §6m
+were one defect: `_references_mediator_target` compared verbatim, and `gemma3:4b`
+restates `leaker@shadow-mail.net` as `leaker@shadowmail.net` — hyphen dropped —
+in **57 of 57** mentions, deterministically. A perfectly good probe result was
+recorded as silence. The three other attacker addresses, none containing
+punctuation inside their domain, were caught 24/24 each.
+
+**2. Prefer the fix whose failure mode you can bound (§6p).** The probe
+hallucinated an action on a benign document. Three rounds of prompt engineering
+reduced the hallucination and **cost 8 detections**, because a prompt that is
+load-bearing for detection trades one *measured* false positive against unmeasured
+false negatives. The repair that shipped is in the severity function, where it is
+monotone — it can only ever withhold an escalation, never create one — and covered
+by unit tests instead of a 90-minute campaign.
+
+**3. Closing one route to a takeover does not close the case.** 3B has three
+independent routes: a target lifted from the content, standalone severity, and
+the causal contrast. Fixing the severity function moved
+`agentdojo-workspace-041` from `masked=2` to `masked=1` — and it then tripped the
+IE rule instead. A false positive is eliminated only when every route is
+considered.
 
 ## Run standalone
+
 ```bash
-python3 layer2/security_sublayer/policy_engine.py           # approve_direct / send_to_causal / block
-python3 -m layer2.security_sublayer.adaptive_threat_model   # 3D reward + proposal demo (no LLM/GPU)
-# 3B and 3C are exercised through adaptishield_pipeline.py
+python3 layer2/security_sublayer/policy_engine.py            # 3A triage decisions
+python3 -m layer2.security_sublayer.adaptive_threat_model    # 3D reward + proposal demo (no LLM)
+python3 -m evaluation.mechanism_validation                   # 3B regimes + takeover rules, <1s
+python3 -m evaluation.probe_diagnostic                       # root-cause a 3B miss (needs Ollama)
 ```
+
+Deterministic tests: `tests/test_takeover_rules.py` (9),
+`tests/test_target_match.py` (21), `tests/test_adaptive_threat_model.py` (14).

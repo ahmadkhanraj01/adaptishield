@@ -1,34 +1,93 @@
 # Layer 2 — LLM Agent Control Plane
 
-**Status:** 🟡 Partial — Security Sub-layer 3A/3B/3C built; 3D v1 heuristic built (GRPO training pending)
+**Status:** ✅ Security Sub-layer 3A/3B/3C built & validated · 🟡 3D built,
+trained, and honestly proposing a **no-op**
 
 ## Purpose
-The decision-making layer. In the full architecture this hosts the Planner
-Agent, Tool Selector, Execution Agent, and Feedback Analyzer — but the part
-that actually exists today is the **Security and Adaptive Sub-layer**
-(`security_sublayer/`), which is where AdaptiShield's novel defenses live.
+
+The decision-making layer. In the full architecture this hosts the Planner Agent,
+Tool Selector, Execution Agent and Feedback Analyzer — but the part that actually
+exists, and the part this research contributes, is the **Security and Adaptive
+Sub-layer** (`security_sublayer/`).
+
+**This is where the project's novel work lives.** Everything else in the stack is
+conventional defense-in-depth: allowlists, scope checks, sandboxing. Layer 2 is
+where the causal question is asked.
 
 ## Contents
+
 | Path | Purpose | Status |
 | :--- | :--- | :--- |
-| `security_sublayer/` | The 3A→3B→3C→3D defense chain — see its own README | 🟡 3A/3B/3C done; 3D v1 built, GRPO pending |
+| `security_sublayer/` | The 3A→3B→3C→3D defense chain — see its own README for the detailed breakdown | ✅ 3A/3B built · 🟡 3C prompt rewrite pending · 🟡 3D proposes a no-op |
 | `__init__.py` | Package marker | ✅ |
 
-## What's done
-- The Security Sub-layer's first three stages (Policy Engine, Causal
-  Analyzer, Context Sanitizer) are built, tested, and wired into
-  `adaptishield_pipeline.py`.
-- **Component 3D v1** (CPU heuristic) is built and validated: reward → bounded,
-  human-gated proposal. Fixes A–D corrected the measurement, reward, step
-  sizing, and masked probe (root README §6d, §6i–6k), and the loop is now shown
-  to close a controlled gap. See `security_sublayer/README.md`.
+## The chain, and why each link exists
+
+```
+  3A  Policy Engine        cheap deterministic triage — block the obvious,
+                           route high-impact tools onward
+        │
+  3B  Causal Analyzer      the measurement: four probe regimes → ACE / IE / DE
+                           "did the untrusted content change the decision?"
+        │  takeover
+  3C  Context Sanitizer    strip the directive, keep the user's task alive
+        │
+  3D  Adaptive Threat Model   observe outcomes, propose bounded updates.
+                              Never self-applies — Layer 5 gates it.
+```
+
+- **3A is first because it is cheap.** 3B costs several LLM calls per boundary
+  crossing; anything a static rule can settle should not reach it.
+- **3B is the contribution.** It measures *influence*, not appearance, so a
+  paraphrase does not evade it. It depends on Layer 1's trusted/mediator
+  partition: without that there is nothing to mask, and no counterfactual.
+- **3C is what makes the system usable.** Without it a confirmed takeover can
+  only be answered by a blanket block — ASR 0% at WCR 0%, which is a useless
+  system. The Phase 7 ablation shows exactly this: removing 3B/3C takes WCR from
+  71.4% to 0%.
+- **3D proposes only.** See below.
+
+## Current numbers
+
+| | |
+| :--- | :--- |
+| Detection (3B) | **116/120 = 96.7%**, 95% CI [91.7%, 98.7%] |
+| Residual misses | 4 — all `masked = 0`, i.e. **severity-function** failures |
+| Threshold-reachable misses | **0** — which is why 3D's knob cannot close them |
+| Catches only IE makes | **14/116** (the standalone rule would miss these) |
+| FPR (external, n=60) | 3.3%, 95% CI [0.9%, 11.4%] |
+
+## Why 3D's no-op is a result, not a failure
+
+3D is fully built: a real GRPO trainer with a joint action space over
+`ie_threshold`, `risk_threshold`, `window_size` and Policy Engine marker weights,
+implemented twice (torch + pure-Python) and verified to agree exactly. It runs,
+it trains, and it proposes **no change**.
+
+That is the honest answer, for a reason the table above states precisely: **none
+of the residual misses is reachable by any threshold.** They are `masked = 0` —
+no signal exists for a threshold to act on. Tuning 3D until it showed a gain
+would be reporting noise.
+
+The one time it *did* find a gain, on the pre-§6n corpus, that gain reversed on
+externally-authored benign data — it had learned a marker weight that looked free
+only because nothing in our own benign corpus triggered it.
 
 ## What's pending
-- **Component 3D — real GRPO/RL training** — replace the v1 heuristic inside
-  `propose_update()` with a policy-gradient loop on Kaggle, same reward and I/O
-  contract. Prerequisites (A–D) are now cleared.
+
+- **3C `ContextSanitizer.sanitize()`** still carries the prompt weakness 3B's
+  internal sanitizer had (§6m). It feeds the user-visible safe continuation and
+  the WCR metric, so it was left unchanged rather than altered silently.
+- **The severity function** — all 4 residual misses live there. §6e already
+  showed the semantic scorer is *worse end-to-end*, so this needs a third
+  approach, not a re-run of that one.
+- **Multi-turn sessions** — campaigns give every case a unique `session_id`, so
+  the temporal-drift rule never fires and two of 3D's five dimensions are
+  unidentifiable. The trainer reports this itself rather than learning a spurious
+  preference.
 - The general-purpose Planner / Tool Selector / Execution Agent / Feedback
-  Analyzer boxes in the diagram are represented today only by the simple
+  Analyzer boxes in the architecture diagram exist today only as the simple
   `planner_llm` calls inside the pipeline, not as standalone modules.
 
-See `layer2/security_sublayer/README.md` for the detailed breakdown.
+See [`security_sublayer/README.md`](security_sublayer/README.md) for the
+per-component detail.

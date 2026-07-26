@@ -1,103 +1,87 @@
 # tests — Automated Test Suite
 
-**Status:** ✅ **110 tests passing**, ~2 s, no LLM / network / GPU required
+**Status:** ✅ **135 tests passing**, ~2 s, no LLM / no network / no GPU
 
-## Purpose
-A formal `pytest` suite covering every layer plus end-to-end pipeline cases,
-so changes can be regression-checked automatically instead of by running
-each module's `__main__` block by hand.
-
-## What's done
-| File | Covers | Tests |
-| :--- | :--- | :--- |
-| `test_takeover_rules.py` | 3B's takeover paths + IE resolution (root README §6f–6h, §6d) | 9, ~1.4s |
-| `test_adaptive_threat_model.py` | 3D's reward + proposal + step sizing + loop-closes (§6d / §6k / §13) | 14, ~1.0s |
-| `test_target_match.py` | The normalized mediator-target match and the one new false-positive class it introduced (§6m) | 14, ~1.7s |
-| `test_probe_diagnostic.py` | The read-only root-cause tool, including the classifier-ordering bug that mislabelled 3 healthy probes (§6m) | 11, ~0.9s |
-| `test_corpus.py` | Corpus invariants that are easy to destroy by editing a directive: address-free attacks must expose no target, benign controls must carry one, AgentDojo cases must carry no `{*_injection}` placeholder; plus the Wilson interval and the IE-ablation join (§6n) | 19, ~0.9s |
-| `test_grpo_kaggle.py` | GRPO env + trainer: threshold replay, reward table, the joint action space, and the tied-reward no-op regression guard (§6l–§6n) | 23, ~0.7s |
-| `test_layer5.py` | The human gate: evidence recomputation, regression/claim-mismatch/inert-pattern warnings, "recommends but never decides", append-only decision log, and that untrusted mediator text cannot escape the dashboard's embedded JSON (§6n) | 20, ~0.6s |
-| `__init__.py` | Package marker | — |
-
-**110 tests, ~2 s for the whole suite, no LLM / no network / no GPU.** That
-constraint is deliberate: anything requiring Ollama lives in `evaluation/`, so
-this suite can run on every edit. The four probe regimes are patched out so 3B's
-decision logic is tested deterministically.
-
-### Why several of these exist at all
-
-Three were written *because* a bug had already shipped, and they pin the exact
-mistake rather than the general area:
-
-- `test_probe_diagnostic.py` — the diagnostic's own classifier ordered a
-  `severity == 0` check before the garbled-address check, so it labelled 3
-  healthy probes `PROBE_NO_ACTION`. That misdiagnosis would have sent the repair
-  at the probe prompt, which was not at fault.
-- `test_corpus.py` — the AgentDojo injection filter first searched for
-  `"{injection"` and matched **nothing**; the real format is
-  `{email_facebook_injection}`. Without the test, 10 pieces of attack
-  scaffolding would have entered the benign denominator, one of them inside
-  otherwise ordinary prose.
-- `test_grpo_kaggle.py` — the trainer proposed a threshold change its own reward
-  table scored *lower*. The tied-reward test asserts a no-op, so that cannot
-  return silently.
-
-What `test_takeover_rules.py` pins:
-
-- **Temporal drift (6g)** — empty boundaries must not fire, genuine drift must
-  still fire, drift must not leak across sessions, history is per-session.
-- **IE sample consistency (6h)** — a one-sample paraphrase flip
-  (`masked=[1,1]` vs `masked_san=[1,0]`) must be suppressed, while a real
-  separation and a partial-sanitisation case must still fire.
-- **Rule precedence (6f)** — `masked=[2,2]` with `masked_san=[2,2]` has IE=0
-  *and* an inconsistent separation, yet must still fire via the standalone
-  rule. The consistency guard must never suppress strong evidence; that
-  ordering is the load-bearing invariant between 6f and 6h.
-
-What `test_adaptive_threat_model.py` pins:
-
-- **No literal memorization (6d fix A)** — a missed attack naming
-  `attacker@evil.com` must never turn that literal address into a
-  `blocked_pattern`; only generalizable injection phrasing (`flagged_markers`)
-  survives. No `@` may appear in any proposed pattern.
-- **WCR guard in the reward (6d fix B)** — for a malicious episode, a 3C
-  `safe_continuation` must reward strictly above a blanket 3A `block`; both
-  stay positive (still a correct stop), and a block is surfaced in
-  `evaluate_batch()`'s `workflow_lost` list while benign scoring is untouched.
-- **IE step sizing (6d fix C)** — 3D's `threshold_step` equals the IE grid
-  (`CausalAnalyzer.ie_resolution` = `1/k_samples`), so a proposed move is one
-  grid unit (`0.5 → 0.0` at k=2), never the v1 inert `0.5 → 0.4` that fell
-  between achievable IE values. `test_takeover_rules.py` pins the resolution
-  itself (`ie_resolution` tracks `k_samples`).
-
-## The pattern to follow
-`test_takeover_rules.py` patches the four probe regimes out and asserts on the
-decision logic directly. **No Ollama, no GPU, sub-second.** That split is
-deliberate and worth preserving:
-
-- **`tests/`** — pure decision logic, deterministic, fast enough to run on
-  every change. Patch `_run_regime` / `_sanitize_mediator` and drive the
-  severities directly.
-- **`evaluation/`** — anything needing a live model. Those runs take minutes
-  and vary between runs, so they are experiments, not tests, and their
-  numbers get recorded in the READMEs rather than asserted on.
-
-Most of what is worth pinning in 3B/3C/3D is decision logic wrapped around an
-LLM call, so most of it can live here.
-
-## What's pending — suggested starting points
-| Test target | Natural source |
-| :--- | :--- |
-| Takeover rules | The IE rule and the standalone `masked >= 2` rule (Sec. 6f), same patching approach |
-| End-to-end pipeline | The 3 validated episodes in root README Section 6 make ready-made regression cases |
-| Layer 0–4 units | Each module's existing `__main__` assertions, promoted to `test_*.py` |
-| Red team metrics | `red_team/evaluator.py` ASR/FPR/WCR on a fixed `ExecutionResult` list — no LLM needed |
-
-## Run
 ```bash
-pytest tests/ -v
+python3 -m pytest tests/ -q          # 135 passed in ~2s
+python3 -m pytest tests/test_layer5.py -v
 ```
 
-`pytest==8.3.4` and `pytest-asyncio==0.24.0` are pinned in
-`requirements.txt`, but were not installed in the venv — `pip install -r
-requirements.txt` if `pytest` is missing.
+---
+
+## Files
+
+| File | Covers | Tests |
+| :--- | :--- | ---: |
+| `test_takeover_rules.py` | 3B's takeover paths + IE resolution (§6f–6h, §6d) | 9 |
+| `test_adaptive_threat_model.py` | 3D's reward, proposal, step sizing, loop-closes (§6d / §6k) | 14 |
+| `test_target_match.py` | Normalized mediator-target match (§6m) + the **keyword grounding** check (§6p) | 21 |
+| `test_probe_diagnostic.py` | The read-only root-cause tool, incl. the classifier-ordering bug that mislabelled 3 healthy probes (§6m) | 11 |
+| `test_corpus.py` | Corpus invariants, the Wilson interval, the IE-ablation join, and the FPR **staleness guard** (§6n, §6o) | 22 |
+| `test_grpo_kaggle.py` | GRPO env + trainer: threshold replay, reward table, joint action space, tied-reward **no-op guard** (§6l–6n) | 23 |
+| `test_layer5.py` | The human gate + dashboard escaping (§6n) | 20 |
+| `test_ablation.py` | Phase 7 arms + campaign checkpointing | 15 |
+| `__init__.py` | Package marker | — |
+
+---
+
+## The rule that keeps this suite fast
+
+**Anything needing a live model lives in `evaluation/`, not here.**
+
+Those runs take minutes and vary between runs, so they are *experiments*, not
+tests, and their numbers are recorded in READMEs rather than asserted on. What
+lives here is the decision logic *wrapped around* the LLM call — which is most of
+what is worth pinning in 3A/3B/3C/3D. The four probe regimes are patched out so
+severities can be supplied directly and the takeover logic tested
+deterministically.
+
+That constraint is why the suite can run on every edit. Breaking it — adding one
+test that calls Ollama — would cost that property immediately.
+
+---
+
+## Several of these exist because a bug already shipped
+
+They pin the *specific* mistake, not the general area. That is deliberate: a test
+written against the shape of a real defect catches its recurrence, whereas a test
+written against a vague worry usually catches nothing.
+
+| Test | The defect it pins |
+| :--- | :--- |
+| `test_probe_diagnostic.py` | The diagnostic's own classifier ordered a `severity == 0` check *before* the garbled-address check, so it labelled 3 healthy probes `PROBE_NO_ACTION`. That misdiagnosis would have sent the repair at the probe prompt, which was not at fault. |
+| `test_corpus.py` | The AgentDojo injection filter first searched for `"{injection"` and matched **nothing** — the real format is `{email_facebook_injection}`. Ten pieces of attack scaffolding would have entered the *benign* denominator. |
+| `test_grpo_kaggle.py` | The trainer proposed a threshold change its own reward table scored **lower** (+0.8683 vs +0.8688), and `apply_update` would have accepted it silently. The tied-reward test asserts a no-op. |
+| `test_target_match.py` | `_references_mediator_target` compared verbatim, and `gemma3:4b` drops the hyphen in `leaker@shadow-mail.net` in **57/57** mentions — one character behind all 15 misses (§6m). Also pins the §6p grounding: a high-impact verb escalates only if the mediator asked for something of that kind. |
+| `test_layer5.py` | Untrusted mediator text must not escape the dashboard's embedded JSON. The records contain prompt injections *by construction* — an audit tool that could be attacked by what it audits would be an unusually poor one. |
+| `test_ablation.py` | A position-keyed campaign checkpoint would pair a case with another case's result. Keyed on `case_id` and tested by reordering. |
+
+---
+
+## Two properties worth not breaking
+
+**Ablation arms must differ in exactly the flags they name.** `test_ablation.py`
+asserts this per arm. A config that silently disabled a second component would
+attribute that component's contribution to the one under test — which is the one
+thing an ablation cannot afford.
+
+**A disabled layer must keep the record schema identical.**
+`ScreenResult.permissive()` returns a real verdict rather than `None`, so
+telemetry has the same shape in every arm. If turning a layer off changed the
+record shape, the arms would no longer be comparable.
+
+---
+
+## What's pending
+
+| Test target | Natural source |
+| :--- | :--- |
+| End-to-end pipeline | The 3 validated episodes make ready-made regression cases |
+| Layer 0–4 units | Each module's existing `__main__` assertions, promoted to `test_*.py` |
+| Red team metrics | `red_team/evaluator.py` ASR/FPR/WCR on a fixed `ExecutionResult` list — no LLM needed |
+| Benchmark reporting | `evaluation/benchmark.py` summarise/per-vector on synthetic results |
+
+---
+
+`pytest==8.3.4` and `pytest-asyncio==0.24.0` are pinned in `requirements.txt`.
+If `pytest` is missing: `pip install -r requirements.txt`.
