@@ -6,8 +6,7 @@ date: 2026-08-08
 
 # Current Numbers
 
-*As of 8 August 2026. Last commit: `01335ac` (working tree dirty — Phase 7 repair
-is uncommitted).*
+*As of 8 August 2026. Last commit: `bbfd918`, pushed to `origin/main`.*
 
 | | |
 | :--- | :--- |
@@ -16,7 +15,7 @@ is uncommitted).*
 | **FPR** (8 hand-written controls) | 50% — ⚠️ **a diagnostic. Never quote it as a rate** |
 | **IE-alone catches** | **14/116** — attacks the standalone rule cannot make |
 | **Corpus** | **188 episodes** — 120 malicious, 68 benign → [[Evaluation Corpus]] |
-| **Tests** | **161 deterministic**, ~4 s, no LLM / network / GPU → [[Test Suite]] |
+| **Tests** | **310 deterministic**, ~7 s, no LLM / network / GPU → [[Test Suite]] |
 | **[[ASR]]** (campaign) | 0% on address-carrying attacks; **non-zero by design** on [[Address-Free Attacks]] |
 | **Completion** | **~92%** |
 
@@ -88,6 +87,20 @@ cohort, labelled a diagnostic that located an architectural boundary** →
 positives** — so it omits every failure by construction. It is a
 catastrophic-over-blocking check, not a rate. The **3.3% at n=60** above is the
 [[FPR]] of record.
+
+## Instrument checks, not results
+
+*These produce no headline number. They establish that a number is trustworthy.*
+
+| Check | Result |
+| :--- | :--- |
+| Refusal-shaped output inflating 3B's regime severities | **0 / 209** severity-2 masked samples, control passing → [[3B's Refusal Exposure Is Live and Unrealised]] |
+
+`python3 -m evaluation.refusal_audit` — read-only, no model calls. Re-run it after
+any change to the regime scorer, the negation cues, or the vector mediators. It
+needs `logs/benchmark/run.log` and `logs/probe_diagnostic/*.json`, which are
+**gitignored**, so a fresh clone reports nothing until Phase 7 or the probe
+diagnostic has been run.
 
 ## Before trusting any of this
 

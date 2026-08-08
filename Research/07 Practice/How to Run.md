@@ -8,7 +8,7 @@ type: reference
 ## Deterministic — no LLM, no network, no GPU
 
 ```bash
-python3 -m pytest tests/ -q                       # 135 tests, ~2s
+python3 -m pytest tests/ -q                       # 310 tests, ~7s
 python3 -m evaluation.mechanism_validation        # causal regimes + takeover rules, <1s
 python3 -m layer2.security_sublayer.adaptive_threat_model   # 3D reward + proposal demo
 python3 -m evaluation.vectors                     # Phase 7 vector coverage map
@@ -41,6 +41,8 @@ python3 -m evaluation.kaggle.package_episodes --run-campaign   # 1.5-2h; resumab
 rm -rf logs/benchmark_checkpoint
 python3 -m evaluation.benchmark --repeats 3
 python3 -m evaluation.benchmark --arms undefended,full --repeats 1   # quick subset
+python3 -m evaluation.benchmark --corpus campaign \
+        --arms derived_control,spotlighting --repeats 1               # Phase 10, ~12 min
 ```
 
 ⚠️ **Delete `logs/campaign_checkpoint/` and `logs/benchmark_checkpoint/` after
@@ -56,7 +58,14 @@ The two 3B arms (`full`, `no_egress`) carry ~96% of the benchmark's runtime, at
 python3 -m evaluation.fpr_report      # FPR by cohort + Wilson intervals — READ THE STALE HEADER
 python3 -m evaluation.ie_ablation     # is IE redundant with 3C's self-report?
 python3 -m evaluation.probe_diagnostic # root-cause a 3B miss
+python3 -m evaluation.refusal_audit   # does refusal-shaped output inflate 3B's severities? 0/209
 ```
+
+`refusal_audit` needs `logs/benchmark/run.log` and `logs/probe_diagnostic/*.json`,
+which are **gitignored** — a fresh clone reports nothing until [[Phase 7 — Eight-Vector Benchmark|Phase 7]]
+or the probe diagnostic has been run. Re-run it after any change to the regime
+scorer, the negation cues, or the vector mediators →
+[[3B's Refusal Exposure Is Live and Unrealised]].
 
 ## Layer 5 — human in the loop
 

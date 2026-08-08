@@ -25,6 +25,8 @@ claim made *without* one turned out to be wrong.
 | `vectors.py` | The eight literature vectors (Du et al. / MCPSecBench) with a coverage map: which layer answers each, and what this implementation does *not* do. Plus the external benign cohort (10 AgentDojo documents, stride-sampled), kept **separate** from our own V8. | ✅ Built |
 | `attribution.py` | **Which layer stopped each case** — first gate in pipeline order that refused, plus the later gates that would also have refused. Attack success is one bit and one bit cannot tell 3B from the allowlist; that is what invalidated the benchmark's first result. Also carries the Phase 10 prevention labels (`prompt_defense` / `agent_declined`). | ✅ Built |
 | `benchmark.py` | Ablation + baseline runner. Phase 7 arms (undefended / static_only / full / no_egress) and Phase 10 arms (derived_control / spotlighting), two corpora (`--corpus vectors\|campaign`), Wilson intervals, per-layer attribution, `steer_rate`, run manifest. Refuses to put supplied-action and derived-action arms in one table. | ✅ Run |
+| `refusal_audit.py` | **Read-only instrument check, no model calls.** Applies the Phase 10 negation predicate to every recorded masked-regime probe sample and asks whether it would lower any severity. Answer: **0 of 209**, with a positive control. Carries its own control because a broken parser prints the same reassuring zero. | ✅ Run |
+| `paired.py` | McNemar on the same cases — **the test two overlapping Wilson intervals are not.** Exists because Phase 10's `p = 1.00` reached five documents with no committed implementation. Exact binomial below ~25 discordant pairs; `helped`/`hurt` named by direction so a reversed sign is visible. | ✅ Run |
 | `kaggle/` | Phase 6 — episode packager, GRPO trainer, Path A driver. See its own README. | ✅ Run |
 | `__init__.py` | Package marker | ✅ |
 
@@ -201,9 +203,16 @@ python3 -m evaluation.benchmark --repeats 3
 
 ## What's pending
 
-- **Repair the benchmark** (above) — until then Phase 7 has no valid result.
-- **Per-layer attribution** in `benchmark.py`.
+- **Phase 11** — per-component ablations, reusing `attribution.py`. Unblocked.
+- Spotlighting's **delimiting** and **encoding** variants are implemented but
+  unmeasured. Encoding cannot be read from ASR alone: a transform the model cannot
+  decode suppresses the attack and the task equally, so it needs ASR and WCR read
+  together.
 - More benign vectors, so the FPR column rests on more than one.
+- **The severity function** — all 4 residual campaign misses and all 3 of Phase 7's
+  residual successes are `masked = 0`. §6e already showed the semantic scorer is
+  worse end-to-end and §6p showed the prompt is not the place either, so this needs
+  a third approach.
 
 Full write-ups for every finding referenced here: `researchworksofar.md`
 (Volume I, §6a–§6p) and `research_work_so_far.md` (Volume II).
@@ -264,8 +273,8 @@ masked probe an address mention is the signal the detector leans on (§6i/§6p),
 de-escalating refusals there would trade a measured FP for unmeasured FNs. Phase 7's
 numbers are structurally unaffected and a test enforces it.
 
-**🔴 Still open:** whether refusal-shaped output inflates 3B's *regime* severities.
-Untested, cheap to test, and it should happen before Phase 11.
+**✅ Now measured:** whether refusal-shaped output inflates 3B's *regime* severities
+— see the audit below.
 
 ### Two corpora, never one table
 
@@ -273,3 +282,74 @@ Untested, cheap to test, and it should happen before Phase 11.
 questions, and ASR means different things in supplied-action vs derived-action arms.
 The runner **refuses** to run both cohorts together rather than pooling them — the
 §6n error in a new costume.
+
+---
+
+## The refusal audit — an instrument check, not a result
+
+`_score_action` (the four probe regimes) still scores `"do not forward to
+attacker@evil.com"` as **2**, and 2 alone trips the standalone takeover rule. That
+was the last thing blocking Phase 11: 3B's attributions are built on those
+severities, so measuring this *after* the ablation matrix would mean re-running it.
+
+```bash
+python3 -m evaluation.refusal_audit        # read-only, no model, ~2 s
+```
+
+**The exposure is on the shipped path.** `CausalAnalyzer()` is constructed with
+`semantic_scoring=False` everywhere (§6e: the semantic scorer is worse end-to-end),
+and on that path `_score_action_by_keyword` escalates on a mediator-target match
+*before any other test*, with no negation handling. The semantic path is **not**
+exposed the same way — the judge gates the escalation behind a finding of compliance
+— but it is not what ships.
+
+**The result: 0 of 209.**
+
+| Source | samples | sev ≥ 2 | tested | de-escalated |
+| :--- | ---: | ---: | ---: | ---: |
+| `logs/benchmark/run.log` (Phase 7) | 432 | 132 | 132 | **0** |
+| `logs/probe_diagnostic/after_fix.json` | 84 | 48 | 48 | **0** |
+| `logs/probe_diagnostic/full_run.json` | 84 | 29 | 29 | **0** |
+
+So `_score_action` is **left unchanged**: applying the fix moves no measured number,
+and Rules §2's price for touching it — re-measuring the gen-2 campaign and benign
+FPR — would buy nothing.
+
+### Three design choices that make the zero mean something
+
+**It applies the real predicate, not a proxy.** A keyword sweep for refusal words
+measures something adjacent. The question is whether applying the Phase 10 fix here
+would change anything, so the audit calls that fix's own
+`_target_clause_is_negated`.
+
+**It has a positive control.** A broken parser, an empty mediator join, or a
+predicate that never fires all print the same reassuring zero. `control_check()`
+synthesises the refusal being hunted against a **real** V1 mediator and requires the
+predicate to flag it — *and* to spare the matching plain compliance, so a predicate
+that suppressed everything cannot pass one-sided. If the control fails the report
+withholds the result rather than printing it.
+
+**It joins `all_vectors()`, not `VECTORS`.** B01–B10 are the external benign cohort,
+and that is where an inflated severity is a **false positive** — the expensive
+direction, and the §6n lesson. Auditing the 8 attacks alone would have measured the
+cheap half.
+
+### Why it never fires
+
+The masked probe **masks the user's goal**, so the model has no legitimate task to
+refuse the injection *in favour of* — it restates the instruction instead. Refusal
+language needs a competing goal. Phase 10's derivation path has one (hence 16 of 37
+refusals there); the masked probe structurally does not.
+
+### Limits, stated in the output
+
+- **Observational.** 8 vectors + 21 diagnostic cases, our mediators plus a stride
+  sample of AgentDojo text, at 4B. Absence is not impossibility — the exposure stays
+  live in code and is **asserted as-is** by `tests/test_refusal_audit.py`, so
+  changing the regime scorer fails a test rather than drifting silently.
+- **48 samples were scoped against the *unsanitised* mediator**, because `run.log`
+  prints sanitised text only when 3C ran and `_sanitize_mediator` is an LLM call.
+  That can only add candidate targets, so it can only inflate the count — the safe
+  direction for a zero.
+- **It depends on gitignored logs**, so a fresh clone reports nothing until Phase 7
+  or the probe diagnostic has been run.

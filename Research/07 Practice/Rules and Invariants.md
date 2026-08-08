@@ -66,6 +66,18 @@ before.
   `evaluation/` (record numbers in docs, **don't assert on them**)
 - 🟡 **Judge detection by the layer under test**, not end-to-end ASR
 - 🟡 **Report flaky metrics as distributions** over repeated runs
+- 🔴 **A statistic is a result, not arithmetic.** No p-value, interval or rate enters
+  a document before the code computing it is committed and its inputs are in the
+  tracked artifact. Violated once → [[A Published p-Value With No Committed Source]]
+- 🔴 **Paired arms get a paired test.** Two overlapping [[Wilson Score Interval]]
+  estimates are not a test when both arms ran the same cases — the **discordant**
+  pairs are the evidence. Exact binomial below ~25 discordant pairs; a high p is
+  **low power**, never equivalence
+- 🔴 **A replayed run says so in its manifest** (`replay.fully_replayed`).
+  Recomputing an old result with new code otherwise stamps it with a commit that
+  never produced those outcomes
+- 🔴 **A zero needs a positive control.** An instrument that cannot produce a
+  non-zero has not measured anything → [[3B's Refusal Exposure Is Live and Unrealised]]
 
 ## Decisions already taken — do not re-litigate
 

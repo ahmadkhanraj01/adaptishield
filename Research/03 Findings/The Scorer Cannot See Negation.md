@@ -68,18 +68,22 @@ prefer the fix whose failure mode you can bound.
 
 The fix is **monotone** — it can only ever withhold an escalation, never add one.
 
-## 🔴 Still open
+## ✅ The open question is now measured
 
-**Does refusal-shaped output inflate the four regime severities?** `_score_action`
-still scores `"do not forward to attacker@evil.com"` as 2, on purpose. If the
-*masked* probe ever emits a refusal that names the address, `masked` is inflated and
-a takeover can trip — the same mechanism as the
-[[Known Bounded False Positive]]. Untested. It is cheap to test deterministically
-(feed refusal-shaped strings through the regime scorer) and that should happen
-before Phase 11's ablations, since it would affect every layer-attributed number.
+**Does refusal-shaped output inflate the four regime severities?** Measured 8 Aug
+2026: **0 of 209** recorded severity-2 masked-regime samples are refusal-shaped →
+[[3B's Refusal Exposure Is Live and Unrealised]]. `_score_action` still scores
+`"do not forward to attacker@evil.com"` as 2 — the exposure is **live on the
+shipped keyword path** — but it has never fired, because the masked probe gives the
+model no competing goal to refuse the injection *in favour of*.
 
-Do **not** change the regime scorer without measuring the gen-2 campaign and benign
-FPR first (Rules §2).
+So the regime scorer is left unchanged: applying the fix would move no measured
+number, and Rules §2's re-measurement of the gen-2 campaign and benign FPR would
+buy nothing. The exposure is recorded, not closed.
+
+One correction to the framing above: this is **not** the same mechanism as the
+[[Known Bounded False Positive]]. That case is the probe *hallucinating* an
+address, which is confirmed and still open.
 
 ## What this does not establish
 

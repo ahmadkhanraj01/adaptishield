@@ -17,7 +17,10 @@ or a wasted campaign at least once.
 | **Ollama falls back to CPU** | After a CUDA fault it silently runs CPU-only: ~11 GB RAM, slower, more non-determinism, and **different outputs** | `curl -s localhost:11434/api/ps` → **`size_vram` must be > 0**. If 0: `sudo systemctl restart ollama` |
 | **Two variables at once** | A campaign changing code **and** backend cannot attribute a regression | **Change one thing per campaign** |
 | **Kaggle credentials** | Needs a **legacy 32-hex key** (Settings → API → *Create New Token*). The newer "API Tokens" page issues a longer token CLI 1.7.4.5 cannot use — and 1.7.4.5 is the newest on PyPI | `python3 evaluation/kaggle/test_credentials.py` |
-| **`kaggle.json`** | Holds a live key in **plaintext in the repo root** | Already git-ignored — **keep it that way** |
+| **`kaggle.json`** | Holds a live key in **plaintext in the repo root** | Already git-ignored — **keep it that way**. `origin` is now a **public** repo |
+| **A defense's own output inflating the metric** | Spotlighting's instruction induces refusals *naming* the attacker address, and the keyword scorer escalates on any target mention. It reported the defense as **17 points worse** when it was neutral | `score_agent_action` scopes negation to the clause naming the target → [[The Scorer Cannot See Negation]] |
+| **A zero with no positive control** | A broken parser, an empty join, or a predicate that never fires all print the same reassuring zero | `refusal_audit` synthesises the case it is hunting against a real mediator and **withholds the result** if the control fails → [[3B's Refusal Exposure Is Live and Unrealised]] |
+| **Auditing only the malicious half** | The attacks are where a detection defect costs a miss; the **benign** cohort is where it costs a false positive — the expensive direction | Join `all_vectors()`, never `VECTORS`. Pinned by a test |
 
 ## The one that nearly cost a conclusion
 

@@ -40,6 +40,7 @@ The chronological spine. **Two volumes**, and the split is deliberate.
 | XV | 26 Jul 2026, 21:30 | [[Entry XV — Where a Fix Belongs]] |
 | XVI | 8 Aug 2026 | [[Entry XVI — What the Instrument Was Hiding]] |
 | XVII | 8 Aug 2026 (later) | [[Entry XVII — The Baseline That Scored Its Own Refusals]] |
+| XVIII | 8 Aug 2026 (later still) | [[Entry XVIII — Measuring a Defect Instead of Fixing It]] |
 
 ## The arc, in one paragraph
 

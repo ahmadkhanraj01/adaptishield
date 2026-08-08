@@ -1,7 +1,8 @@
 # AdaptiShield — Session Handover
 
 **Written:** 8 August 2026
-**Last commit:** `01335ac` — **the Phase 7 repair is uncommitted**
+**Last commit:** `bbfd918`, pushed to `origin/main`. Phases 7 and 10 are committed;
+this session's refusal audit is on disk (see §4).
 **Read this first, then [README.md](README.md) §0 for what the research is.**
 
 ---
@@ -16,9 +17,10 @@
 | **IE-alone catches** | 14/116 (attacks the standalone rule cannot make) |
 | **Phase 7 ASR** | `undefended` 100% → `static_only` **71.4%** → `full` **14.3%** |
 | **Phase 7 attribution** | **18/21** stops by 3B in `full`; **0** in `static_only` |
+| **Phase 10 steer rate** | `derived_control` **34.8%** → `spotlighting` **33.3%**, McNemar **p = 1.00** |
 | **Corpus** | 188 campaign episodes + 18 benchmark vectors |
-| **Tests** | **161 deterministic**, ~4 s, no LLM / network / GPU |
-| **Completion** | ~92% build, ~50% evidence |
+| **Tests** | **310 deterministic**, ~7 s, no LLM / network / GPU |
+| **Completion** | ~93% build, ~65% evidence |
 
 The 4 residual campaign misses are all `masked = 0` — **severity-function
 failures**, and **none is reachable by the threshold 3D controls.** That is the
@@ -76,18 +78,42 @@ new attribution column on its first use:
 
 ---
 
-## 2b. START HERE — Phase 10, the external baseline
+## 2b. Phase 10 is DONE — and so is the instrument question after it
 
-The only remaining blocker on Phase 10 is **a published prompt-level defense**
-(spotlighting: delimiting / datamarking / encoding, or an AgentDojo defense) as a
-`PipelineConfig` arm on the same corpus, seeds and model tags. The `undefended`
-floor is now measured (ASR 100%), so half of Phase 10 is already discharged.
+**Spotlighting has no measurable effect.** Datamarking: 34.8% → 33.3% steered,
+paired McNemar **p = 1.00**, 8 helped / 7 hurt. `results/phase10/`. The null is two
+opposing per-family effects cancelling, not indifference.
 
-Cheap now: a new arm is a config value plus a `defended_by` label, and
-`evaluation/attribution.py` will report what it actually does rather than what it
-claims. Expected shape — prompt-level defenses degrade under the softened gen-2
-injections fix D was built for, which is the argument for a causal layer, but only
-once measured.
+Three things about it that are easy to get wrong on a re-read:
+
+- **`steer_rate` is the outcome, not ASR.** ASR is 0/66 in *both* arms because the
+  allowlist absorbs every address-carrying attack. `steer_rate` is judged before any
+  gate, so no backstop can absorb it.
+- **It needed `derive_action`.** Spotlighting defends the agent's *action selection*
+  and the pipeline is normally handed `proposed_action`, so there was nothing to
+  defend. These arms' ASR is **not comparable** with Phase 7's — derived vs supplied
+  action, two cohorts, never one table.
+- **The `agent_llm` runs at temperature 0 deliberately.** `planner_llm` had no
+  temperature and inherited the server default of 0.8 while 3B runs at 0, so the
+  deliberately byte-identical prompt was not the same agent. Fixing it via
+  `planner_llm` would have silently moved 3C and Phase 7's committed WCR.
+
+**Then §1.3's audit closed the last open instrument question:** refusal-shaped output
+does **not** inflate 3B's regime severities — 0 of 209 recorded severity-2 masked
+samples, positive control passing. So the regime scorer is unchanged and Rules §2's
+re-measurement cost is not incurred. Details in §4a.
+
+## 2c. START HERE — Phase 11, per-component ablations
+
+Nothing blocks it. Reuse `evaluation/attribution.py` and turn the two findings Phase
+7 already produced into rows with McNemar against `full`:
+
+- **3A contributes 0 detection stops** in every arm (the inert-pattern problem, now
+  a measurement rather than an inspection)
+- **Layer 4 adds nothing incremental** — `full` → `no_egress` leaves ASR unchanged
+
+⚠️ Phase 11's arms are **our own ablations**. Do not write them as though they
+substitute for the external baseline — that is what Phase 10 is for (Rules §7).
 
 ---
 
@@ -110,41 +136,43 @@ absorbed three interruptions on 26 July. Just re-run the same command.
 
 ---
 
-## 4. Uncommitted work
+## 4. Committed and pushed
 
-Nothing since `20baf08`. All of the following is on disk only:
+Three commits are on `origin/main` (`git@github.com:ahmadkhanraj01/adaptishield.git`):
 
-**Modified**
-- `layer2/security_sublayer/causal_analyzer.py` — keyword **grounding** in
-  `_score_action_by_keyword`; probe prompt **reverted** to §6i wording
-- `adaptishield_pipeline.py` — `PipelineConfig` ablation arms
-- `layer3/tool_response_screener.py` — `ScreenResult.permissive()`
-- `red_team/execution_agent.py` — per-case checkpointing in `run_batch()`
-- `evaluation/kaggle/package_episodes.py` — `--checkpoint-dir`
-- `evaluation/fpr_report.py` — staleness guard
-- `README.md`, `Phase.md`, `tests/test_corpus.py`, `tests/test_target_match.py`
-- **(8 Aug)** `evaluation/vectors.py` — LEGIT destinations, `cohort` +
-  `server_name` fields, external benign cohort, `REQUIRED_SERVERS`
-- **(8 Aug)** `evaluation/benchmark.py` — attribution, Wilson intervals, cohort
-  split, run manifest, server registration
-- **(8 Aug)** `Rules.md` §8 — 🔴 **vault-update invariant** (see §5 below);
-  `handover.md`, `Phase.md`, `evaluation/README.md`, `tests/README.md`
+| Commit | What it carries |
+| :--- | :--- |
+| `89e0708` | Phase 7 repair + re-run — 114 files, including the `Research/` vault's first publication |
+| `8762ab0` | Phase 10 infrastructure (`baselines/`, `derive_action`, `agent_llm`) + the floor finding |
+| `bbfd918` | Phase 10 results + the negation fix in `score_agent_action` |
+
+⚠️ **The repo is public.** `Research/` and `red_team/` contain attacker-authored and
+attack-template text **by construction** (AgentDojo, MIT, v0.1.35, attribution
+recorded, plus our own injection families). That is normal for security research and
+documented, but it is now indexable. `kaggle.json` and `.env` remain untracked and
+gitignored — keep them that way. `logs/benchmark/run.log` is untracked for the same
+reason: large, and attacker-authored text verbatim.
+
+## 4a. Uncommitted — this session's refusal audit
 
 **New**
-- `evaluation/vectors.py`, `evaluation/benchmark.py` — Phase 7
-- `tests/test_ablation.py` — 15 tests
-- **(8 Aug)** `evaluation/attribution.py` — per-layer attribution
-- **(8 Aug)** `tests/test_attribution.py` — 26 tests
-- **(8 Aug)** `logs/benchmark/{benchmark.json, manifest.json, run.log}` — the
-  Phase 7 results and their provenance
-- **(8 Aug)** Vault: `03 Findings/Phase 7 Repaired…`,
-  `04 Research Log/Entry XVI — What the Instrument Was Hiding`,
-  `02 Architecture/Per-Layer Attribution`
-- `research_work_so_far.md` — research log **Volume II** (entry XV)
-- `AdaptiShield_Architecture_v3.drawio(.png)` — not written by me; unreviewed
+- `evaluation/refusal_audit.py` — read-only, no model calls. Applies
+  `_target_clause_is_negated` to every recorded masked-regime probe sample. **0 of
+  209** de-escalate, with a passing positive control
+- `tests/test_refusal_audit.py` — **35 tests**. They assert the defect **as it
+  currently is**, so a change to the regime scorer fails a test rather than drifting
+- `results/refusal_audit/audit.json` — the artifact
+- Vault: `03 Findings/3B's Refusal Exposure Is Live and Unrealised`,
+  `04 Research Log/Entry XVIII — Measuring a Defect Instead of Fixing It`
 
-⚠️ **Entry XVI exists in the vault but not yet in `research_work_so_far.md`**
-(Volume II). That file is the prose log; the vault note carries the same content.
+**Modified** — `README.md` (v19, §1.3), `Phase.md`, `handover.md`,
+`evaluation/README.md`, `tests/README.md`, `results/README.md`,
+`research_work_so_far.md` (entries XVI–XVIII), and the vault's Findings Index,
+Research Log Index, Current Numbers, Backlog, plus `The Scorer Cannot See Negation`.
+
+✅ **Volume II is now caught up.** Entries XVI, XVII and XVIII are in
+`research_work_so_far.md`, not only in the vault. The earlier warning that XVI/XVII
+existed only as vault notes is discharged.
 
 ---
 
@@ -173,8 +201,13 @@ Nothing since `20baf08`. All of the following is on disk only:
 
 ---
 
-## 6. Backlog after Phase 10
+## 6. Backlog after Phase 11
 
+0. ✅ **Refusal-shaped output does not inflate 3B's regime severities** — 0/209,
+   control passing. The exposure is **live on the shipped keyword path** and has
+   never fired; recorded, not closed. Do not "fix" `_score_action` on the strength
+   of reading the code: it would move no measured number and Rules §2 would then
+   require re-measuring the gen-2 campaign and benign FPR.
 1. **The severity function** — all 4 campaign misses are `masked = 0`, and all 3
    Phase 7 residual successes are the address-free vector. §6e already showed the
    semantic scorer is *worse end-to-end* and §6p showed the prompt is not the

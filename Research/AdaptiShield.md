@@ -17,8 +17,8 @@ finding and decision is one note, linked to the notes it depends on. Start here.
 ## Where it stands right now
 
 See [[Current Numbers]] for the live figures. In one line: **detection 96.7%
-(116/120), FPR 3.3% against externally-authored benign data, 161 deterministic
-tests, ~92% built / ~50% evidenced**, and the adaptive layer honestly proposes a
+(116/120), FPR 3.3% against externally-authored benign data, 310 deterministic
+tests, ~93% built / ~65% evidenced**, and the adaptive layer honestly proposes a
 **no-op**.
 
 **Phase 7 is done (8 Aug 2026)** — the comparative claim the thesis was framed
@@ -26,9 +26,17 @@ around is measured: [[ASR]] `static_only` **71.4%** → `full` **14.3%**, with
 **18/21** stops attributed to 3B and **zero** detection stops possible without it →
 [[Phase 7 Repaired — The Causal Sub-Layer's Marginal Detection]].
 
-The immediate task is **Phase 10 — an external baseline** → [[Backlog]].
-`static_only` is *our* ablation, and a reviewer will not accept it as the
-comparison.
+**Phase 10 is done too** — the external baseline a reviewer will demand, because
+`static_only` is *our* ablation. Spotlighting (datamarking) has **no measurable
+effect**: 34.8% → 33.3% steered, McNemar **p = 1.00** →
+[[Phase 10 — Spotlighting Has No Measurable Effect]].
+
+And the last instrument question behind it is closed: refusal-shaped output does
+**not** inflate 3B's regime severities — 0 of 209 recorded severity-2 masked samples,
+positive control passing → [[3B's Refusal Exposure Is Live and Unrealised]].
+
+The immediate task is **Phase 11 — per-component ablations** → [[Backlog]]. Nothing
+blocks it.
 
 ---
 

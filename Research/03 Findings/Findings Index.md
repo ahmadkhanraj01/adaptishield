@@ -52,10 +52,23 @@ first-class** — several of them are the contribution.
   cancelling, not indifference
 - 🔴 [[The Scorer Cannot See Negation]] — a refusal naming the attacker address
   scored as compliance, which **reversed the sign** of the result above. Fixed for
-  agent-chosen actions; still open for 3B's regimes
+  agent-chosen actions; measured absent for 3B's regimes ↓
+- ✅ [[3B's Refusal Exposure Is Live and Unrealised]] — **0 of 209** recorded
+  severity-2 masked-regime samples are refusal-shaped, with a passing positive
+  control. The defect is live on the shipped keyword path and has never fired,
+  because the masked probe gives the model no competing goal to refuse in favour
+  of. Regime scorer left unchanged
 - 🟡 [[Phase 10 Floor — The Injections Do Not Steer a 4B Planner]] — why the
   benchmark vectors could not power the comparison (ASR 1/7) and the campaign
   corpus was used instead
+
+## Process findings — about the evidence, not the defense
+
+- ✅ [[A Published p-Value With No Committed Source]] — Phase 10's `McNemar p = 1.00`
+  reached **five documents** with no committed implementation and no discordant
+  counts in the artifact. The figure was **right**, which is luck rather than
+  process. Fixed by `evaluation/paired.py` + per-case outcomes in the tracked
+  artifact, and by a manifest that admits when a run was **replayed**
 
 ## ⛔ Withdrawn
 
@@ -65,6 +78,9 @@ first-class** — several of them are the contribution.
 ## Three patterns worth carrying forward
 
 1. **A measured negative beats an unmeasured positive.**
-2. **The instruments failed more often than the mechanisms.**
+2. **The instruments failed more often than the mechanisms.** Four times now:
+   [[Phase 7 Benchmark Withdrawn|the benchmark]], [[The Scorer Cannot See Negation|the scorer]],
+   [[3B's Refusal Exposure Is Live and Unrealised|the missing control]], and
+   [[A Published p-Value With No Committed Source|the uncommitted statistic]].
 3. **A defense measured only against a corpus its author wrote measures the
    author's imagination.**

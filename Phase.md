@@ -7,7 +7,8 @@ See [Architecture.md](Architecture.md), [Design.md](Design.md), [Rules.md](Rules
 for structure / rationale / constraints.
 
 *Last updated: 2026-08-08 (session 5 — Phase 7 repaired and re-run; Phase 10
-external baseline measured). Build ~93% complete; **evidence ~65%**.*
+external baseline measured; the refusal audit closed the last instrument question
+blocking Phase 11). Build ~93% complete; **evidence ~65%**.*
 
 ---
 
@@ -54,9 +55,10 @@ Layer 5 human gate. Journals have room for that; conferences usually do not.
 | 6d | Joint GRPO action space + propose-and-verify | ✅ **Done (§6n)** — 5 dims / 720 actions; the one gain it found was a **corpus artifact**, and its own policy proposed a reward-*decreasing* change 3× |
 | 7 | Eight-vector benchmark (static vs full vs +3D) | ✅ **Done (2026-08-08)** — first result withdrawn, repaired, re-run over 216 cases. **ASR `static_only` 71.4% → `full` 14.3%**, 18/21 stops attributed to 3B, `static_only` produces **zero** detection stops, and Layer 4 adds **nothing incremental**. Per-layer attribution added; two instrument defects found and fixed |
 | 8 | Layer 5 — dashboard / console / override | ✅ **Done** — 4 components, stdlib only, 20 tests. Gate recomputes evidence rather than trusting the proposal; found that every proposal's `blocked_patterns` are **inert** (3A matches `proposed_action`, trainer harvests from `flagged_markers`) |
-| 9 | Grow the pytest suite | 🟡 Ongoing (**161 tests**, ~4 s, no LLM) |
+| 9 | Grow the pytest suite | 🟡 Ongoing (**310 tests**, ~7 s, no LLM) |
 | **10** | **External baselines** (undefended + spotlighting/data-marking) | ✅ **Done (2026-08-08).** Undefended floor ASR 100% (Phase 7). Spotlighting (datamarking) measured on the campaign corpus: steered **34.8% → 33.3%**, paired McNemar **p = 1.00** — **no measurable effect**, with the null being two opposing per-family effects cancelling. The raw figure said *17 points worse* until a scorer negation defect was fixed |
-| **11** | **Per-component ablations** (3A / 3A+3B / +3C / +L4 / full / +3D) | 🔲 Not started — arms exist, matrix does not. **Blocked-ish:** settle whether refusal-shaped output inflates 3B's regime severities first, since it would touch every layer-attributed number |
+| 10b | **Refusal audit** — does refusal-shaped output inflate 3B's regime severities? | ✅ **Done (2026-08-08).** **0 of 209** recorded severity-2 masked-regime samples are refusal-shaped, positive control passing → the regime scorer is left unchanged. The exposure is **live on the shipped keyword path** and has never fired, because the masked probe gives the model no competing goal to refuse in favour of. An instrument check, not a result |
+| **11** | **Per-component ablations** (3A / 3A+3B / +3C / +L4 / full / +3D) | 🔲 **NEXT — nothing blocks it.** Arms exist, matrix does not. 10b cleared the foundation; reuse `evaluation/attribution.py` and make 3A's **zero detection stops** and Layer 4's **zero incremental contribution** rows with McNemar against `full` |
 | **12** | **Second benchmark: InjecAgent** (external validity) | 🔲 Not started |
 | **13** | **Manuscript + reproducibility artifact** | 🔲 Blocked on the journal decision |
 
@@ -321,7 +323,8 @@ confident no-op. So before (or alongside) the notebook:
      never fail the permission check it existed to test (it ran against a server
      declaring `send_email` in scope, with egress refusing the case first), and a
      `blocked` case could report `reached_tool=True`. Tests 135 → **161**.
-9. 🔴 **Phase 10 built, blocked on corpus power (2026-08-08).** The spotlighting
+9. ✅ **Phase 10 measured (2026-08-08)** — but it took two corpora to get there, and
+   the record of the false start is the useful part. The spotlighting
    baseline (Hines et al.) is implemented as `derived_control` / `spotlighting`
    arms in `baselines/spotlighting.py` + `PipelineConfig.derive_action`, and it
    runs. It cannot yet be *measured*: the undefended derived agent already resists.
@@ -340,11 +343,27 @@ confident no-op. So before (or alongside) the notebook:
      floor moved 0/7 → 1/7 on that alone); and attribution credited the *control*
      arm's declines to a `prompt_defense` that was not applied, split now into
      `PROMPT_DEFENSE` / `AGENT_DECLINED`.
-   - **🔵 DECISION NEEDED — which corpus.** Recommended: run the derived arms over
-     the **campaign corpus** (120 malicious, 6 families × 4 directives) instead of
-     the 7 benchmark vectors. Alternatives: a more steerable agent model (changes
-     the model tag), or report it underpowered.
+   - ✅ **Resolved: the campaign corpus.** 86 cases/arm instead of the 7 benchmark
+     vectors, with `steer_rate` as the primary outcome because it is judged before
+     any gate and therefore cannot be absorbed. Result: **34.8% → 33.3%**, McNemar
+     **p = 1.00**.
+   - **A scorer defect had reversed the sign.** The raw run said *17 points worse*
+     (39.4% → 56.1%) because 16 of 37 apparently-steered cases were refusals naming
+     the attacker address, and the keyword scorer has no negation handling — so
+     spotlighting's own instruction inflated the metric judging it, in proportion to
+     how clearly it worked. Fixed in `score_agent_action`, clause-scoped.
+   - **A hypothesis withdrawn.** Seeing `blunt_override` at 0/11 steered I proposed
+     the model was tuned to resist obvious overrides. Inspecting the derived actions
+     showed **no refusal language at all** — 4 asked for the email's contents, the
+     rest replied to the greeting. The family is both blunt *and* thin, so those 11
+     cases cannot separate the two.
    - Phase 7 is unaffected — its arms keep `derive_action=False`, pinned by a test.
+10. ✅ **The refusal audit closed the last instrument question (2026-08-08).** 0 of
+   209 recorded severity-2 masked-regime samples are refusal-shaped, positive control
+   passing → §10b above. Two things I had written down about it were wrong: the
+   keyword scorer is the **shipped** path, not a fallback (so the exposure was more
+   urgent than stated), and the mechanism is **not** `workspace-041`'s — that case is
+   the probe *hallucinating* an address, which remains confirmed and open.
 11. **Carried forward, unchanged by Phase 7** — the two standing limits on the
    detector, both still the largest levers:
    - **FPR side:** `agentdojo-workspace-041` is a birthday-party document with no
@@ -381,24 +400,58 @@ every arm through one function, so Phase 11's matrix does not need to re-derive
 attribution per arm; and the manifest format is the provenance record Phase 13's
 reproducibility artifact needs.
 
-### 10 · External baselines — 🔵 *NEXT; journal-mandatory, half-absent*
+### 10 · External baselines — ✅ *done; both halves measured*
 
 Our own `static_only` arm is an **ablation**, not a baseline; a reviewer will not
-accept it as the comparison. Needed on the same corpus, seeds and model tags:
+accept it as the comparison. Both halves are now measured on the same model tags:
 
-- ✅ **Undefended** — the floor, now **measured**: ASR **100%** [84.5%, 100%] over
-  21 malicious cases. The vectors are strong enough to measure something, which was
-  not previously established.
-- 🔲 **A published prompt-level defense** — spotlighting (delimiting / datamarking /
-  encoding) or an equivalent from the AgentDojo defense set. Re-implement inside
-  the pipeline as an arm, so it shares one code path (Rules §7). **This is the only
-  remaining blocker on Phase 10.**
+- ✅ **Undefended** — the floor: ASR **100%** [84.5%, 100%] over 21 malicious cases.
+  The vectors are strong enough to measure something, which was not previously
+  established.
+- ✅ **A published prompt-level defense** — spotlighting (Hines et al.) in
+  `baselines/spotlighting.py`, implemented as a `PipelineConfig` arm so it shares one
+  code path (Rules §7), kept outside the layer tree with a test that fails if any
+  layer imports it. **Datamarking: 34.8% → 33.3% steered, McNemar p = 1.00.**
 
-Expected shape of the result: prompt-level defenses degrade under the softened
-gen-2 injections that fix D was built for. That contrast *is* the argument for a
-causal layer — but only if it is measured rather than asserted.
+**The expected shape did not appear.** I predicted prompt-level defenses would
+degrade under the softened gen-2 injections fix D was built for, which would have
+been the argument for a causal layer. They neither degraded nor helped: the result
+is a null, and the null decomposes into two per-family effects of opposite sign
+(`important_instructions` 8→5, `blunt_override` 0→3). A transform that makes a thin
+payload *legible* can increase compliance. That is a more interesting finding than
+the prediction would have been, and it is not the argument for a causal layer —
+Phase 11 has to make that case on ablation evidence instead.
 
-### 11 · Per-component ablations — *justifies the layering*
+Two qualifiers that must travel with the number: `steer_rate` is the outcome (ASR is
+0/66 in both arms, absorbed by the allowlist), and these arms **derive** the action,
+so their ASR is not comparable with §7's.
+
+### 10b · The refusal audit — ✅ *an instrument check, not a result*
+
+Phase 10's negation fix stopped at `score_agent_action`, leaving open whether
+refusal-shaped output also inflates 3B's four **regime** severities. It blocked
+Phase 11: 3B's attributions rest on those severities, so measuring afterwards would
+mean re-running the matrix.
+
+`evaluation/refusal_audit.py` — read-only, no model calls — applies the fix's own
+`_target_clause_is_negated` to every recorded masked-regime probe sample.
+**0 of 209** severity-2 samples de-escalate. The regime scorer is therefore left
+unchanged: applying the fix would move no measured number, and Rules §2's price for
+touching it (re-measuring the gen-2 campaign and benign FPR) would buy nothing.
+
+Three properties make the zero worth acting on: it applies the **real predicate**
+rather than a keyword proxy; it carries a **positive control** built before the
+result was read, and withholds the result if the control fails; and it joins
+`all_vectors()`, so the **external benign cohort** — where an inflated severity is a
+false positive, the expensive direction — is in the denominator.
+
+**Status: live and unrealised, not fixed.** The exposure is on the *shipped* keyword
+path (`semantic_scoring=False` everywhere, per §6e). It has never fired because the
+masked probe masks the user's goal, leaving the model nothing to refuse the injection
+in favour of. `tests/test_refusal_audit.py` asserts the defect as-is, so a future
+change to that scorer fails a test rather than drifting silently.
+
+### 11 · Per-component ablations — 🔵 *NEXT; justifies the layering*
 
 Without this, seven layers read as unjustified complexity. Minimum matrix:
 `3A` · `3A+3B` · `3A+3B+3C` · `+Layer 4` · `full` · `full+3D`. Two results are

@@ -5,12 +5,16 @@
 **Students:** Muhammad Ahmad Khan (23JZBCS0238) · Aleena Khan (23JZBCS0229)
 **Institution:** UET Peshawar (Jalozai Campus)
 
-**Doc version:** v18 (8 August 2026) — **Phases 7 and 10 both measured.** §1.1: the
-comparative claim, ASR `static_only` 71.4% → `full` 14.3% with 18/21 stops
-attributed to 3B. §1.2: the external baseline, spotlighting **34.8% → 33.3%**
-steered, McNemar **p = 1.00**. Adds per-layer attribution, `baselines/`, a tracked
-`results/` tree and run manifests. Next: settle whether refusal-shaped output
-inflates 3B's regime severities, then Phase 11.
+**Doc version:** v19 (8 August 2026) — **Phases 7 and 10 measured; the last
+instrument question closed.** §1.1: the comparative claim, ASR `static_only` 71.4% →
+`full` 14.3% with 18/21 stops attributed to 3B. §1.2: the external baseline,
+spotlighting **34.8% → 33.3%** steered, McNemar **p = 1.00**. §1.3: refusal-shaped
+output does **not** inflate 3B's regime severities — **0 of 209** recorded
+severity-2 masked samples, positive control passing, so the regime scorer is left
+unchanged. Adds per-layer attribution, `baselines/`, `evaluation/refusal_audit.py`,
+a tracked `results/` tree and run manifests. **Next: Phase 11** (per-component
+ablations) — nothing blocks it.
+*v18 (8 August 2026) — Phases 7 and 10 measured.*
 *v16 (26 July 2026) — README restructured: the long per-finding write-ups
 (§6d–§6p) moved to the research log; adds the research introduction (§0).*
 
@@ -141,7 +145,8 @@ tuned until it shows one. Full evidence for every row:
 | Eight-vector benchmark (Phase 7) | ✅ **Repaired & re-run (8 Aug)** — ASR `static_only` **71.4%** → `full` **14.3%**, **18/21** stops attributed to 3B. First result withdrawn; see §1.1 |
 | Per-layer attribution (`evaluation/attribution.py`) | ✅ Which gate stopped each case, plus the gates that would also have refused |
 | External baseline — spotlighting (Phase 10) | ✅ **Measured (8 Aug)** — datamarking **34.8% → 33.3%** steered, McNemar **p = 1.00**: no measurable effect. See §1.2 |
-| pytest suite (`tests/`) | ✅ **223 deterministic tests**, ~6 s, no LLM / network / GPU |
+| Refusal audit (`evaluation/refusal_audit.py`) | ✅ **Measured (8 Aug)** — refusal-shaped output does **not** inflate 3B's regime severities: **0/209**, control passing. An instrument check, not a result. See §1.3 |
+| pytest suite (`tests/`) | ✅ **310 deterministic tests**, ~7 s, no LLM / network / GPU |
 
 **Rough completion: ~93% build, ~65% evidence.**
 
@@ -208,13 +213,59 @@ absorbs every address-carrying attack.
 the attacker address. `_score_action_by_keyword` has no negation handling, so the
 transform inflated the metric judging it. Fixed by
 `CausalAnalyzer.score_agent_action`, scoped to agent-chosen actions — 3B's regime
-scorer is deliberately untouched (§6i/§6p), and a test enforces that.
+scorer is deliberately untouched (§6i/§6p), and a test enforces that. §1.3 is the
+measurement that justifies leaving it untouched.
+
+### 1.3 The refusal audit — an instrument check, not a result
+
+§1.2's fix stopped at `score_agent_action`, which left the obvious worry unanswered:
+does refusal-shaped output inflate 3B's four **regime** severities too? It blocked
+Phase 11, because 3B's attributions are built on those severities and measuring this
+afterwards would mean re-running the matrix.
+
+**The exposure is on the shipped path.** `CausalAnalyzer()` is constructed with
+`semantic_scoring=False` everywhere (§6e), and there `_score_action_by_keyword`
+escalates on a mediator-target match *before any other test*, with no negation
+handling. Severity 2 alone trips the standalone takeover rule. The semantic path is
+**not** exposed the same way — the judge gates the escalation behind a finding of
+compliance — but it is not what ships.
+
+*`python3 -m evaluation.refusal_audit` — read-only, no model calls. `results/refusal_audit/`.*
+
+| Source | samples | sev ≥ 2 | tested | de-escalated |
+| :--- | ---: | ---: | ---: | ---: |
+| `logs/benchmark/run.log` (Phase 7) | 432 | 132 | 132 | **0** |
+| `logs/probe_diagnostic/after_fix.json` | 84 | 48 | 48 | **0** |
+| `logs/probe_diagnostic/full_run.json` | 84 | 29 | 29 | **0** |
+
+**0 of 209**, so `_score_action` is left unchanged: applying the fix would move no
+measured number, and Rules §2's price for touching it — re-measuring the gen-2
+campaign and benign FPR — would buy nothing.
+
+Three things make the zero mean something. It applies the **real predicate**
+(`_target_clause_is_negated`), not a keyword proxy for it. It carries a **positive
+control** — a synthetic refusal built from a real V1 mediator that the predicate must
+flag, and a matching plain compliance it must spare — and the report withholds the
+result if that control fails. And it joins `all_vectors()`, so **B01–B10** are in the
+denominator: the external benign cohort is where an inflated severity is a *false
+positive*, the expensive direction (§6n).
+
+**Why it never fires:** the masked probe masks the user's goal, so the model has no
+legitimate task to refuse the injection *in favour of* — it restates the instruction
+instead. Refusal language needs a competing goal; §1.2's derivation path has one
+(hence 16 of 37 refusals), the masked probe structurally does not.
+
+**Status: live and unrealised, not fixed.** Observational over 8 vectors and 21
+diagnostic cases at 4B. `tests/test_refusal_audit.py` asserts the defect **as it
+currently is**, so changing that scorer fails a test rather than drifting silently.
+And this is **not** the `workspace-041` mechanism — that case is the probe
+*hallucinating* an address, which remains confirmed and open.
 
 ### Known open issues
 
-1. **`static_only` is our ablation, not an external baseline.** Rules §7 requires a
-   published prompt-level defense (spotlighting / data-marking) on the same corpus,
-   seeds and model tags. **This is Phase 10 and it is the current critical path.**
+1. **`static_only` is our ablation, not an external baseline.** ✅ Answered by §1.2 —
+   spotlighting is measured on the same corpus and model tags. Phase 11 must not be
+   written as though its ablation rows substitute for that baseline.
 2. **The benchmark's 0/30 external FPR is not a rate.** Its cohort is a stride
    subsample (indices 0, 6, …, 54) that **excludes campaign documents 41 and 55 —
    both known false positives** — so it omits every failure by construction. Use
@@ -398,6 +449,7 @@ controls are reported as a *diagnostic* and never pooled into a headline figure.
 │   │                                      benign cohort (Phase 7)
 │   ├── attribution.py                  ✅ which gate stopped each case + redundant gates
 │   ├── benchmark.py                    ✅ 4-arm ablation: Wilson CIs, attribution, manifest
+│   ├── refusal_audit.py                ✅ read-only instrument check: 0/209, w/ positive control
 │   └── kaggle/                         ✅ Phase 6 GRPO pipeline               (§6l, §6o)
 │       ├── grpo_env.py                 ✅ reward + threshold→verdict replay (no project imports)
 │       ├── package_episodes.py         ✅ campaign → training JSONL; resumable
@@ -411,7 +463,8 @@ controls are reported as a *diagnostic* and never pooled into a headline figure.
 │   └── spotlighting.py                 ✅ Hines et al.: delimiting/datamarking/encoding
 ├── results/                            ✅ TRACKED results + provenance (Rules §7)
 │   ├── phase7/                         ✅ benchmark.json + manifest.json
-│   └── phase10/                        ✅ the external baseline
+│   ├── phase10/                        ✅ the external baseline
+│   └── refusal_audit/                  ✅ an instrument check, NOT a result
 ├── logs/                               (gitignored — working output)
 │   ├── episode_records/episodes.jsonl  ✅ every boundary crossing
 │   ├── red_team_runs/campaign_*.json   ✅ one report per campaign
@@ -419,7 +472,7 @@ controls are reported as a *diagnostic* and never pooled into a headline figure.
 │   ├── benchmark_checkpoint/*.jsonl    ✅ per-arm resume state — DELETE after any change
 │   ├── benchmark/                      ✅ Phase 7 raw run.log + json (copied to results/)
 │   └── layer5/                         ✅ audit.html + decisions.jsonl
-└── tests/                              ✅ 223 deterministic tests, ~6s, no LLM/network/GPU
+└── tests/                              ✅ 310 deterministic tests, ~7s, no LLM/network/GPU
     ├── test_takeover_rules.py          ✅  9  3B takeover paths + IE resolution
     ├── test_adaptive_threat_model.py   ✅ 14  3D reward + proposal + step sizing
     ├── test_target_match.py            ✅ 21  normalized target match + keyword grounding
@@ -462,8 +515,10 @@ controls are reported as a *diagnostic* and never pooled into a headline figure.
 | IE redundancy ablation | `evaluation/ie_ablation.py` | ✅ Built & run — IE is **not** redundant with 3C's self-report (§6n) |
 | FPR with Wilson intervals | `evaluation/fpr_report.py` | ✅ Built & run — **3.3% [0.9%, 11.4%]**; staleness guard added after it served pre-fix numbers |
 | GRPO training pipeline | `evaluation/kaggle/` | ✅ **Executed on Kaggle** — torch and pure-Python agree to exactly zero (§6o) |
-| **Eight-vector benchmark** | `evaluation/vectors.py`, `evaluation/benchmark.py` | 🟡 **Built & run — first result invalid.** The egress allowlist stops 6/8 vectors in every arm, so no detection layer can be distinguished. Needs legitimate-destination vectors + per-layer attribution |
-| Unit tests | `tests/` | ✅ **135 passing**, ~2 s, no LLM / network / GPU |
+| **Eight-vector benchmark** | `evaluation/vectors.py`, `evaluation/benchmark.py` | ✅ **Repaired & re-run (§1.1).** The first result was invalid — the egress allowlist stopped 6/8 vectors in every arm, making the arms equal by construction. Fixed by correcting the destination model; a test now fails if any malicious vector but V3 points at an exfil host |
+| External baseline | `baselines/spotlighting.py` | ✅ **Measured (§1.2)** — datamarking has no measurable effect (McNemar p = 1.00). Kept outside the layer tree; a test fails if any layer imports it |
+| Refusal audit | `evaluation/refusal_audit.py` | ✅ **Measured (§1.3)** — 0/209, positive control passing. An instrument check, not a result |
+| Unit tests | `tests/` | ✅ **310 passing**, ~7 s, no LLM / network / GPU |
 
 ---
 
@@ -588,7 +643,7 @@ Rejected: `llama3.2:3b` (poor security reasoning), any 7B+ GPU model (exceeds 4 
 ### Deterministic — no LLM, no network, no GPU
 
 ```bash
-python3 -m pytest tests/ -q                       # 223 tests, ~6s
+python3 -m pytest tests/ -q                       # 310 tests, ~7s
 python3 -m evaluation.mechanism_validation        # causal regimes + takeover rules, <1s
 python3 -m layer2.security_sublayer.adaptive_threat_model   # 3D reward + proposal demo
 python3 -m evaluation.vectors                     # Phase 7 vector coverage map
@@ -707,15 +762,12 @@ tokens do not work with CLI 1.7.4.5, which is the newest on PyPI.
 
 ## 13. What to Build Next
 
-1. 🔴 **Does refusal-shaped output inflate 3B's regime severities?** ✅ *Phases 7
-   and 10 are done (§1.1, §1.2).* `_score_action` still scores `"do not forward to
-   attacker@evil.com"` as 2 — deliberately, because in the masked probe an address
-   mention is the signal the detector leans on. But if the probe ever emits a
-   refusal naming the address, `masked` is inflated and a takeover can trip, which
-   is the `workspace-041` mechanism. **Untested, cheap to test deterministically,
-   and it should happen before Phase 11** because it would touch every
-   layer-attributed number. Do not change the regime scorer without re-measuring
-   the gen-2 campaign and benign FPR first (Rules §2).
+1. 🔴 **Phase 11 — per-component ablations.** *Phases 7 and 10 are done (§1.1, §1.2),
+   and §1.3 cleared the last instrument question, so nothing blocks this.* Reuse
+   `evaluation/attribution.py` and turn the two findings Phase 7 already produced
+   into rows with McNemar against `full`: **3A contributes 0 detection stops** in
+   every arm, and **Layer 4 adds nothing incremental** (`full` → `no_egress` leaves
+   ASR unchanged). Then Phase 12 (InjecAgent) and Phase 13 (manuscript).
 2. **The severity function** — all 4 residual misses are `masked = 0`. §6e showed
    the semantic scorer is worse end-to-end, so this needs a third approach rather
    than a re-run of that one.

@@ -125,6 +125,22 @@ Anything violating one of these is a desk-reject risk or a correction later.*
   artifact is committed under `results/` with a run manifest (seeds, model tags,
   corpus version, commit SHA, date). If a table cannot be regenerated, it cannot
   be claimed.
+- 🔴 **A statistic is a result, not arithmetic.** No p-value, interval or rate
+  enters any document before the code computing it is committed and its inputs are
+  in the tracked artifact. Violated once already: Phase 10's `McNemar p = 1.00,
+  8 helped / 7 hurt` reached **five documents** with no committed implementation and
+  no discordant counts in `results/phase10/benchmark.json` — the paired data existed
+  only in a **gitignored** checkpoint. The figure happened to be right, which is
+  luck rather than process. Fixed by `evaluation/paired.py` + `paired.per_case` in
+  the artifact.
+- 🔴 **A replayed run must say so in its manifest.** Recomputing an old result with
+  new reporting code produces a report indistinguishable from a fresh run, stamped
+  with the *current* commit — a provenance lie in the artifact. `replay.fully_replayed`
+  records it, and the original run's manifest is kept alongside the analysis one.
+- 🔴 **Paired arms get a paired test.** Two Wilson intervals overlapping is not a
+  test when both arms ran the same cases; the **discordant** pairs are the evidence.
+  Report `helped` / `hurt` / `discordant`, use the exact binomial below ~25
+  discordant pairs, and never read a high p as equivalence — it is low power.
 - 🔴 **Negative results are reported, not quietly dropped.** The §6d
   memorization, the §6n corpus artifact (36 FP/68 benign), the policy proposing
   a reward-*decreasing* change, and the near-uniform learned distribution are

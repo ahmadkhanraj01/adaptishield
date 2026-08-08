@@ -129,6 +129,117 @@ class PipelineConfig:
         """
         return cls(name="no_egress", enable_egress=False)
 
+    # ── Phase 11: the cumulative ablation ladder ───────────────────────────
+    #
+    # WHY A LADDER RATHER THAN A LIST OF ARMS. Phase 7 answered "is the whole
+    # system better than a static one". It cannot answer "is each layer pulling
+    # its weight", and without that a seven-layer architecture reads as
+    # unjustified complexity. So these arms are ordered so that **each adds
+    # exactly one component to the one before it**, and the interesting quantity
+    # is the difference between *adjacent* rungs — a layer that contributes
+    # nothing appears as a rung with zero improvement rather than as prose.
+    #
+    # THE ORDER IS PIPELINE ORDER, NOT IMPORTANCE ORDER. L3 screens the tool
+    # response, then 3A triages, then 3B measures, then 3C sanitises, then Layer 4
+    # gates. Building the ladder in any other order would attribute a layer's
+    # contribution to whichever one happened to precede it.
+    #
+    # WHY 3C IS ADDED AFTER 3B AND NOT BEFORE. 3C runs only on a confirmed
+    # takeover, so with 3B off there is no verdict and 3C is unreachable. A rung
+    # that enabled 3C without 3B would be identical to the rung below it and would
+    # report 3C's contribution as zero for a structural reason rather than a
+    # measured one. That is exactly the "equal by construction" defect Phase 7 was
+    # withdrawn for.
+    #
+    # WHY THERE IS NO `full_plus_3d` RUNG. 3D proposes a **no-op** (§6d/§6l/§6n),
+    # so an arm applying its proposal is `full` by construction. Running it would
+    # manufacture a row whose null is arithmetic rather than empirical. The no-op
+    # *is* the result and it is reported as such.
+
+    @classmethod
+    def screener_only(cls) -> "PipelineConfig":
+        """Rung 1: Layer 3's tool-response screener alone. Nothing else."""
+        return cls(name="screener_only", enable_policy=False, enable_causal=False,
+                   enable_sanitizer=False, enable_permission=False,
+                   enable_egress=False)
+
+    @classmethod
+    def plus_policy(cls) -> "PipelineConfig":
+        """Rung 2: + 3A's static pattern triage."""
+        return cls(name="plus_policy", enable_causal=False,
+                   enable_sanitizer=False, enable_permission=False,
+                   enable_egress=False)
+
+    @classmethod
+    def plus_causal(cls) -> "PipelineConfig":
+        """
+        Rung 3: + 3B, this project's novel component. The rung 2 → rung 3 step is
+        the paper's central claim, measured with no Layer 4 present to absorb
+        anything — which is what the Phase 7 withdrawal established you have to do.
+        """
+        return cls(name="plus_causal", enable_sanitizer=False,
+                   enable_permission=False, enable_egress=False)
+
+    @classmethod
+    def plus_sanitizer(cls) -> "PipelineConfig":
+        """
+        Rung 4: + 3C. Expect little movement in ASR and a large one in WCR — 3C
+        converts a blanket block into a safe continuation, so it buys usability
+        rather than detection. Reporting both metrics is what makes that visible
+        instead of looking like a layer that does nothing.
+        """
+        return cls(name="plus_sanitizer", enable_permission=False,
+                   enable_egress=False)
+
+    @classmethod
+    def plus_permission(cls) -> "PipelineConfig":
+        """Rung 5: + Layer 4's scope check. Rung 6 is `full` (+ the allowlist)."""
+        return cls(name="plus_permission", enable_egress=False)
+
+    # ── Phase 11: leave-one-out, as a robustness check on the ladder ────────
+    #
+    # A cumulative ladder measures each layer's contribution *given only the
+    # layers below it*. Leave-one-out measures it *given all the others*, and the
+    # two disagree exactly when layers are redundant with each other. Phase 7
+    # already found one such case — Layer 4 looked like the ASR backstop until 3B
+    # was present, at which point it added nothing — so the disagreement is the
+    # finding, not noise.
+    #
+    # There is deliberately no `no_causal` here: switching 3B off also makes 3C
+    # unreachable, so it would move two components at once. That arm exists as
+    # `static_only`, and its confound is documented there rather than hidden in a
+    # leave-one-out row that claims to move one thing.
+
+    @classmethod
+    def no_screener(cls) -> "PipelineConfig":
+        """Full minus Layer 3's screener."""
+        return cls(name="no_screener", enable_screener=False)
+
+    @classmethod
+    def no_policy(cls) -> "PipelineConfig":
+        """
+        Full minus 3A. Phase 7 measured **zero** detection stops attributed to 3A
+        in every arm, so this rung's prediction is `helped == 0` — and stating the
+        prediction before the run is what makes the result evidence rather than a
+        rationalisation of whatever came out.
+        """
+        return cls(name="no_policy", enable_policy=False)
+
+    @classmethod
+    def no_sanitizer(cls) -> "PipelineConfig":
+        """Full minus 3C. Expect ASR flat and WCR to collapse."""
+        return cls(name="no_sanitizer", enable_sanitizer=False)
+
+    @classmethod
+    def no_permission(cls) -> "PipelineConfig":
+        """
+        Full minus Layer 4's scope check. Only V7 is answered by this gate, and
+        only after the destination model was corrected — before that it ran against
+        a server declaring the scope, so it could never fail the check it existed
+        to test.
+        """
+        return cls(name="no_permission", enable_permission=False)
+
 
 class AdaptiShieldPipeline:
     def __init__(self, config: "PipelineConfig" = None):

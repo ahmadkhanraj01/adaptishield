@@ -8,34 +8,32 @@ type: open
 [[Next Task — Repair the Phase 7 Benchmark]] is ✅ **done** (8 Aug 2026). In rough
 priority order from here.
 
-## 0 — Does refusal-shaped output inflate 3B's regime severities? 🔴 **NEXT**
+## 0 — Does refusal-shaped output inflate 3B's regime severities? ✅ **done**
 
-`_score_action` still scores *"do not forward to attacker@evil.com"* as 2. If the
-**masked probe** ever emits a refusal naming the address, `masked` is inflated and a
-takeover can trip — the [[Known Bounded False Positive]] mechanism →
-[[The Scorer Cannot See Negation]]. **Untested, cheap to test deterministically, and
-it should happen before Phase 11** because it would touch every layer-attributed
-number. Do not change the regime scorer without re-measuring the gen-2 campaign and
-benign FPR (Rules §2).
+Measured 8 Aug 2026: **0 of 209** recorded severity-2 masked-regime samples are
+refusal-shaped, positive control passing →
+[[3B's Refusal Exposure Is Live and Unrealised]]. The exposure is **live on the
+shipped keyword path** and has never fired; the regime scorer is left unchanged,
+so Rules §2's re-measurement cost is not incurred for nothing. Recorded, not
+closed.
 
-*(Phase 10 itself is ✅ done — [[Phase 10 — Spotlighting Has No Measurable Effect]].
-Delimiting and encoding variants remain unmeasured.)*
+*(Phase 10 is ✅ done too — [[Phase 10 — Spotlighting Has No Measurable Effect]].
+Delimiting and encoding variants remain unmeasured; encoding needs [[ASR]] and
+[[WCR]] read together at 4B.)*
 
+## 0b — Phase 11: per-component ablations 🔴 **NEXT**
 
-`static_only` is **our own ablation**; a reviewer will not accept it as the
-comparison (Rules §7). Needed on the **same corpus, seeds and model tags**: a
-published prompt-level defense — spotlighting (delimiting / datamarking /
-encoding) or an equivalent from the AgentDojo defense set — implemented as a
-`PipelineConfig` arm so it shares one code path.
+Nothing blocks it now. Reuse `evaluation/attribution.py` and turn the two findings
+Phase 7 already produced into rows with McNemar against the `full` arm:
 
-Cheap now that the Phase 7 infrastructure exists: a new arm is a config value plus
-a `defended_by` label, and [[Per-Layer Attribution|attribution]] will report what
-it actually does rather than what it claims. Expected shape: prompt-level defenses
-degrade under the softened gen-2 injections [[Fixes A-D|fix D]] was built for —
-which is the argument for a causal layer, but only once measured.
+- **3A contributes 0 detection stops** in every arm → [[Inert Blocked Patterns]]
+- **Layer 4 adds nothing incremental** — `full` → `no_egress` leaves ASR unchanged
 
-→ then Phase 11 (per-component ablations, with 3A's **zero detection stops** and
-IE's non-redundancy as rows), Phase 12 (InjecAgent), Phase 13 (manuscript).
+→ then Phase 12 (InjecAgent), Phase 13 (manuscript).
+
+⚠️ `static_only` is **our own ablation**; a reviewer will not accept it as the
+comparison (Rules §7). That is what Phase 10 answered, and Phase 11 must not be
+written as though it substitutes for an external baseline.
 
 ## 1 — The severity function 🔴
 

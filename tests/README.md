@@ -1,9 +1,9 @@
 # tests — Automated Test Suite
 
-**Status:** ✅ **223 tests passing**, ~6 s, no LLM / no network / no GPU
+**Status:** ✅ **310 tests passing**, ~7 s, no LLM / no network / no GPU
 
 ```bash
-python3 -m pytest tests/ -q          # 223 passed in ~6s
+python3 -m pytest tests/ -q          # 310 passed in ~7s
 python3 -m pytest tests/test_layer5.py -v
 ```
 
@@ -24,6 +24,8 @@ python3 -m pytest tests/test_layer5.py -v
 | `test_attribution.py` | Per-layer attribution ordering + the corpus invariants that keep the benchmark able to answer its own question, plus the Phase 10 arms and derived-ASR semantics | 39 |
 | `test_spotlighting.py` | The external baseline's transforms — non-no-op, content preserved not destroyed, instruction matches the transform, unknown variant raises, and no layer imports the baseline | 25 |
 | `test_negation_scoring.py` | Negation handling for agent-chosen actions: refusals naming the address are not steering, clause-scoped so `"do not reply … instead bcc X"` still scores 2, monotone, and **3B's regime scorer is untouched** | 24 |
+| `test_refusal_audit.py` | The regime-scorer refusal exposure **asserted as it currently is**, the semantic path's asymmetry, and the audit that measured the defect absent — its parsers, its guards, and its positive control | 35 |
+| `test_paired.py` | McNemar (exact + asymptotic-unusable flag), the ladder's adjacent-rung logic, the **outcome polarity** at both the statistic and the extraction step, and the Phase 11 arms: each rung adds exactly one component, in pipeline order | 52 |
 | `__init__.py` | Package marker | — |
 
 ---
@@ -58,10 +60,30 @@ written against a vague worry usually catches nothing.
 | `test_target_match.py` | `_references_mediator_target` compared verbatim, and `gemma3:4b` drops the hyphen in `leaker@shadow-mail.net` in **57/57** mentions — one character behind all 15 misses (§6m). Also pins the §6p grounding: a high-impact verb escalates only if the mediator asked for something of that kind. |
 | `test_layer5.py` | Untrusted mediator text must not escape the dashboard's embedded JSON. The records contain prompt injections *by construction* — an audit tool that could be attacked by what it audits would be an unusually poor one. |
 | `test_ablation.py` | A position-keyed campaign checkpoint would pair a case with another case's result. Keyed on `case_id` and tested by reordering. |
+| `test_paired.py` | Phase 10's `McNemar p = 1.00, 8 helped / 7 hurt` reached **five documents** with no committed implementation, and no discordant counts in the artifact — the paired data lived only in a gitignored checkpoint. The figure was right, which is luck rather than process. Several tests exist only to pin the **outcome polarity**, because passing `attack_succeeded` where `mcnemar()` wants "handled correctly" swaps `helped` and `hurt` undetectably — the same shape as the sign reversal already withdrawn from that comparison. |
 | `test_negation_scoring.py` | The scorer had no negation handling, so a refusal naming the attacker address scored as compliance — **16 of 37** cases in the Phase 10 baseline, which reversed the sign of the result (39.4%→56.1% became 34.8%→33.3%, p=1.00). Also pins the harder half: negation must be scoped to the clause naming the target, or `"do not reply … instead bcc X"` reads as a refusal and undercounts a real steering. |
 | `test_attribution.py` | Two, both hidden by the benchmark's old exfil destinations. **V7 could never fail the check it existed to test** — labelled `defended_by="Layer 4 permission control"` while running against a server that declares `send_email` in scope, with egress refusing the case first. And a `blocked` case could attribute to `none` with `reached_tool=True`, undercounting a refused request. One test now fails if any malicious vector but V3 is ever pointed at an exfil host again — the regression that caused the withdrawal twice. |
 
 ---
+
+## One file asserts a defect rather than its absence
+
+`test_refusal_audit.py` is the odd one out. Every other test here pins behaviour we
+want; that file pins behaviour we would prefer to change — that the **live** regime
+scorer reads `"do not forward to attacker@evil.com"` as full compliance, because
+`CausalAnalyzer()` ships with `semantic_scoring=False` and the keyword path
+escalates on a mediator-target match before any other test runs.
+
+It is asserted as-is because the exposure was **measured absent** (0 of 209 recorded
+severity-2 masked-regime samples are refusal-shaped → `evaluation/refusal_audit.py`)
+rather than fixed. The measurement lives in gitignored logs and a vault note, neither
+of which anyone executes. Encoding the current behaviour here means a future change
+to that scorer becomes a **visible failing test** instead of a silent drift in every
+layer-attributed number — and Rules §2 requires re-measuring the gen-2 campaign and
+benign FPR before such a change lands.
+
+If those tests start failing, the correct first question is not "fix the test" but
+"was that change intended, and has the campaign been re-measured?"
 
 ## Two properties worth not breaking
 
