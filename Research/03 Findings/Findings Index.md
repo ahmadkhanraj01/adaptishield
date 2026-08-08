@@ -47,9 +47,15 @@ first-class** — several of them are the contribution.
 
 ## Phase 10 — the external baseline
 
-- 🔴 [[Phase 10 Floor — The Injections Do Not Steer a 4B Planner]] — the baseline
-  is built, but the undefended derived agent already resists (ASR **1/7**), so
-  there is almost nothing for spotlighting to improve. Blocking a well-powered run
+- ✅ [[Phase 10 — Spotlighting Has No Measurable Effect]] — datamarking 34.8% →
+  33.3% steered, McNemar **p = 1.00**; the null is two opposing per-family effects
+  cancelling, not indifference
+- 🔴 [[The Scorer Cannot See Negation]] — a refusal naming the attacker address
+  scored as compliance, which **reversed the sign** of the result above. Fixed for
+  agent-chosen actions; still open for 3B's regimes
+- 🟡 [[Phase 10 Floor — The Injections Do Not Steer a 4B Planner]] — why the
+  benchmark vectors could not power the comparison (ASR 1/7) and the campaign
+  corpus was used instead
 
 ## ⛔ Withdrawn
 

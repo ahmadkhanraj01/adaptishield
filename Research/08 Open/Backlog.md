@@ -8,11 +8,18 @@ type: open
 [[Next Task — Repair the Phase 7 Benchmark]] is ✅ **done** (8 Aug 2026). In rough
 priority order from here.
 
-## 0 — Phase 10: an external baseline 🔴 **IN PROGRESS — blocked on corpus power**
+## 0 — Does refusal-shaped output inflate 3B's regime severities? 🔴 **NEXT**
 
-Built and validated; **the comparison is not yet runnable** →
-[[Phase 10 Floor — The Injections Do Not Steer a 4B Planner]]. Decide the
-corpus first (campaign corpus recommended).
+`_score_action` still scores *"do not forward to attacker@evil.com"* as 2. If the
+**masked probe** ever emits a refusal naming the address, `masked` is inflated and a
+takeover can trip — the [[Known Bounded False Positive]] mechanism →
+[[The Scorer Cannot See Negation]]. **Untested, cheap to test deterministically, and
+it should happen before Phase 11** because it would touch every layer-attributed
+number. Do not change the regime scorer without re-measuring the gen-2 campaign and
+benign FPR (Rules §2).
+
+*(Phase 10 itself is ✅ done — [[Phase 10 — Spotlighting Has No Measurable Effect]].
+Delimiting and encoding variants remain unmeasured.)*
 
 
 `static_only` is **our own ablation**; a reviewer will not accept it as the

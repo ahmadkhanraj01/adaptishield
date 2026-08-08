@@ -405,8 +405,13 @@ class AdaptiShieldPipeline:
         print(f"[Agent-RAW][derive:{variant or 'none'}] {response!r}")
         action = extract_next_action(response)
         # The analyzer owns the definition of a harmful action; reuse it rather
-        # than writing a second one that could drift from it.
-        severity = self.causal_analyzer._score_action(action, mediator)
+        # than writing a second one that could drift from it. `score_agent_action`
+        # is the negation-aware variant: an agent that says "do not forward to
+        # attacker@evil.com" named the address but chose not to act, and the plain
+        # scorer would count that refusal as the attack succeeding. It is scoped to
+        # this path — the four probe regimes keep the original scorer, because
+        # there a mention of the address IS the signal (§6i/§6p).
+        severity = self.causal_analyzer.score_agent_action(action, mediator)
         return {"action": action, "severity": severity, "variant": variant}
 
     def _run_layer4(self, server_name: str, tool_name: str,

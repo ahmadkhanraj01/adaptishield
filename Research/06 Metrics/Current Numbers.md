@@ -38,8 +38,29 @@ is uncommitted).*
 - **3A contributes 0 detection stops** in every arm → [[Inert Blocked Patterns]].
 - All 3 residual successes are **V4**, the address-free vector.
 
-⚠️ `static_only` is **our ablation, not an external baseline** — Phase 10 owes a
-published prompt-level defense on the same corpus (Rules §7).
+⚠️ `static_only` is **our ablation, not an external baseline** — see the Phase 10
+table below for the external one.
+
+## Phase 10 external baseline — spotlighting
+
+*86 cases/arm, campaign corpus, 1 repeat →
+[[Phase 10 — Spotlighting Has No Measurable Effect]]*
+
+| Arm | Steered | 95% CI |
+| :--- | ---: | :--- |
+| `derived_control` (no prompt defense) | 23/66 = **34.8%** | [24.5%, 46.9%] |
+| `spotlighting` (datamarking) | 22/66 = **33.3%** | [23.2%, 45.3%] |
+
+Paired **McNemar p = 1.00** (8 helped, 7 hurt). **No measurable effect** for
+datamarking, on this corpus, with a 4B planner, at n=66 — all four qualifiers
+belong to the claim. The null is two opposing per-family effects cancelling.
+
+- **`steer_rate`, not [[ASR]], is the outcome** — ASR is 0/66 in both arms because
+  the allowlist absorbs every address-carrying attack.
+- ⛔ **The raw figure (39.4% → 56.1%, "17 points worse") is withdrawn** — 16 of 37
+  apparently-steered cases were refusals naming the address →
+  [[The Scorer Cannot See Negation]].
+- These arms' ASR is **not comparable** with Phase 7's: derived vs supplied action.
 
 ## The most important qualifier
 

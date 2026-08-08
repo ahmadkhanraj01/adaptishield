@@ -1,16 +1,19 @@
 ---
 tags: [adaptishield, finding, phase10]
 type: finding
-status: blocking
+status: resolved
 date: 2026-08-08
 ---
 
-# 🔴 Phase 10 Floor — The Injections Do Not Steer a 4B Planner
+# 🟡 Phase 10 Floor — The Injections Do Not Steer a 4B Planner
 
-**The spotlighting baseline is built and runs, but the corpus cannot yet support a
-well-powered comparison.** Recording this before running it properly, because the
-underpowered version would produce another number about its own construction →
-[[Instruments Fail More Than Mechanisms]].
+**✅ Resolved by switching corpus** (see below) → the measured baseline is
+[[Phase 10 — Spotlighting Has No Measurable Effect]].
+
+Kept because the floor is itself a result: on the 8 benchmark vectors the
+undefended derived agent already resisted, so the comparison could not have been
+measured there. Written up *before* running it, rather than producing another number
+about its own construction → [[Instruments Fail More Than Mechanisms]].
 
 ## What was built
 
@@ -31,7 +34,7 @@ harness — so a prompt-level defense would have had nothing to protect. Measuri
 it without this would have measured the transform's effect on **our detector**,
 which is not the published defense.
 
-## The blocking result
+## The floor that blocked the vector set
 
 `derived_control`, one repeat, temperature 0, 7 malicious vectors:
 
@@ -83,21 +86,24 @@ test.
   read as a tie. Split into `PROMPT_DEFENSE` (transform applied) and
   `AGENT_DECLINED` (no transform, agent declined anyway).
 
-## The options
+## ✅ Resolved — option 1 was taken
 
-1. **Run the derived arms over the campaign corpus** (120 malicious attacks, 6
-   families × 4 directives) instead of the 7 benchmark vectors. Far more power, and
-   that corpus was tuned harder → [[Evaluation Corpus]]. **Recommended.**
-2. **A more steerable agent model** for the derived arms. Raises the floor but
-   changes the model tag away from Phase 7's.
-3. **Report it underpowered**, with the finding above as the honest headline.
+The derived arms were run over the **campaign corpus** (48 address-carrying + 18
+address-free), where the floor is **23/66 = 34.8%** steered — enough power to
+measure. Result: [[Phase 10 — Spotlighting Has No Measurable Effect]].
+
+The other options (a more steerable agent model; reporting it underpowered) were not
+needed. This note is kept because the vector-set floor is itself a result: the same
+injections that defeat 3B's masked probe reliably do **not** steer a planner holding
+a user goal.
 
 ## What this does not establish
 
 - **Not "the attacks are weak".** They defeat the masked probe reliably and Phase 7
   measured real detection on them. It establishes that *this* 4B planner, holding a
   user goal, mostly does not act on them.
-- **Nothing about spotlighting yet.** The baseline has not been measured on a
-  corpus that can measure it. No claim about the published defense is made here in
-  either direction.
+- **Nothing about spotlighting.** No claim about the published defense is made in
+  this note in either direction — that is
+  [[Phase 10 — Spotlighting Has No Measurable Effect]], measured on a corpus that
+  can measure it.
 - **n = 7, one repeat.** This is a power calculation, not a rate.

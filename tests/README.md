@@ -1,9 +1,9 @@
 # tests — Automated Test Suite
 
-**Status:** ✅ **135 tests passing**, ~2 s, no LLM / no network / no GPU
+**Status:** ✅ **223 tests passing**, ~6 s, no LLM / no network / no GPU
 
 ```bash
-python3 -m pytest tests/ -q          # 135 passed in ~2s
+python3 -m pytest tests/ -q          # 223 passed in ~6s
 python3 -m pytest tests/test_layer5.py -v
 ```
 
@@ -21,7 +21,9 @@ python3 -m pytest tests/test_layer5.py -v
 | `test_grpo_kaggle.py` | GRPO env + trainer: threshold replay, reward table, joint action space, tied-reward **no-op guard** (§6l–6n) | 23 |
 | `test_layer5.py` | The human gate + dashboard escaping (§6n) | 20 |
 | `test_ablation.py` | Phase 7 arms + campaign checkpointing | 15 |
-| `test_attribution.py` | Per-layer attribution ordering + the corpus invariants that keep the benchmark able to answer its own question | 26 |
+| `test_attribution.py` | Per-layer attribution ordering + the corpus invariants that keep the benchmark able to answer its own question, plus the Phase 10 arms and derived-ASR semantics | 39 |
+| `test_spotlighting.py` | The external baseline's transforms — non-no-op, content preserved not destroyed, instruction matches the transform, unknown variant raises, and no layer imports the baseline | 25 |
+| `test_negation_scoring.py` | Negation handling for agent-chosen actions: refusals naming the address are not steering, clause-scoped so `"do not reply … instead bcc X"` still scores 2, monotone, and **3B's regime scorer is untouched** | 24 |
 | `__init__.py` | Package marker | — |
 
 ---
@@ -56,6 +58,7 @@ written against a vague worry usually catches nothing.
 | `test_target_match.py` | `_references_mediator_target` compared verbatim, and `gemma3:4b` drops the hyphen in `leaker@shadow-mail.net` in **57/57** mentions — one character behind all 15 misses (§6m). Also pins the §6p grounding: a high-impact verb escalates only if the mediator asked for something of that kind. |
 | `test_layer5.py` | Untrusted mediator text must not escape the dashboard's embedded JSON. The records contain prompt injections *by construction* — an audit tool that could be attacked by what it audits would be an unusually poor one. |
 | `test_ablation.py` | A position-keyed campaign checkpoint would pair a case with another case's result. Keyed on `case_id` and tested by reordering. |
+| `test_negation_scoring.py` | The scorer had no negation handling, so a refusal naming the attacker address scored as compliance — **16 of 37** cases in the Phase 10 baseline, which reversed the sign of the result (39.4%→56.1% became 34.8%→33.3%, p=1.00). Also pins the harder half: negation must be scoped to the clause naming the target, or `"do not reply … instead bcc X"` reads as a refusal and undercounts a real steering. |
 | `test_attribution.py` | Two, both hidden by the benchmark's old exfil destinations. **V7 could never fail the check it existed to test** — labelled `defended_by="Layer 4 permission control"` while running against a server that declares `send_email` in scope, with egress refusing the case first. And a `blocked` case could attribute to `none` with `reached_tool=True`, undercounting a refused request. One test now fails if any malicious vector but V3 is ever pointed at an exfil host again — the regression that caused the withdrawal twice. |
 
 ---

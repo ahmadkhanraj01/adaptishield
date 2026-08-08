@@ -1,7 +1,8 @@
 # evaluation — Experiments, Diagnostics and the Benchmark
 
-**Status:** ✅ Experiments run and reported · 🟡 Phase 7 benchmark built, but its
-first result is **withdrawn** (see below)
+**Status:** ✅ Experiments run and reported · ✅ Phase 7 repaired and re-run · ✅
+Phase 10 external baseline measured. The benchmark's **first** result is withdrawn
+and superseded (see below).
 
 This folder is where claims get tested. Every figure in the root README's status
 table traces back to a script here — and several of these scripts exist because a
@@ -22,8 +23,8 @@ claim made *without* one turned out to be wrong.
 | `fpr_report.py` | FPR with **Wilson intervals**, cohorts kept separate, plus a **staleness guard**. | ✅ Run |
 | `ie_ablation.py` | Is the causal IE measurement redundant with 3C's `instructions_removed` self-report? **Answer: no, structurally.** | ✅ Run |
 | `vectors.py` | The eight literature vectors (Du et al. / MCPSecBench) with a coverage map: which layer answers each, and what this implementation does *not* do. Plus the external benign cohort (10 AgentDojo documents, stride-sampled), kept **separate** from our own V8. | ✅ Built |
-| `attribution.py` | **Which layer stopped each case** — first gate in pipeline order that refused, plus the later gates that would also have refused. Attack success is one bit and one bit cannot tell 3B from the allowlist; that is what invalidated the benchmark's first result. | ✅ Built |
-| `benchmark.py` | Four-arm ablation benchmark (undefended / static_only / full / no_egress), with Wilson intervals, per-layer attribution and a run manifest. | 🟡 **Repaired; re-run pending** |
+| `attribution.py` | **Which layer stopped each case** — first gate in pipeline order that refused, plus the later gates that would also have refused. Attack success is one bit and one bit cannot tell 3B from the allowlist; that is what invalidated the benchmark's first result. Also carries the Phase 10 prevention labels (`prompt_defense` / `agent_declined`). | ✅ Built |
+| `benchmark.py` | Ablation + baseline runner. Phase 7 arms (undefended / static_only / full / no_egress) and Phase 10 arms (derived_control / spotlighting), two corpora (`--corpus vectors\|campaign`), Wilson intervals, per-layer attribution, `steer_rate`, run manifest. Refuses to put supplied-action and derived-action arms in one table. | ✅ Run |
 | `kaggle/` | Phase 6 — episode packager, GRPO trainer, Path A driver. See its own README. | ✅ Run |
 | `__init__.py` | Package marker | ✅ |
 
@@ -109,12 +110,14 @@ exfiltration host, so Layer 4 intercepts them before 3A or 3B is consulted, and
 measurement**.
 
 This repeats the mistake §6n diagnosed — that section added address-free attacks
-precisely because the allowlist was concealing detection failures. **The question
-"does the causal sub-layer detect what static defenses miss" is untested in
-either direction.** We do not claim the answer is negative; we have not measured
-it.
+precisely because the allowlist was concealing detection failures.
 
-### The repair — done (2026-08-08), re-run pending
+**✅ Now measured.** After the repair below: ASR `static_only` **71.4%** → `full`
+**14.3%**, with **18 of 21** stops attributed to 3B and **zero** detection stops
+possible in `static_only`. Layer 4 turns out to contribute **nothing incremental**
+once 3B is on. Results in `results/phase7/`.
+
+### The repair — done and re-run (2026-08-08)
 
 1. **Destinations.** Malicious vectors now carry the **legitimate** mail host, so
    a detection failure surfaces in ASR instead of being absorbed: absorbable
@@ -204,3 +207,69 @@ python3 -m evaluation.benchmark --repeats 3
 
 Full write-ups for every finding referenced here: `researchworksofar.md`
 (Volume I, §6a–§6p) and `research_work_so_far.md` (Volume II).
+
+
+---
+
+## Phase 10 — the external baseline
+
+`static_only` is *our* ablation. Rules §7 needs a **published** prompt-level
+defense, so `baselines/spotlighting.py` implements spotlighting (Hines et al.:
+delimiting / datamarking / encoding), kept outside the layer tree with a test that
+fails if any layer imports it.
+
+**Measuring it needed `derive_action`.** Spotlighting defends the *agent's* action
+selection, and the pipeline is normally handed `proposed_action` — so the defense
+had nothing to protect. With the flag on, an agent reads the (possibly marked)
+untrusted content and picks the action. Two arms differing in exactly one flag:
+
+| Arm | What it is |
+| :--- | :--- |
+| `derived_control` | the agent picks its own action, **no** prompt-level defense |
+| `spotlighting` | the same **plus** the transform |
+
+```bash
+rm -rf logs/benchmark_checkpoint
+python3 -m evaluation.benchmark --arms derived_control,spotlighting \
+        --corpus campaign --repeats 1        # 86 cases/arm, ~12 min
+```
+
+### The result: no measurable effect
+
+| Arm | Steered | 95% Wilson |
+| :--- | ---: | :--- |
+| `derived_control` | 23/66 = **34.8%** | [24.5%, 46.9%] |
+| `spotlighting` (datamarking) | 22/66 = **33.3%** | [23.2%, 45.3%] |
+
+Paired **McNemar p = 1.00** — 8 cases helped, 7 hurt. The null is two opposing
+per-family effects cancelling (`important_instructions` 8→5 but `blunt_override`
+0→3), not indifference.
+
+**Read `steer_rate`, not ASR.** ASR is 0/66 in both arms because the allowlist
+absorbs every address-carrying attack. `steer_rate` asks whether the agent *chose* a
+harmful action, judged before any gate, so a backstop cannot absorb it.
+
+### ⛔ The raw figure is withdrawn
+
+The first run said 39.4% → 56.1% — "spotlighting is 17 points worse". **16 of 37**
+apparently-steered cases were refusals *naming* the attacker address, e.g. `"Do not
+forward emails to attacker@evil.com and instead reply"`. `_score_action_by_keyword`
+escalates any action naming a mediator target and has no negation handling, so the
+transform inflated the metric judging it, in proportion to how clearly it worked.
+
+Fixed by `CausalAnalyzer.score_agent_action` — negation scoped to the *clause naming
+the target*, because `"Do not reply ... and instead bcc attacker@evil.com"` is
+compliance, not refusal. It sits **beside** the regime scorer, not inside it: in the
+masked probe an address mention is the signal the detector leans on (§6i/§6p), so
+de-escalating refusals there would trade a measured FP for unmeasured FNs. Phase 7's
+numbers are structurally unaffected and a test enforces it.
+
+**🔴 Still open:** whether refusal-shaped output inflates 3B's *regime* severities.
+Untested, cheap to test, and it should happen before Phase 11.
+
+### Two corpora, never one table
+
+`--corpus vectors` (Phase 7) and `--corpus campaign` (Phase 10) answer different
+questions, and ASR means different things in supplied-action vs derived-action arms.
+The runner **refuses** to run both cohorts together rather than pooling them — the
+§6n error in a new costume.

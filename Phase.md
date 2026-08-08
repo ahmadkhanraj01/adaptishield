@@ -7,7 +7,7 @@ See [Architecture.md](Architecture.md), [Design.md](Design.md), [Rules.md](Rules
 for structure / rationale / constraints.
 
 *Last updated: 2026-08-08 (session 5 — Phase 7 repaired and re-run; Phase 10
-baseline built and found under-powered). Build ~93% complete; **evidence ~55%**.*
+external baseline measured). Build ~93% complete; **evidence ~65%**.*
 
 ---
 
@@ -55,8 +55,8 @@ Layer 5 human gate. Journals have room for that; conferences usually do not.
 | 7 | Eight-vector benchmark (static vs full vs +3D) | ✅ **Done (2026-08-08)** — first result withdrawn, repaired, re-run over 216 cases. **ASR `static_only` 71.4% → `full` 14.3%**, 18/21 stops attributed to 3B, `static_only` produces **zero** detection stops, and Layer 4 adds **nothing incremental**. Per-layer attribution added; two instrument defects found and fixed |
 | 8 | Layer 5 — dashboard / console / override | ✅ **Done** — 4 components, stdlib only, 20 tests. Gate recomputes evidence rather than trusting the proposal; found that every proposal's `blocked_patterns` are **inert** (3A matches `proposed_action`, trainer harvests from `flagged_markers`) |
 | 9 | Grow the pytest suite | 🟡 Ongoing (**161 tests**, ~4 s, no LLM) |
-| **10** | **External baselines** (undefended + spotlighting/data-marking) | 🔴 **Built, blocked on corpus power.** Spotlighting arms implemented and running; the undefended *derived* agent already resists (ASR **1/7**), so there is almost nothing for the defense to improve. Corpus decision needed |
-| **11** | **Per-component ablations** (3A / 3A+3B / +3C / +L4 / full / +3D) | 🔲 Not started — arms exist, matrix does not |
+| **10** | **External baselines** (undefended + spotlighting/data-marking) | ✅ **Done (2026-08-08).** Undefended floor ASR 100% (Phase 7). Spotlighting (datamarking) measured on the campaign corpus: steered **34.8% → 33.3%**, paired McNemar **p = 1.00** — **no measurable effect**, with the null being two opposing per-family effects cancelling. The raw figure said *17 points worse* until a scorer negation defect was fixed |
+| **11** | **Per-component ablations** (3A / 3A+3B / +3C / +L4 / full / +3D) | 🔲 Not started — arms exist, matrix does not. **Blocked-ish:** settle whether refusal-shaped output inflates 3B's regime severities first, since it would touch every layer-attributed number |
 | **12** | **Second benchmark: InjecAgent** (external validity) | 🔲 Not started |
 | **13** | **Manuscript + reproducibility artifact** | 🔲 Blocked on the journal decision |
 

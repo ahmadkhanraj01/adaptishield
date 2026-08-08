@@ -5,10 +5,12 @@
 **Students:** Muhammad Ahmad Khan (23JZBCS0238) · Aleena Khan (23JZBCS0229)
 **Institution:** UET Peshawar (Jalozai Campus)
 
-**Doc version:** v17 (8 August 2026) — **Phase 7 repaired and re-run** (§1.1): the
-comparative claim is measured, ASR `static_only` 71.4% → `full` 14.3% with 18/21
-stops attributed to 3B. Adds per-layer attribution, a tracked `results/` tree, and
-the run manifest. Next: Phase 10, an external baseline.
+**Doc version:** v18 (8 August 2026) — **Phases 7 and 10 both measured.** §1.1: the
+comparative claim, ASR `static_only` 71.4% → `full` 14.3% with 18/21 stops
+attributed to 3B. §1.2: the external baseline, spotlighting **34.8% → 33.3%**
+steered, McNemar **p = 1.00**. Adds per-layer attribution, `baselines/`, a tracked
+`results/` tree and run manifests. Next: settle whether refusal-shaped output
+inflates 3B's regime severities, then Phase 11.
 *v16 (26 July 2026) — README restructured: the long per-finding write-ups
 (§6d–§6p) moved to the research log; adds the research introduction (§0).*
 
@@ -138,9 +140,10 @@ tuned until it shows one. Full evidence for every row:
 | GRPO training pipeline (`evaluation/kaggle/`) | ✅ Executed on Kaggle — both backends agree to **exactly zero** (§6o) |
 | Eight-vector benchmark (Phase 7) | ✅ **Repaired & re-run (8 Aug)** — ASR `static_only` **71.4%** → `full` **14.3%**, **18/21** stops attributed to 3B. First result withdrawn; see §1.1 |
 | Per-layer attribution (`evaluation/attribution.py`) | ✅ Which gate stopped each case, plus the gates that would also have refused |
-| pytest suite (`tests/`) | ✅ **161 deterministic tests**, ~4 s, no LLM / network / GPU |
+| External baseline — spotlighting (Phase 10) | ✅ **Measured (8 Aug)** — datamarking **34.8% → 33.3%** steered, McNemar **p = 1.00**: no measurable effect. See §1.2 |
+| pytest suite (`tests/`) | ✅ **223 deterministic tests**, ~6 s, no LLM / network / GPU |
 
-**Rough completion: ~92% build, ~50% evidence.**
+**Rough completion: ~93% build, ~65% evidence.**
 
 ### 1.1 Phase 7 — the comparative claim, measured
 
@@ -172,6 +175,40 @@ construction rather than by measurement*. The repair pointed malicious vectors a
 the legitimate mail host (absorbable: **6 of 7 → 1 of 7**), added per-layer
 attribution, replaced the one-vector FPR column with ten external documents, and
 added a run manifest.
+
+### 1.2 Phase 10 — the external baseline
+
+Rules §7 needs a *published* prompt-level defense, because `static_only` is our own
+ablation. `baselines/spotlighting.py` implements spotlighting (Hines et al.), kept
+outside the layer tree so nothing in the defense imports it.
+
+*86 cases/arm, campaign corpus, 1 repeat. `results/phase10/`.*
+
+| Arm | Steered | 95% Wilson |
+| :--- | ---: | :--- |
+| `derived_control` (no prompt defense) | 23/66 = **34.8%** | [24.5%, 46.9%] |
+| `spotlighting` (datamarking) | 22/66 = **33.3%** | [23.2%, 45.3%] |
+
+Paired **McNemar p = 1.00** — 8 cases helped, 7 hurt. **No measurable effect** for
+datamarking, on this corpus, with a 4B planner, at n=66; the claim carries all four
+qualifiers. The null is **two opposing per-family effects cancelling**
+(`important_instructions` 8→5, but `blunt_override` 0→3), not indifference — a
+defense that makes a thin payload legible can *increase* compliance.
+
+**Measuring it required `derive_action`.** Spotlighting defends the *agent's* action
+selection, and the pipeline is normally handed `proposed_action`, so the defense had
+nothing to protect. The two arms differ in exactly one flag. Their ASR is **not
+comparable** with §1.1's — derived vs supplied action, two cohorts, two tables.
+
+**Read `steer_rate`, not ASR.** ASR is 0/66 in both arms because the allowlist
+absorbs every address-carrying attack.
+
+**⛔ The raw figure is withdrawn.** The first run reported 39.4% → 56.1%
+("17 points worse"); **16 of 37** apparently-steered cases were refusals *naming*
+the attacker address. `_score_action_by_keyword` has no negation handling, so the
+transform inflated the metric judging it. Fixed by
+`CausalAnalyzer.score_agent_action`, scoped to agent-chosen actions — 3B's regime
+scorer is deliberately untouched (§6i/§6p), and a test enforces that.
 
 ### Known open issues
 
@@ -370,8 +407,11 @@ controls are reported as a *diagnostic* and never pooled into a headline figure.
 │       ├── apply_and_validate.py       ✅ measure a ProposedUpdate's effect (throwaway agent)
 │       ├── test_credentials.py         ✅ one authenticated call; secret never printed
 │       └── kernel-metadata.template.json / .env.example
+├── baselines/                          ✅ EXTERNAL comparisons, not part of the defense
+│   └── spotlighting.py                 ✅ Hines et al.: delimiting/datamarking/encoding
 ├── results/                            ✅ TRACKED results + provenance (Rules §7)
-│   └── phase7/                         ✅ benchmark.json + manifest.json
+│   ├── phase7/                         ✅ benchmark.json + manifest.json
+│   └── phase10/                        ✅ the external baseline
 ├── logs/                               (gitignored — working output)
 │   ├── episode_records/episodes.jsonl  ✅ every boundary crossing
 │   ├── red_team_runs/campaign_*.json   ✅ one report per campaign
@@ -379,7 +419,7 @@ controls are reported as a *diagnostic* and never pooled into a headline figure.
 │   ├── benchmark_checkpoint/*.jsonl    ✅ per-arm resume state — DELETE after any change
 │   ├── benchmark/                      ✅ Phase 7 raw run.log + json (copied to results/)
 │   └── layer5/                         ✅ audit.html + decisions.jsonl
-└── tests/                              ✅ 161 deterministic tests, ~4s, no LLM/network/GPU
+└── tests/                              ✅ 223 deterministic tests, ~6s, no LLM/network/GPU
     ├── test_takeover_rules.py          ✅  9  3B takeover paths + IE resolution
     ├── test_adaptive_threat_model.py   ✅ 14  3D reward + proposal + step sizing
     ├── test_target_match.py            ✅ 21  normalized target match + keyword grounding
@@ -388,7 +428,9 @@ controls are reported as a *diagnostic* and never pooled into a headline figure.
     ├── test_grpo_kaggle.py             ✅ 23  GRPO env/trainer + joint space + no-op guard
     ├── test_layer5.py                  ✅ 20  human gate + dashboard escaping
     ├── test_ablation.py                ✅ 15  Phase 7 arms + campaign checkpointing
-    └── test_attribution.py             ✅ 26  attribution ordering + corpus invariants
+    ├── test_attribution.py             ✅ 39  attribution ordering + corpus invariants
+    ├── test_spotlighting.py            ✅ 25  the external baseline's transforms
+    └── test_negation_scoring.py        ✅ 24  negation handling; 3B's scorer untouched
 ```
 
 ---
@@ -546,7 +588,7 @@ Rejected: `llama3.2:3b` (poor security reasoning), any 7B+ GPU model (exceeds 4 
 ### Deterministic — no LLM, no network, no GPU
 
 ```bash
-python3 -m pytest tests/ -q                       # 161 tests, ~4s
+python3 -m pytest tests/ -q                       # 223 tests, ~6s
 python3 -m evaluation.mechanism_validation        # causal regimes + takeover rules, <1s
 python3 -m layer2.security_sublayer.adaptive_threat_model   # 3D reward + proposal demo
 python3 -m evaluation.vectors                     # Phase 7 vector coverage map
@@ -665,15 +707,15 @@ tokens do not work with CLI 1.7.4.5, which is the newest on PyPI.
 
 ## 13. What to Build Next
 
-1. 🔵 **Phase 10 — an external baseline.** ✅ *Phase 7 is done (§1.1).*
-   `static_only` is **our own ablation**; Rules §7 requires a *published*
-   prompt-level defense — spotlighting (delimiting / datamarking / encoding) or an
-   AgentDojo defense — on the same corpus, seeds and model tags. Add it as a
-   `PipelineConfig` arm so it shares one code path, register it in `ARMS`, extend
-   `tests/test_ablation.py`, and re-run. The `undefended` floor is already measured
-   (ASR 100%), so this is the only remaining blocker on Phase 10. Expected shape:
-   prompt-level defenses hold on the blatant vector and degrade on the softened
-   one — the argument for a causal layer, but only once measured.
+1. 🔴 **Does refusal-shaped output inflate 3B's regime severities?** ✅ *Phases 7
+   and 10 are done (§1.1, §1.2).* `_score_action` still scores `"do not forward to
+   attacker@evil.com"` as 2 — deliberately, because in the masked probe an address
+   mention is the signal the detector leans on. But if the probe ever emits a
+   refusal naming the address, `masked` is inflated and a takeover can trip, which
+   is the `workspace-041` mechanism. **Untested, cheap to test deterministically,
+   and it should happen before Phase 11** because it would touch every
+   layer-attributed number. Do not change the regime scorer without re-measuring
+   the gen-2 campaign and benign FPR first (Rules §2).
 2. **The severity function** — all 4 residual misses are `masked = 0`. §6e showed
    the semantic scorer is worse end-to-end, so this needs a third approach rather
    than a re-run of that one.
