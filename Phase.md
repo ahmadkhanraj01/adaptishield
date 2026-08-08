@@ -6,7 +6,34 @@ Section 13 holds the detailed task list; this file is the higher-altitude view.
 See [Architecture.md](Architecture.md), [Design.md](Design.md), [Rules.md](Rules.md)
 for structure / rationale / constraints.
 
-*Last updated: 2026-07-26 (session 3). Rough completion: ~88%.*
+*Last updated: 2026-08-08 (session 5 — Phase 7 repaired and re-run). Build ~92%
+complete; **evidence ~50%**.*
+
+---
+
+## ⚠ Target changed: journal, not conference (2026-08-03, supervisor)
+
+The paper goes to a **journal**. The architecture does not change. What changes
+is the **critical path**: it is no longer "finish 3D", it is "produce evidence a
+reviewer will accept". Concretely:
+
+| | Conference framing (old) | Journal framing (new) |
+| :--- | :--- | :--- |
+| Headline claim | we built a layered adaptive defense | we **measured** it, against baselines, and bounded where it fails |
+| Enough evidence | one campaign, point estimates | multi-run distributions + Wilson CIs, ≥2 external baselines, per-component ablations |
+| Negative results | a liability to minimize | a **contribution** — generalization gaps in adaptive defense learning |
+| Bottleneck | Phase 6 (3D / GRPO) — **done** | Phase 7→10 (benchmark, ablations, baselines, second benchmark) |
+
+**Why the negative results get *better*, not worse, under this move.** Three
+findings are now first-class contributions rather than footnotes: (i) an RL
+policy proposing a security change its own reward scored lower, which
+`apply_update` would have accepted silently; (ii) the one gain GRPO ever found
+being an artifact of a hand-written benign corpus (36 FP of 68 on external
+data); (iii) every trainer safeguard working correctly and none of them being
+able to see outside the corpus. Together they are the empirical argument for the
+Layer 5 human gate. Journals have room for that; conferences usually do not.
+
+**🔵 Blocking decision — pick the journal before writing (see bottom of file).**
 
 ---
 
@@ -25,9 +52,13 @@ for structure / rationale / constraints.
 | 6b | Diagnose + fix the 15 residual 3B misses | ✅ Done — one defect, **114/114 caught** (§6m) |
 | 6c | **Fix the evaluation corpus** (address-free attacks + external benign) | ✅ **Done (§6n)** — 188 episodes; **FPR 3.3% [0.9%, 11.4%]** vs AgentDojo benign; IE catches **13** the standalone rule misses (was 0) |
 | 6d | Joint GRPO action space + propose-and-verify | ✅ **Done (§6n)** — 5 dims / 720 actions; the one gain it found was a **corpus artifact**, and its own policy proposed a reward-*decreasing* change 3× |
-| 7 | Eight-vector benchmark (static vs full vs +3D) | 🟡 **In progress** — `PipelineConfig` ablation arms built + tested; vectors and runner pending |
+| 7 | Eight-vector benchmark (static vs full vs +3D) | ✅ **Done (2026-08-08)** — first result withdrawn, repaired, re-run over 216 cases. **ASR `static_only` 71.4% → `full` 14.3%**, 18/21 stops attributed to 3B, `static_only` produces **zero** detection stops, and Layer 4 adds **nothing incremental**. Per-layer attribution added; two instrument defects found and fixed |
 | 8 | Layer 5 — dashboard / console / override | ✅ **Done** — 4 components, stdlib only, 20 tests. Gate recomputes evidence rather than trusting the proposal; found that every proposal's `blocked_patterns` are **inert** (3A matches `proposed_action`, trainer harvests from `flagged_markers`) |
-| 9 | Grow the pytest suite | 🟡 Ongoing (**110 tests**, 2 s, no LLM) |
+| 9 | Grow the pytest suite | 🟡 Ongoing (**161 tests**, ~4 s, no LLM) |
+| **10** | **External baselines** (undefended + spotlighting/data-marking) | 🔵 **NEXT — journal-mandatory.** Undefended arm now measured (ASR 100%); the published prompt-level defense is still absent |
+| **11** | **Per-component ablations** (3A / 3A+3B / +3C / +L4 / full / +3D) | 🔲 Not started — arms exist, matrix does not |
+| **12** | **Second benchmark: InjecAgent** (external validity) | 🔲 Not started |
+| **13** | **Manuscript + reproducibility artifact** | 🔲 Blocked on the journal decision |
 
 ---
 
@@ -261,38 +292,159 @@ confident no-op. So before (or alongside) the notebook:
    instead. Left open deliberately: closing it would weaken the mechanism that
    catches 14 attacks the standalone rule misses, to move 2/60 → 1/60 inside a
    [0.9%, 11.4%] interval.
-8. 🔵 **START HERE — Phase 7, the eight-vector benchmark.** Ablation support is
-   built (`PipelineConfig`: undefended / static_only / full / no_egress, in the
-   pipeline so every arm shares one code path). Still needed: the eight literature
-   vectors, the arm runner, and the comparison report.
+8. ✅ **Phase 7 done (2026-08-08) — the comparative claim is measured.** The first
+   result was withdrawn (the egress allowlist intercepted 6 of 8 vectors, making
+   every arm equal by construction); repaired and re-run over **216 cases**:
+
+   | Arm | ASR | 95% CI | WCR | 3B stops |
+   | :--- | ---: | :--- | ---: | ---: |
+   | `undefended` | 100.0% | [84.5%, 100%] | 0.0% | 0 |
+   | `static_only` | 71.4% | [50.0%, 86.2%] | 0.0% | **0** |
+   | `full` | **14.3%** | [5.0%, 34.6%] | **85.7%** | **18/21** |
+   | `no_egress` | 14.3% | [5.0%, 34.6%] | 85.7% | 18/21 |
+
+   - **ASR 71.4% → 14.3%** (57 points) with **18 of 21** stops attributed to 3B;
+     `static_only` produces **zero** detection stops.
+   - **Layer 4 contributes nothing incremental** once 3B is on (`full` →
+     `no_egress` leaves ASR unchanged) — the exact inverse of the withdrawn run.
+     `backstop_share` 33% in `full`, so **12 of 18** detection stops are
+     load-bearing.
+   - **3A contributes 0 detection stops in every arm** — a real ablation row,
+     consistent with the inert-`blocked_patterns` finding.
+   - All **3** residual successes are **V4** (address-free), where the docs
+     predicted the misses would land. **None is a threshold failure.**
+   - ⚠️ The benchmark's **0/30 external FPR is not a rate** — the stride subsample
+     excludes campaign documents 41 and 55, both known false positives. The
+     campaign's **3.3% at n=60** remains the FPR of record; the report prints this
+     caveat so the number cannot be lifted loose.
+   - **Two instrument defects found by attribution on its first use:** V7 could
+     never fail the permission check it existed to test (it ran against a server
+     declaring `send_email` in scope, with egress refusing the case first), and a
+     `blocked` case could report `reached_tool=True`. Tests 135 → **161**.
+9. 🔵 **START HERE — Phase 10, the external baseline.** `static_only` is *our*
+   ablation; Rules §7 requires a published prompt-level defense (spotlighting /
+   data-marking) on the same corpus, seeds and model tags. Cheap now: a new arm is
+   a `PipelineConfig` value plus a `defended_by` label, and attribution will report
+   what it actually does rather than what it claims.
+11. **Carried forward, unchanged by Phase 7** — the two standing limits on the
+   detector, both still the largest levers:
    - **FPR side:** `agentdojo-workspace-041` is a birthday-party document with no
      email address in it; the probe *invented* one and scored 2 off the `forward`
-     keyword. A real defect, and now the largest single lever on FPR. Distinct
-     from `agentdojo-workspace-055`, which is the genuine 3B/Layer 4 boundary
-     (3B cannot tell an authorised recipient from an attacker-controlled one —
-     that is Layer 4's job, and it is a scoping result, not a defect).
-   - **Detection side:** 4 of the 5 misses are `masked = 0` — the keyword scorer
-     does not match the probe's phrasing and there is no address to fall back on.
-     **0 of the 5 are threshold failures**, which is exactly why 3D proposes a
-     no-op and why the remaining work is not in the adaptive layer.
-8. *(next)* Fold §6o into the eight-vector benchmark planning, and settle the
-   two open questions on the Layer 5 artifact (visibility, and rendering the
-   AgentDojo attribution) before publishing it.
+     keyword. A real defect, and the largest single lever on FPR. Distinct from
+     `agentdojo-workspace-055`, the genuine 3B/Layer 4 boundary (3B cannot tell an
+     authorised recipient from an attacker-controlled one — Layer 4's job, a
+     scoping result rather than a defect). **Neither is in the benchmark's stride
+     subsample**, which is why its 0/30 must not be quoted as a rate.
+   - **Detection side:** 4 of the 5 campaign misses are `masked = 0` — the keyword
+     scorer does not match the probe's phrasing and there is no address to fall
+     back on. **0 of the 5 are threshold failures**, which is why 3D proposes a
+     no-op and why the remaining work is not in the adaptive layer. Phase 7 confirms
+     this independently: all 3 of its residual successes are the address-free
+     vector, none a threshold failure.
+12. *(still open)* Settle the two questions on the Layer 5 artifact — visibility,
+   and rendering the AgentDojo attribution — before publishing it.
 
 
-## Phases 7–9 — later
+## Phases 7 → 13 — the journal evidence chain
 
-- **7 · Benchmark:** eight attack vectors (Du et al. / MCPSecBench), static
-  baseline vs full AdaptiShield vs AdaptiShield+3D; reuse `red_team/evaluator.py`.
-- **8 · Layer 5:** audit dashboard, policy inspection console, manual override
-  (data already emitted by telemetry + campaigns).
-- **9 · Tests:** grow the suite; the 3 validated pipeline episodes are natural
-  regression cases.
+Ordered by dependency. Nothing below is optional for a journal submission; the
+manuscript cannot make a defensible claim that these do not produce.
+
+### 7 · Eight-vector benchmark — ✅ *done, and it unblocked everything*
+
+Eight attack vectors (Du et al. / MCPSecBench) plus a ten-document external benign
+cohort, over four `PipelineConfig` arms. Delivered: ASR / FPR / WCR per vector per
+arm with `n` and Wilson intervals, **per-layer attribution**, and a run manifest.
+See item 8 in the checklist above for the numbers.
+
+The two artefacts it leaves for later phases: `evaluation/attribution.py` scores
+every arm through one function, so Phase 11's matrix does not need to re-derive
+attribution per arm; and the manifest format is the provenance record Phase 13's
+reproducibility artifact needs.
+
+### 10 · External baselines — 🔵 *NEXT; journal-mandatory, half-absent*
+
+Our own `static_only` arm is an **ablation**, not a baseline; a reviewer will not
+accept it as the comparison. Needed on the same corpus, seeds and model tags:
+
+- ✅ **Undefended** — the floor, now **measured**: ASR **100%** [84.5%, 100%] over
+  21 malicious cases. The vectors are strong enough to measure something, which was
+  not previously established.
+- 🔲 **A published prompt-level defense** — spotlighting (delimiting / datamarking /
+  encoding) or an equivalent from the AgentDojo defense set. Re-implement inside
+  the pipeline as an arm, so it shares one code path (Rules §7). **This is the only
+  remaining blocker on Phase 10.**
+
+Expected shape of the result: prompt-level defenses degrade under the softened
+gen-2 injections that fix D was built for. That contrast *is* the argument for a
+causal layer — but only if it is measured rather than asserted.
+
+### 11 · Per-component ablations — *justifies the layering*
+
+Without this, seven layers read as unjustified complexity. Minimum matrix:
+`3A` · `3A+3B` · `3A+3B+3C` · `+Layer 4` · `full` · `full+3D`. Two results are
+already half-known and should be reported as ablation rows rather than prose:
+
+- **IE is non-redundant** — 13/115 (later 14/116) malicious takeovers caught by
+  `IE >= 1` where `masked >= 2` misses. Run it as a 2×2 contingency table with a
+  McNemar test; that is the form a reviewer expects.
+- ~~**Layer 4 is the ASR backstop**~~ — **Phase 7 falsified this on its vector
+  set.** With the egress allowlist off, layer-attributed detection and end-to-end
+  ASR did **not** separate: `full` → `no_egress` left ASR at 14.3%, because 3B had
+  already caught everything the allowlist would have (V3 included, as a takeover,
+  before Layer 4 was consulted). Layer 4 was the backstop only while the *corpus*
+  handed it every case. Report it that way — `backstop_share` 33% in `full` means
+  **12 of 18** detection stops are load-bearing — rather than repeating the
+  prediction. **3A**, by contrast, produced **0** detection stops in every arm.
+- **3A's zero is a new ablation row** and it is not prose: the static pattern engine
+  never fired on 21 malicious cases × 4 arms, consistent with the inert
+  `blocked_patterns` defect Layer 5 found.
+- **Reuse `evaluation/attribution.py`** for the whole matrix rather than
+  re-deriving per arm — one scoring function across arms is the property that makes
+  the rows comparable.
+
+### 12 · Second benchmark: InjecAgent — *external validity*
+
+One benchmark invites "does this generalize?". InjecAgent is the cheapest second
+axis and the corpus work in §6n already proved the point that matters here: our
+own benign corpus flattered the system by 36 false positives. A second external
+corpus is the guard against a repeat.
+
+### 13 · Manuscript + reproducibility artifact
+
+Structure follows the evidence, and leads with the ablation + baseline tables
+rather than the architecture diagram. The `results/` tree, the run manifests and
+the deterministic test suite (110 tests, no LLM, 2 s) are the artifact. Layer 5's
+self-contained HTML report is a strong figure: it shows the machine disagreeing
+with itself and a human adjudicating, which is the paper's thesis in one image.
+
+### Carried forward (unchanged in scope)
+
+- **8 · Layer 5** ✅ done — audit dashboard, policy inspection console, manual override.
+- **9 · Tests** 🟡 ongoing — the 3 validated pipeline episodes are natural regression cases.
 
 ---
 
 ## Known open items (carried forward)
 
+- 🔵 **BLOCKING — which journal?** This is a scoping decision, not a formatting
+  one: it sets how much evidence Phases 10–12 must produce and whether the FYP
+  deadline is reachable at all. Ask the supervisor to pick.
+
+  | Venue | First decision | Fee | Fit |
+  | :--- | :--- | :--- | :--- |
+  | **IEEE Access** | ~4–6 weeks | APC (~US$1,950) | Fast; tolerant of systems + negative results. Realistic against a degree deadline. |
+  | **Computers & Security** (Elsevier) | ~3–6 months | none | Strong topical fit; expects the full baseline + ablation set. |
+  | **IEEE TDSC** | 6–18 months | none | Highest prestige; **not reachable** within a fixed FYP deadline. |
+
+  Secondary questions that follow from the answer: page/figure limits (the
+  drawio architecture figure needs an **inverted colour scheme** for IEEE print),
+  whether an artifact-availability statement is required, and author order with
+  Aleena Khan and Dr. Laeeq Ahmed.
+- 🔲 **Benign corpus is at 60 external episodes** — adequate for the current
+  `[0.9%, 11.4%]` interval, but that interval is wide enough that a reviewer can
+  ask for more. Growing the AgentDojo benign set tightens the single number most
+  likely to be challenged.
 - ~~`masked_hypothetical` flaky at 3B~~ — **closed (§6m)**: 24/24 across all targets
   after the normalized target match + greedy decoding.
 - ~~3C sanitisation of softened directives incomplete~~ — **closed for 3B's

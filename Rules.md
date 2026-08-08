@@ -5,7 +5,14 @@ AI) changing this codebase. Breaking one of these has silently broken a result
 before — most of them are scars, not preferences. For the reasoning behind them
 see [Design.md](Design.md); for structure see [Architecture.md](Architecture.md).
 
-*Last aligned: 2026-07-22 (after fixes A–D).*
+*Last aligned: 2026-08-08 (adds the §8 vault-update invariant). Previously
+2026-08-03 (journal target adopted; adds §7 Evidence & reporting).*
+
+> **Publication target changed (2026-08-03, supervisor).** The paper goes to a
+> **journal**, not a conference. That does not change the architecture, but it
+> raises the evidentiary bar on every number that leaves this repo: reviewers
+> will ask *compared to what*, *over how many episodes*, and *with what
+> interval*. §7 below is the new hard constraint set that follows from it.
 
 > **Legend:** 🔴 hard invariant (breaking it invalidates results or breaks the
 > build) · 🟡 strong convention (break only with measurement + a doc update).
@@ -82,13 +89,91 @@ see [Design.md](Design.md); for structure see [Architecture.md](Architecture.md)
   out, no Ollama, sub-second). **LLM-dependent checks → `evaluation/`** (minutes,
   vary run-to-run; record numbers in docs, don't assert on them).
 - 🟡 **Judge detection by the layer under test** (`caught_by_causal`), not by
-  end-to-end ASR — the egress backstop keeps ASR at 0% regardless.
-- 🟡 **Report FPR (and any flaky metric) as a distribution over repeated runs**,
-  not a single-campaign figure.
+  end-to-end ASR — the egress backstop keeps ASR at 0% regardless. Report both:
+  layer-attributed detection *and* end-to-end ASR, and say which is which.
+- 🔴 **Report FPR (and any flaky metric) as a distribution over repeated runs**,
+  not a single-campaign figure. Greedy decoding is *not* literally deterministic
+  (2/564 regime severities disagreed), so a single run is a sample, not a value.
 
-## 7. Workflow
+---
 
+## 7. Evidence & reporting (journal-grade claims)
+
+*These exist because a journal reviewer sees only the numbers, not the repo.
+Anything violating one of these is a desk-reject risk or a correction later.*
+
+- 🔴 **No headline number without `n`, the named corpus, and a 95% interval.**
+  Proportions use **Wilson** intervals (small `n`, near-boundary rates — normal
+  approximation is wrong here). A bare point estimate is a *diagnostic*, and
+  must be labelled as one in text and in tables.
+- 🔴 **Never pool cohorts of different provenance.** The 8 hand-written benign
+  controls and the 60 externally-authored AgentDojo benigns are separate
+  cohorts, always. Pooling them is what made `4/8` look like an FPR. State
+  provenance and version for every external corpus (AgentDojo v0.1.35, MIT).
+- 🔴 **Every arm shares one code path.** Ablation arms are `PipelineConfig`
+  values inside the pipeline, never a forked script. An "ablation" that runs
+  different code is a different system, and the comparison means nothing.
+- 🔴 **At least two comparison arms besides the full system**: (1) **undefended**
+  and (2) a **published prompt-level defense** (spotlighting / data-marking),
+  run on the *same* corpus, *same* seeds, *same* model tags. "Static rule
+  baseline" is our own ablation, not an external baseline — it does not
+  discharge this requirement.
+- 🔴 **Held-out splits are enforced by construction, not by slicing.** As in
+  `generate_training_attacks()` / `generate_holdout_attacks()`, with an
+  assertion proving no held-out target leaks into training (see §5).
+- 🔴 **Every number in the paper is regenerable by one committed command** whose
+  artifact is committed under `results/` with a run manifest (seeds, model tags,
+  corpus version, commit SHA, date). If a table cannot be regenerated, it cannot
+  be claimed.
+- 🔴 **Negative results are reported, not quietly dropped.** The §6d
+  memorization, the §6n corpus artifact (36 FP/68 benign), the policy proposing
+  a reward-*decreasing* change, and the near-uniform learned distribution are
+  **contributions** about generalization gaps in adaptive defense learning. They
+  are the reason the Layer 5 human gate exists. Removing them to make the system
+  look cleaner also removes the paper's most defensible claim.
+- 🟡 **Do not describe the GRPO policy as "trained"** while the corpus leaves it
+  nothing to learn — the argmax comes from the minimal-intervention tie-breaker.
+  Say what it is: a policy over a knob whose reward is flat on this data.
+- 🟡 **Language discipline in the manuscript:** "detected by 3B" ≠ "blocked";
+  "no gap the knob can close" ≠ "no gap"; "unidentifiable on this batch" ≠
+  "irrelevant". Each of these has already been confused once in these docs.
+- 🟡 **Known bounded false positives stay documented, with the trade priced**
+  (`workspace-041`, `workspace-055`). A reviewer finding an unlisted FP is worse
+  than a listed one with a rationale.
+
+## 8. Workflow
+
+- 🔴 **Every session's work lands in the Obsidian vault before the session ends.**
+  This applies to *anything* an AI assistant (Claude Code or otherwise) does in
+  this repo — code changes, a campaign run, a number that moved, a decision
+  taken, a result withdrawn. The repo stays the source of truth for code and
+  numbers; **`Research/` is the source of truth for how the pieces relate**, and
+  it is only useful if it is never behind. The ritual, per
+  `Research/00 Meta/Vault Map.md`:
+
+  | Did | Write |
+  | :--- | :--- |
+  | New result (positive **or** negative) | a note in `03 Findings`, linked from `Findings Index` |
+  | Any session of work | a dated note in `04 Research Log`, linked from `Research Log Index` |
+  | A number moved | `06 Metrics/Current Numbers.md` — with `n`, corpus and interval (§7) |
+  | Phase state changed | `05 Phases` **and** `Phase.md` |
+  | New/closed open item | `08 Open/Backlog.md`, and the next-task note if the top priority moved |
+  | New trap, rule or run procedure | `07 Practice` (`Traps`, `Rules and Invariants`, `How to Run`) |
+  | An architectural change | `02 Architecture` |
+
+  Vault conventions are binding: **one idea per note**, frontmatter `tags` +
+  `type`, `[[wikilinks]]` rather than prose references, status markers
+  (✅ 🟡 🔴 ⛔), and **every finding note ends with `## What this does not
+  establish`**. A withdrawn result is **marked, never deleted** — the corrections
+  are the most transferable part of this work.
+- 🔴 **`Rules.md` and `Research/07 Practice/Rules and Invariants.md` are two
+  views of one thing.** Change one, change the other in the same edit.
 - 🟡 **Keep the docs in sync.** On any change, update the root `README.md`, the
   relevant per-folder `README.md`, and — where affected — `Architecture.md`,
   `Design.md`, `Rules.md`, `Phase.md`.
+- 🟡 **The root `README.md` lags reality.** Per-folder READMEs are the more
+  reliable source of truth; when they disagree, trust the folder and fix the root.
+- 🟡 **Any change that moves a reported metric also updates `results/`** and the
+  affected table in the manuscript draft — a metric that changed in code but not
+  in the paper is how a submission acquires a wrong number.
 - 🟡 **Commits/pushes only when the user asks.** Branch off `main` first.

@@ -21,8 +21,9 @@ claim made *without* one turned out to be wrong.
 | `fpr_check.py` | Adversarial A/B of the old (exact) vs new (normalized) mediator-target match over benign content. Used to *measure* the cost of loosening a rule rather than assume it. | ✅ Run |
 | `fpr_report.py` | FPR with **Wilson intervals**, cohorts kept separate, plus a **staleness guard**. | ✅ Run |
 | `ie_ablation.py` | Is the causal IE measurement redundant with 3C's `instructions_removed` self-report? **Answer: no, structurally.** | ✅ Run |
-| `vectors.py` | The eight literature vectors (Du et al. / MCPSecBench) with a coverage map: which layer answers each, and what this implementation does *not* do. | ✅ Built |
-| `benchmark.py` | Four-arm ablation benchmark (undefended / static_only / full / no_egress). | 🟡 **First result withdrawn** |
+| `vectors.py` | The eight literature vectors (Du et al. / MCPSecBench) with a coverage map: which layer answers each, and what this implementation does *not* do. Plus the external benign cohort (10 AgentDojo documents, stride-sampled), kept **separate** from our own V8. | ✅ Built |
+| `attribution.py` | **Which layer stopped each case** — first gate in pipeline order that refused, plus the later gates that would also have refused. Attack success is one bit and one bit cannot tell 3B from the allowlist; that is what invalidated the benchmark's first result. | ✅ Built |
+| `benchmark.py` | Four-arm ablation benchmark (undefended / static_only / full / no_egress), with Wilson intervals, per-layer attribution and a run manifest. | 🟡 **Repaired; re-run pending** |
 | `kaggle/` | Phase 6 — episode packager, GRPO trainer, Path A driver. See its own README. | ✅ Run |
 | `__init__.py` | Package marker | ✅ |
 
@@ -113,15 +114,43 @@ precisely because the allowlist was concealing detection failures. **The questio
 either direction.** We do not claim the answer is negative; we have not measured
 it.
 
-### The repair
+### The repair — done (2026-08-08), re-run pending
 
-1. Point malicious vectors at the **legitimate** destination (keep V3 on the
-   exfil host — it is *supposed* to test the allowlist), so a detection failure
-   surfaces in ASR instead of being absorbed.
-2. Add **per-layer attribution** — record *which* layer stopped each case, not
-   just whether it was stopped. ASR is binary and cannot answer the question.
-3. Add ~10 benign vectors from the vendored AgentDojo corpus; the FPR column
-   currently rests on **one** vector × 3 repeats.
+1. **Destinations.** Malicious vectors now carry the **legitimate** mail host, so
+   a detection failure surfaces in ASR instead of being absorbed: absorbable
+   vectors went **6 of 7 → 1 of 7**. V3 keeps the exfil host because testing the
+   allowlist is its job. This is a correction, not a workaround — for a
+   `send_email` call through the registered mail server the HTTP destination *is*
+   the mail host whatever the recipient is; pointing it at the recipient's domain
+   was the fiction that handed the allowlist a case it would never see.
+2. **Per-layer attribution** (`attribution.py`). `stopped_by` names the first gate
+   in pipeline order that refused; `redundant_gates` names the later ones that
+   would also have refused. `backstop_share` reports what fraction of detection
+   stops a static gate would have caught anyway, and the report flags it above
+   90%. On the withdrawn run this would have printed *"no detection stop
+   occurred"* for `static_only` — the finding, in the output, immediately.
+3. **FPR.** Ten externally-authored AgentDojo documents (fixed stride of 6 across
+   the 60, so the sample spans both suites and all three field types instead of
+   taking one suite). A **separate cohort** from V8 — never pooled (Rules §7).
+4. **Run manifest.** Commit SHA + dirty flag, corpus provenance and version, model
+   tags and 3B's knobs, Python/platform, and Ollama's VRAM state sampled *after*
+   inference (`/api/ps` lists only resident models, so a pre-run check reports no
+   GPU on every clean start). On seeds it records the honest entry: greedy at
+   temperature 0, **no RNG seed is exposed by Ollama**, and not literally
+   deterministic (§6n: 2/564).
+
+**Two defects found while repairing, both hidden by the old destinations:**
+
+- **V7 could never test what it claimed.** It is labelled `defended_by="Layer 4
+  permission control"`, but `as_cases` hardcoded `server_name="email-api"`, which
+  declares `send_email` in scope — so the check always passed and egress refused
+  the case first. V7 now runs against `weather-api` (`get_weather` only) and
+  returns `OUT-OF-SCOPE`. Attribution is what surfaced it; the column would
+  otherwise have printed a plausible lie.
+- **A blocked case could read as "reached the tool."** The first attribution pass
+  credited 3A only when no causal verdict existed, so `blocked` with a
+  no-takeover verdict fell through to `none` with `reached_tool=True`. A test
+  caught it; a block now always attributes to exactly one layer.
 
 ---
 
@@ -159,7 +188,10 @@ python3 -m evaluation.probe_diagnostic
 python3 -m evaluation.adaptive_loop_experiment
 python3 -m evaluation.holdout_generalization_test
 python3 -m evaluation.score_action_ablation
-python3 -m evaluation.benchmark --repeats 3       # ~25 min
+# 216 cases (18 vectors x 3 repeats x 4 arms) — ~40 min.
+# DELETE THE CHECKPOINT FIRST: cached results describe the OLD pipeline.
+rm -rf logs/benchmark_checkpoint
+python3 -m evaluation.benchmark --repeats 3
 ```
 
 ---

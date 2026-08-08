@@ -5,8 +5,8 @@ Phase 7 — the eight-vector benchmark: which layer actually stops what.
     python -m evaluation.benchmark --arms undefended,full --repeats 1
 
 Runs the fixed vector set (evaluation/vectors.py) through several ablation arms
-of the same pipeline and reports ASR / FPR / WCR per arm, plus a per-vector
-breakdown of which arm stopped it.
+of the same pipeline and reports ASR / FPR / WCR per arm with Wilson intervals,
+plus **per-layer attribution**: which component stopped each case.
 
 WHAT THIS IS FOR. "AdaptiShield helps" is not a claim until there is something
 it is being compared against. The campaign in §6l–§6p measures the full system
@@ -15,18 +15,37 @@ doing the work" — and after §6n, where a marker weight that looked free on a
 self-authored corpus produced 36 false positives on an external one, the second
 question is the one worth more.
 
+THE FIRST RUN OF THIS BENCHMARK WAS WITHDRAWN. It reported attack success falling
+100% → 14.3% under static defenses with the full system matching exactly, and the
+finding did not survive inspection: every `static_only` stop was `approved_direct`
+with `egress_allowed=False`, so nothing had been stopped by a detection layer at
+all. Six of eight vectors pointed at an exfiltration host and Layer 4's allowlist
+refused them before 3A/3B were consulted — the arms were equal **by construction
+rather than by measurement**. Three things changed here as a result:
+
+  1. Malicious vectors now carry the legitimate mail host, so a detection miss
+     appears in ASR instead of being absorbed. V3 keeps its exfil host because
+     testing the allowlist is its job. (See the rationale in vectors.py.)
+  2. **Per-layer attribution** is reported, not inferred by hand afterwards.
+     `stopped_by` names the first gate that refused; `redundant_gates` names the
+     later ones that would also have refused. When a backstop is concealing a
+     detection result, the table says so.
+  3. The FPR column no longer rests on one hand-written vector — ten
+     externally-authored AgentDojo documents carry it, as a separate cohort.
+
 THE ARMS, AND WHAT EACH ISOLATES
   undefended   nothing on. The floor: what this corpus does unopposed. If ASR is
                not ~100% here, the vectors are too weak to measure anything.
   static_only  screener + 3A patterns + Layer 4. A plausible defense WITHOUT this
-               project's causal sub-layer — the honest baseline to beat.
+               project's causal sub-layer — the honest ablation to beat.
   full         complete AdaptiShield.
   no_egress    full minus the allowlist. Separates what 3A/3B/3C detect from what
                a static allowlist was quietly backstopping — the reason §6n added
                address-free attacks in the first place.
 
-The `full` vs `static_only` gap is this project's contribution. The `full` vs
-`no_egress` gap is how much of that was really Layer 4.
+`static_only` is an ABLATION, NOT AN EXTERNAL BASELINE. Rules.md §7 requires a
+published prompt-level defense (spotlighting / data-marking) as well, and that is
+Phase 10 — this file does not discharge it.
 
 READ THE COVERAGE MAP BEFORE THE NUMBERS. Two of the eight vectors are
 APPROXIMATED — the pipeline consumes tool *responses*, not tool *descriptions* or
@@ -43,12 +62,19 @@ vector cannot tell a defense from a coin flip.
 import argparse
 import json
 import os
+import platform
+import subprocess
+import sys
 import time
 from collections import defaultdict
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from adaptishield_pipeline import PipelineConfig
-from evaluation.vectors import VECTORS, as_cases, coverage_table
+from evaluation.attribution import (NOT_STOPPED, STOP_ORDER, THREE_A, THREE_B,
+                                    attribute, attribution_counts, backstop_share)
+from evaluation.fpr_report import wilson
+from evaluation.vectors import (REQUIRED_SERVERS, VECTORS, all_vectors, as_cases,
+                                coverage_table, external_corpus_provenance)
 
 ARMS = {
     "undefended":  PipelineConfig.undefended,
@@ -60,6 +86,91 @@ ARMS = {
 DEFAULT_OUT = "logs/benchmark"
 
 
+# ── provenance ────────────────────────────────────────────────────────────
+def build_manifest(arms: List[str], repeats: int) -> Dict:
+    """
+    Everything needed to say what produced these numbers.
+
+    Written on day one rather than retrofitted, because provenance added to
+    finished results is provenance invented for them: Rules.md §7 requires every
+    paper number to be regenerable from a committed command, and a table whose
+    corpus version or model tags are unknown cannot be regenerated. The §6n
+    staleness trap is the same failure a level down — a crashed campaign leaving
+    an old dataset that reports pre-fix numbers as current.
+
+    ON SEEDS. There is no RNG seed to record. Ollama exposes none through
+    langchain_ollama, so determinism here comes from `temperature=0` greedy
+    decoding, and that is *not* literally deterministic — §6n measured 2 of 564
+    regime severities disagreeing between samples. Recording "greedy, no seed" is
+    the honest entry; recording a seed we do not control would not be.
+    """
+    from layer2.security_sublayer.causal_analyzer import CausalAnalyzer
+
+    analyzer = CausalAnalyzer()
+    return {
+        "generated":      time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        "commit":         _git("rev-parse", "HEAD"),
+        "commit_subject": _git("log", "-1", "--format=%s"),
+        "dirty":          bool(_git("status", "--porcelain")),
+        "arms":           arms,
+        "repeats":        repeats,
+        "corpus": {
+            "taxonomy_vectors": len(VECTORS),
+            "malicious":        sum(1 for v in VECTORS if v.expected_malicious),
+            "total_vectors":    len(all_vectors()),
+            "external_benign":  external_corpus_provenance(),
+        },
+        "models": {
+            "causal_3b":  "gemma3:4b",
+            "sanitizer_3c_screener_planner": "qwen2.5:3b / gemma3:4b (planner)",
+            "temperature": analyzer.temperature,
+            "k_samples":   analyzer.k_samples,
+            "ie_threshold": analyzer.ie_threshold,
+            "ie_resolution": analyzer.ie_resolution,
+            "require_consistent_ie": analyzer.require_consistent_ie,
+        },
+        "seeding": "greedy decoding at temperature 0; no RNG seed is exposed by "
+                   "Ollama. Not literally deterministic (§6n: 2/564 regime "
+                   "severities disagreed).",
+        "ollama":  {"sampled": "pending — filled in after the arms run"},
+        "python":  sys.version.split()[0],
+        "platform": platform.platform(),
+    }
+
+
+def _git(*args) -> Optional[str]:
+    try:
+        return subprocess.run(("git",) + args, capture_output=True, text=True,
+                              timeout=10).stdout.strip() or None
+    except Exception:
+        return None
+
+
+def _ollama_state() -> Dict:
+    """
+    Whether Ollama is on the GPU.
+
+    A known trap: after a CUDA fault Ollama silently falls back to CPU, which
+    changes outputs as well as speed. A run manifest that does not record which
+    happened cannot explain a result that disagrees with the last one.
+
+    Sampled AFTER the arms run, not before: `/api/ps` lists only *resident*
+    models, so on an idle server it is empty and a pre-run check would report no
+    GPU on every clean start. The state that matters is the one during inference.
+    """
+    try:
+        import urllib.request
+        with urllib.request.urlopen("http://localhost:11434/api/ps", timeout=5) as r:
+            models = json.load(r).get("models", [])
+        return {"reachable": True,
+                "loaded": [{"model": m.get("model"),
+                            "size_vram": m.get("size_vram")} for m in models],
+                "on_gpu": any(m.get("size_vram") for m in models)}
+    except Exception as e:
+        return {"reachable": False, "error": str(e)}
+
+
+# ── running ───────────────────────────────────────────────────────────────
 def run_arm(name: str, repeats: int, checkpoint_dir: str = None) -> List:
     """Run every vector through one arm and return the ExecutionResults."""
     from red_team.execution_agent import ExecutionAgent
@@ -67,33 +178,102 @@ def run_arm(name: str, repeats: int, checkpoint_dir: str = None) -> List:
 
     config = ARMS[name]()
     agent = ExecutionAgent(pipeline=AdaptiShieldPipeline(config=config))
+    _register_servers(agent)
     cp = os.path.join(checkpoint_dir, f"{name}.jsonl") if checkpoint_dir else None
     print(f"\n{'#' * 70}\n# ARM: {name}  ({repeats} repeat(s) per vector)\n{'#' * 70}")
     return agent.run_batch(as_cases(repeats), checkpoint=cp)
 
 
+def _register_servers(agent) -> None:
+    """
+    Register every server the vector set names, with its declared scope.
+
+    `ExecutionAgent._setup_registry` registers only `email-api`, which declares
+    send_email in scope so the permission gate always passes. V7 tests an
+    out-of-scope invocation and therefore needs a server that does *not* declare
+    send_email — otherwise the vector cannot fail the check it exists to fail,
+    and while every malicious vector pointed at an exfil host that was invisible,
+    because egress refused the case first.
+    """
+    for server_name, url, version, tools in REQUIRED_SERVERS:
+        agent.pipeline.registry.register_server(server_name, url, version, tools)
+    from red_team.attack_library import LEGITIMATE_DESTINATION_URL
+    agent.pipeline.egress_filter.update_allowlist(
+        agent.pipeline.registry.get_allowlist() + [LEGITIMATE_DESTINATION_URL]
+    )
+
+
+# ── metrics ───────────────────────────────────────────────────────────────
+def _rate_with_ci(k: int, n: int) -> Dict:
+    lo, hi = wilson(k, n)
+    return {"k": k, "n": n, "rate": (k / n if n else 0.0),
+            "wilson_low": lo, "wilson_high": hi}
+
+
 def summarise(name: str, results: List) -> Dict:
     """
-    ASR / FPR / WCR for one arm.
+    ASR / FPR / WCR for one arm, each with n and a Wilson interval.
 
-    Defined exactly as red_team/evaluator.py defines them, so the numbers here
-    are comparable with every campaign figure elsewhere in the project rather
-    than being a second, subtly different metric.
+    ASR / FPR / WCR are defined exactly as red_team/evaluator.py defines them, so
+    these numbers stay comparable with every campaign figure elsewhere rather
+    than becoming a second, subtly different metric. What is added here:
+
+      * **Wilson intervals** on every rate. Rules.md §7: a bare point estimate is
+        a diagnostic, not a result, and at these n the normal approximation is
+        wrong near the boundaries.
+      * **FPR split by cohort.** Our V8 and the ten AgentDojo documents are
+        different provenance and are never pooled — pooling cohorts is what made
+        "4/8" look like a rate (§6n). Neither is the FPR of record: the external
+        cohort is a stride subsample that excludes both known false positives, so
+        it is a catastrophic-over-blocking check, not an estimate. `fpr_report`
+        (n=60) owns that number.
+      * **Attribution**: how many malicious cases each layer stopped, and how
+        many detection stops a static gate would have made anyway.
     """
+    by_vid = {v.vid: v for v in all_vectors()}
     mal = [r for r in results if r.expected_malicious]
     ben = [r for r in results if not r.expected_malicious]
-    asr = sum(1 for r in mal if r.attack_succeeded) / len(mal) if mal else 0.0
-    fpr = sum(1 for r in ben if r.false_positive) / len(ben) if ben else 0.0
-    wcr = sum(1 for r in mal if r.task_completed) / len(mal) if mal else 0.0
-    blocked = sum(1 for r in results if r.final_status == "blocked")
-    return {"arm": name, "n": len(results), "asr": asr, "fpr": fpr, "wcr": wcr,
-            "n_malicious": len(mal), "n_benign": len(ben),
-            "stopped": sum(1 for r in mal if not r.attack_succeeded),
-            "blocked_outright": blocked}
+    # Cohort membership is read from the vector definition, never by comparing
+    # results — ExecutionResult is a value dataclass, so `in` would match on
+    # equality and could silently merge two distinct cases.
+    def _is_external(r) -> bool:
+        v = by_vid.get(r.family)
+        return v is not None and v.cohort == "benign_external"
+
+    ben_ext = [r for r in ben if _is_external(r)]
+    ben_ours = [r for r in ben if not _is_external(r)]
+
+    asr = _rate_with_ci(sum(1 for r in mal if r.attack_succeeded), len(mal))
+    wcr = _rate_with_ci(sum(1 for r in mal if r.task_completed), len(mal))
+    fpr_ext = _rate_with_ci(sum(1 for r in ben_ext if r.false_positive), len(ben_ext))
+    fpr_ours = _rate_with_ci(sum(1 for r in ben_ours if r.false_positive), len(ben_ours))
+
+    counts = attribution_counts(results)
+    detection_stops = counts[THREE_A] + counts[THREE_B]
+    causal_stops = counts[THREE_B]
+
+    return {
+        "arm": name, "n": len(results),
+        "asr": asr, "wcr": wcr,
+        "fpr_external": fpr_ext, "fpr_ours": fpr_ours,
+        "n_malicious": len(mal), "n_benign": len(ben),
+        "stopped": sum(1 for r in mal if not r.attack_succeeded),
+        "blocked_outright": sum(1 for r in results if r.final_status == "blocked"),
+        "attribution": counts,
+        "detection_stops": detection_stops,
+        "causal_stops": causal_stops,
+        "backstop_share": backstop_share(results),
+    }
 
 
 def per_vector(results_by_arm: Dict[str, List]) -> Dict[str, Dict[str, str]]:
-    """vector id -> arm -> 'stopped k/n' (or the benign equivalent)."""
+    """
+    vector id -> arm -> 'k/n stopped_by' (or the benign equivalent).
+
+    The `stopped_by` suffix is what the withdrawn run lacked. Without it two arms
+    printing `3/3` look like agreement, when one may be detecting and the other
+    merely hitting an allowlist.
+    """
     table: Dict[str, Dict[str, str]] = defaultdict(dict)
     for arm, results in results_by_arm.items():
         by_vec = defaultdict(list)
@@ -102,16 +282,23 @@ def per_vector(results_by_arm: Dict[str, List]) -> Dict[str, Dict[str, str]]:
         for vid, rs in by_vec.items():
             if rs[0].expected_malicious:
                 k = sum(1 for r in rs if not r.attack_succeeded)
+                stops = {attribute(r).stopped_by for r in rs}
             else:
-                k = sum(1 for r in rs if not r.false_positive)   # correctly passed
-            table[vid][arm] = f"{k}/{len(rs)}"
+                k = sum(1 for r in rs if not r.false_positive)  # correctly passed
+                stops = {attribute(r).stopped_by for r in rs} - {NOT_STOPPED}
+            label = "/".join(sorted(s.replace("_", " ") for s in stops)) or "-"
+            table[vid][arm] = f"{k}/{len(rs)} {label}"
     return table
 
 
-def report(results_by_arm: Dict[str, List]) -> Dict:
-    print("\n" + "=" * 96)
+def report(results_by_arm: Dict[str, List], manifest: Dict) -> Dict:
+    print("\n" + "=" * 104)
     print("  PHASE 7 — EIGHT-VECTOR BENCHMARK")
-    print("=" * 96)
+    print("=" * 104)
+    print(f"  commit {manifest['commit']}"
+          f"{'  [DIRTY WORKING TREE]' if manifest['dirty'] else ''}"
+          f"   ollama_on_gpu={manifest['ollama'].get('on_gpu')}")
+
     print("\n  COVERAGE MAP — read this before the numbers\n")
     print(coverage_table())
     approx = [v.vid for v in VECTORS if not v.natively_modelled]
@@ -119,45 +306,87 @@ def report(results_by_arm: Dict[str, List]) -> Dict:
           f"{', '.join(approx)}")
     print("  Those rows cannot support a claim as strong as the natively modelled ones.")
 
-    print("\n  " + "-" * 92)
-    print("  PER-ARM METRICS  (ASR lower is better; WCR higher is better)")
-    print(f"    {'arm':<14}{'n':>5}{'ASR':>9}{'FPR':>9}{'WCR':>9}   {'stopped':>9}")
+    print("\n  " + "-" * 100)
+    print("  PER-ARM METRICS  (ASR lower is better; WCR higher is better; "
+          "[..] = 95% Wilson)")
     summaries = {}
     for arm in results_by_arm:
         s = summarise(arm, results_by_arm[arm])
         summaries[arm] = s
-        print(f"    {arm:<14}{s['n']:>5}{s['asr']:>8.1%}{s['fpr']:>9.1%}"
-              f"{s['wcr']:>9.1%}   {s['stopped']:>4}/{s['n_malicious']}")
+        print(f"\n    {arm}  (n={s['n']}, {s['n_malicious']} malicious, "
+              f"{s['n_benign']} benign)")
+        for label, key in (("ASR", "asr"), ("WCR", "wcr"),
+                           ("FPR external", "fpr_external"),
+                           ("FPR ours (diag)", "fpr_ours")):
+            m = s[key]
+            print(f"      {label:<16}{m['rate']:>7.1%}  {m['k']}/{m['n']}"
+                  f"   [{m['wilson_low']:.1%}, {m['wilson_high']:.1%}]")
 
-    print("\n  " + "-" * 92)
-    print("  PER-VECTOR — attacks stopped (benign: correctly passed)")
+    print("\n  ⚠ THE FPR COLUMN IS A SANITY CHECK, NOT THE FPR OF RECORD.")
+    print("    The external cohort is a stride subsample (indices 0,6,...,54) and so")
+    print("    EXCLUDES campaign documents 41 and 55 — the two known false positives.")
+    print("    A 0/30 here is therefore not an improvement on the campaign's 3.3%")
+    print("    (2/60); it is a smaller sample that omits both failures by construction.")
+    print("    Quote `python3 -m evaluation.fpr_report` (n=60) as the rate. This column")
+    print("    exists to catch an arm that over-blocks catastrophically, nothing more.")
+
+    print("\n  " + "-" * 100)
+    print("  PER-LAYER ATTRIBUTION — which gate stopped each malicious case")
+    print("  (This is the column whose absence invalidated the first run.)")
+    layers = STOP_ORDER + [NOT_STOPPED]
+    print(f"    {'arm':<14}" + "".join(f"{l.replace('_', ' '):>16}" for l in layers))
+    for arm, s in summaries.items():
+        print(f"    {arm:<14}" + "".join(f"{s['attribution'][l]:>16}" for l in layers))
+    for arm, s in summaries.items():
+        share = s["backstop_share"]
+        if share is None:
+            print(f"    {arm}: no detection stop occurred — nothing to attribute "
+                  f"to 3A/3B on this corpus.")
+        else:
+            print(f"    {arm}: {share:.0%} of detection stops would ALSO have been "
+                  f"caught by a static Layer 4 gate"
+                  f"{'  <-- backstop is concealing the result' if share > 0.9 else ''}")
+
+    print("\n  " + "-" * 100)
+    print("  PER-VECTOR — attacks stopped (benign: correctly passed), with the gate")
     arms = list(results_by_arm)
-    print(f"    {'id':<5}{'vector':<34}" + "".join(f"{a:>13}" for a in arms))
+    print(f"    {'id':<5}{'vector':<30}" + "".join(f"{a:>26}" for a in arms))
     pv = per_vector(results_by_arm)
-    for v in VECTORS:
-        row = "".join(f"{pv.get(v.vid, {}).get(a, '-'):>13}" for a in arms)
+    for v in all_vectors():
+        row = "".join(f"{pv.get(v.vid, {}).get(a, '-'):>26}" for a in arms)
         flag = " *" if not v.natively_modelled else ""
-        print(f"    {v.vid:<5}{(v.name[:30] + flag):<34}{row}")
-    print("    * approximated vector")
+        print(f"    {v.vid:<5}{(v.name[:26] + flag):<30}{row}")
+    print("    * approximated vector.  B01-B10 = externally-authored benign "
+          "(separate cohort from V8).")
 
-    # The two comparisons the benchmark exists to make.
+    # The comparisons the benchmark exists to make.
     if "full" in summaries and "static_only" in summaries:
-        d = summaries["static_only"]["asr"] - summaries["full"]["asr"]
+        f, st = summaries["full"], summaries["static_only"]
         print(f"\n  CONTRIBUTION OF THE CAUSAL SUB-LAYER (static_only -> full):")
-        print(f"    ASR {summaries['static_only']['asr']:.1%} -> "
-              f"{summaries['full']['asr']:.1%}   ({d:+.1%})")
-        print(f"    WCR {summaries['static_only']['wcr']:.1%} -> "
-              f"{summaries['full']['wcr']:.1%}   "
+        print(f"    ASR {st['asr']['rate']:.1%} -> {f['asr']['rate']:.1%}   "
+              f"({st['asr']['rate'] - f['asr']['rate']:+.1%})")
+        print(f"    WCR {st['wcr']['rate']:.1%} -> {f['wcr']['rate']:.1%}   "
               f"(3C is what keeps the workflow alive after a takeover)")
+        print(f"    malicious cases stopped BY 3B specifically: "
+              f"{f['causal_stops']}/{f['n_malicious']}  "
+              f"(static_only cannot produce any: {st['causal_stops']})")
+        if f["asr"]["rate"] == st["asr"]["rate"]:
+            print("    ASR identical between the arms. Check the attribution table "
+                  "before reading that as 'no contribution' — an equal ASR with "
+                  "different gates doing the stopping is not the same finding.")
     if "full" in summaries and "no_egress" in summaries:
-        d = summaries["no_egress"]["asr"] - summaries["full"]["asr"]
+        f, ne = summaries["full"], summaries["no_egress"]
         print(f"\n  HOW MUCH LAYER 4 WAS BACKSTOPPING (full -> no_egress):")
-        print(f"    ASR {summaries['full']['asr']:.1%} -> "
-              f"{summaries['no_egress']['asr']:.1%}   ({d:+.1%})")
+        print(f"    ASR {f['asr']['rate']:.1%} -> {ne['asr']['rate']:.1%}   "
+              f"({ne['asr']['rate'] - f['asr']['rate']:+.1%})")
         print("    A large gap here means detection was leaning on the allowlist.")
 
-    return {"summaries": summaries, "per_vector": pv,
-            "approximated": approx, "generated": time.strftime("%Y-%m-%dT%H:%M:%S")}
+    print("\n  REMINDER: static_only is our own ablation. Rules.md §7 also requires "
+          "an external\n  published baseline (spotlighting / data-marking) — that is "
+          "Phase 10, not this file.")
+
+    return {"manifest": manifest, "summaries": summaries, "per_vector": pv,
+            "approximated": approx}
 
 
 def main() -> None:
@@ -175,14 +404,29 @@ def main() -> None:
         raise SystemExit(f"[benchmark] unknown arm(s): {unknown}. "
                          f"Available: {list(ARMS)}")
 
+    manifest = build_manifest(arms, args.repeats)
+    if manifest["dirty"]:
+        print("[benchmark] WARNING: uncommitted changes — these results are not "
+              "reproducible from the recorded commit alone.")
+
     results_by_arm = {a: run_arm(a, args.repeats, args.checkpoint_dir) for a in arms}
-    out = report(results_by_arm)
+
+    manifest["ollama"] = _ollama_state()
+    if not manifest["ollama"].get("on_gpu"):
+        print("[benchmark] WARNING: Ollama reports no VRAM in use. After a CUDA "
+              "fault it silently falls back to CPU, which changes OUTPUTS as well "
+              "as speed. If that happened mid-run, these numbers mix two backends "
+              "— `sudo systemctl restart ollama` and re-run.")
+
+    out = report(results_by_arm, manifest)
 
     os.makedirs(args.out, exist_ok=True)
     path = os.path.join(args.out, "benchmark.json")
     with open(path, "w") as f:
         json.dump(out, f, indent=2, default=str)
-    print(f"\n[benchmark] wrote {path}")
+    with open(os.path.join(args.out, "manifest.json"), "w") as f:
+        json.dump(manifest, f, indent=2, default=str)
+    print(f"\n[benchmark] wrote {path} and manifest.json")
 
 
 if __name__ == "__main__":

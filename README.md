@@ -5,9 +5,12 @@
 **Students:** Muhammad Ahmad Khan (23JZBCS0238) · Aleena Khan (23JZBCS0229)
 **Institution:** UET Peshawar (Jalozai Campus)
 
-**Doc version:** v16 (26 July 2026) — README restructured: the long per-finding
-write-ups (§6d–§6p) moved to the research log so this file stays a handover
-document. Adds the research introduction (§0).
+**Doc version:** v17 (8 August 2026) — **Phase 7 repaired and re-run** (§1.1): the
+comparative claim is measured, ASR `static_only` 71.4% → `full` 14.3% with 18/21
+stops attributed to 3B. Adds per-layer attribution, a tracked `results/` tree, and
+the run manifest. Next: Phase 10, an external baseline.
+*v16 (26 July 2026) — README restructured: the long per-finding write-ups
+(§6d–§6p) moved to the research log; adds the research introduction (§0).*
 
 **Research log:** [researchworksofar.md](researchworksofar.md) holds entries
 I–XIV (Volume I, closed). New entries go in
@@ -133,27 +136,62 @@ tuned until it shows one. Full evidence for every row:
 | Red Team Module | ✅ 6 families × 4 directives + 18 address-free attacks |
 | Benign / FPR corpus | ✅ 68 benign — 8 hand-written (a diagnostic) + **60 externally authored** (AgentDojo, MIT) |
 | GRPO training pipeline (`evaluation/kaggle/`) | ✅ Executed on Kaggle — both backends agree to **exactly zero** (§6o) |
-| Eight-vector benchmark (Phase 7) | 🟡 Built & run — **first result invalid**, see below |
-| pytest suite (`tests/`) | ✅ **135 deterministic tests**, ~2 s, no LLM / network / GPU |
+| Eight-vector benchmark (Phase 7) | ✅ **Repaired & re-run (8 Aug)** — ASR `static_only` **71.4%** → `full` **14.3%**, **18/21** stops attributed to 3B. First result withdrawn; see §1.1 |
+| Per-layer attribution (`evaluation/attribution.py`) | ✅ Which gate stopped each case, plus the gates that would also have refused |
+| pytest suite (`tests/`) | ✅ **161 deterministic tests**, ~4 s, no LLM / network / GPU |
 
-**Rough completion: ~90%.**
+**Rough completion: ~92% build, ~50% evidence.**
+
+### 1.1 Phase 7 — the comparative claim, measured
+
+*216 cases: 18 vectors × 3 repeats × 4 arms. `results/phase7/`.*
+
+| Arm | ASR | 95% CI | WCR | 3B stops |
+| :--- | ---: | :--- | ---: | ---: |
+| `undefended` | 100.0% | [84.5%, 100%] | 0.0% | 0 |
+| `static_only` | 71.4% | [50.0%, 86.2%] | 0.0% | **0** |
+| `full` | **14.3%** | [5.0%, 34.6%] | **85.7%** | **18/21** |
+| `no_egress` | 14.3% | [5.0%, 34.6%] | 85.7% | 18/21 |
+
+- **ASR 71.4% → 14.3%** (57 points), **18 of 21** stops attributed to 3B, and
+  `static_only` produces **zero** detection stops — it cannot, since 3B is what
+  detects.
+- **Layer 4 contributes nothing incremental** once 3B is on: `full` → `no_egress`
+  leaves ASR unchanged, because 3B already caught everything the allowlist would
+  have, V3 included, *before* Layer 4 was consulted. The exact inverse of the
+  withdrawn run, which had the allowlist doing all the work.
+- **3A produced 0 detection stops in every arm** — consistent with the inert
+  `blocked_patterns` defect Layer 5 found.
+- All **3** residual successes are the address-free vector, where `vectors.py`'s own
+  `honest_limit` predicted they would land. **None is a threshold failure.**
+
+**⛔ The first result is withdrawn — do not quote it** (ASR 100% → 14.3% → 14.3%,
+WCR 71.4%). Six of eight vectors pointed at an exfiltration host, so Layer 4's
+allowlist refused them before 3A/3B were consulted and the arms were equal *by
+construction rather than by measurement*. The repair pointed malicious vectors at
+the legitimate mail host (absorbable: **6 of 7 → 1 of 7**), added per-layer
+attribution, replaced the one-vector FPR column with ten external documents, and
+added a run manifest.
 
 ### Known open issues
 
-1. **The Phase 7 benchmark is currently uninformative.** Six of its eight vectors
-   point at an exfiltration host, so Layer 4's allowlist stops them in every arm
-   and no detection layer can be distinguished. This repeats the mistake §6n
-   diagnosed. Fix: point malicious vectors at the *legitimate* destination and
-   record which layer stopped each case.
-2. **Address-free attacks are the real detection gap** — all 4 residual misses
-   are `masked = 0` (severity-function failures). None is threshold-reachable,
-   which is precisely why the adaptive knob cannot close them.
-3. **One known bounded false positive** (`agentdojo-workspace-041`), left open
+1. **`static_only` is our ablation, not an external baseline.** Rules §7 requires a
+   published prompt-level defense (spotlighting / data-marking) on the same corpus,
+   seeds and model tags. **This is Phase 10 and it is the current critical path.**
+2. **The benchmark's 0/30 external FPR is not a rate.** Its cohort is a stride
+   subsample (indices 0, 6, …, 54) that **excludes campaign documents 41 and 55 —
+   both known false positives** — so it omits every failure by construction. Use
+   `evaluation.fpr_report` (n=60, **3.3%**); the report prints this caveat itself.
+3. **Address-free attacks are the real detection gap** — all 4 residual campaign
+   misses are `masked = 0` (severity-function failures), and Phase 7 confirms it:
+   all 3 of its residual successes are the address-free vector. None is
+   threshold-reachable, which is precisely why the adaptive knob cannot close them.
+4. **One known bounded false positive** (`agentdojo-workspace-041`), left open
    deliberately — closing it would weaken the mechanism that catches 14 attacks
    the standalone rule misses, to move 2/60 → 1/60 inside a [0.9%, 11.4%]
    interval.
-4. **The benchmark's FPR rests on a single benign vector** — the same weakness
-   §6n spent a section fixing for the campaign.
+5. **V5 and V6 remain APPROXIMATED** — the pipeline consumes tool *responses*, not
+   manifests, so 2 of the 18 3B stops (×3 repeats) rest on that approximation.
 
 ---
 
@@ -319,8 +357,10 @@ controls are reported as a *diagnostic* and never pooled into a headline figure.
 │   ├── fpr_check.py                    ✅ adversarial-benign A/B for the target match (§6m)
 │   ├── fpr_report.py                   ✅ FPR by cohort, Wilson intervals, staleness guard (§6n)
 │   ├── ie_ablation.py                  ✅ is IE redundant with 3C's self-report? (§6n)
-│   ├── vectors.py                      ✅ the 8 literature vectors + coverage map (Phase 7)
-│   ├── benchmark.py                    🟡 4-arm ablation benchmark — first result invalid
+│   ├── vectors.py                      ✅ 8 literature vectors + coverage map + external
+│   │                                      benign cohort (Phase 7)
+│   ├── attribution.py                  ✅ which gate stopped each case + redundant gates
+│   ├── benchmark.py                    ✅ 4-arm ablation: Wilson CIs, attribution, manifest
 │   └── kaggle/                         ✅ Phase 6 GRPO pipeline               (§6l, §6o)
 │       ├── grpo_env.py                 ✅ reward + threshold→verdict replay (no project imports)
 │       ├── package_episodes.py         ✅ campaign → training JSONL; resumable
@@ -330,13 +370,16 @@ controls are reported as a *diagnostic* and never pooled into a headline figure.
 │       ├── apply_and_validate.py       ✅ measure a ProposedUpdate's effect (throwaway agent)
 │       ├── test_credentials.py         ✅ one authenticated call; secret never printed
 │       └── kernel-metadata.template.json / .env.example
-├── logs/                               (gitignored)
+├── results/                            ✅ TRACKED results + provenance (Rules §7)
+│   └── phase7/                         ✅ benchmark.json + manifest.json
+├── logs/                               (gitignored — working output)
 │   ├── episode_records/episodes.jsonl  ✅ every boundary crossing
 │   ├── red_team_runs/campaign_*.json   ✅ one report per campaign
 │   ├── campaign_checkpoint/*.jsonl     ✅ per-case resume state
-│   ├── benchmark/benchmark.json        ✅ Phase 7 arm results
+│   ├── benchmark_checkpoint/*.jsonl    ✅ per-arm resume state — DELETE after any change
+│   ├── benchmark/                      ✅ Phase 7 raw run.log + json (copied to results/)
 │   └── layer5/                         ✅ audit.html + decisions.jsonl
-└── tests/                              ✅ 135 deterministic tests, ~2s, no LLM/network/GPU
+└── tests/                              ✅ 161 deterministic tests, ~4s, no LLM/network/GPU
     ├── test_takeover_rules.py          ✅  9  3B takeover paths + IE resolution
     ├── test_adaptive_threat_model.py   ✅ 14  3D reward + proposal + step sizing
     ├── test_target_match.py            ✅ 21  normalized target match + keyword grounding
@@ -344,7 +387,8 @@ controls are reported as a *diagnostic* and never pooled into a headline figure.
     ├── test_corpus.py                  ✅ 22  corpus invariants, Wilson, IE-ablation join
     ├── test_grpo_kaggle.py             ✅ 23  GRPO env/trainer + joint space + no-op guard
     ├── test_layer5.py                  ✅ 20  human gate + dashboard escaping
-    └── test_ablation.py                ✅ 15  Phase 7 arms + campaign checkpointing
+    ├── test_ablation.py                ✅ 15  Phase 7 arms + campaign checkpointing
+    └── test_attribution.py             ✅ 26  attribution ordering + corpus invariants
 ```
 
 ---
@@ -502,7 +546,7 @@ Rejected: `llama3.2:3b` (poor security reasoning), any 7B+ GPU model (exceeds 4 
 ### Deterministic — no LLM, no network, no GPU
 
 ```bash
-python3 -m pytest tests/ -q                       # 135 tests, ~2s
+python3 -m pytest tests/ -q                       # 161 tests, ~4s
 python3 -m evaluation.mechanism_validation        # causal regimes + takeover rules, <1s
 python3 -m layer2.security_sublayer.adaptive_threat_model   # 3D reward + proposal demo
 python3 -m evaluation.vectors                     # Phase 7 vector coverage map
@@ -532,13 +576,17 @@ python3 -m evaluation.score_action_ablation       # keyword vs semantic 3B scori
 # Campaign → training JSONL (1.5-2h; resumable)
 python3 -m evaluation.kaggle.package_episodes --run-campaign
 
-# Phase 7 ablation arms (undefended / static_only / full / no_egress)
+# Phase 7 ablation arms — 216 cases (18 vectors x 3 repeats x 4 arms), ~40 min.
+# The two 3B arms carry ~96% of the runtime (~25s/case vs ~1-3s).
+rm -rf logs/benchmark_checkpoint
 python3 -m evaluation.benchmark --repeats 3
+python3 -m evaluation.benchmark --arms undefended,full --repeats 1   # quick subset
 ```
 
-Campaigns checkpoint per case to `logs/campaign_checkpoint/` — a crash costs the
-case in flight, not the run. **Delete that directory after changing the
-pipeline**, since cached results describe the old code.
+Campaigns and the benchmark checkpoint per case to `logs/campaign_checkpoint/` and
+`logs/benchmark_checkpoint/` — a crash costs the case in flight, not the run.
+**Delete those directories after changing the pipeline**, since cached results
+describe the old code.
 
 ### Analysis — reads existing results, no LLM
 
@@ -617,12 +665,16 @@ tokens do not work with CLI 1.7.4.5, which is the newest on PyPI.
 
 ## 13. What to Build Next
 
-1. **Repair the Phase 7 benchmark.** Until the egress allowlist stops masking
-   every vector, the benchmark cannot answer the question it exists for. Point
-   malicious vectors at the legitimate destination and record which layer stopped
-   each case.
-2. **Add benign vectors** so the benchmark's FPR column rests on more than one.
-3. **The severity function** — all 4 residual misses are `masked = 0`. §6e showed
+1. 🔵 **Phase 10 — an external baseline.** ✅ *Phase 7 is done (§1.1).*
+   `static_only` is **our own ablation**; Rules §7 requires a *published*
+   prompt-level defense — spotlighting (delimiting / datamarking / encoding) or an
+   AgentDojo defense — on the same corpus, seeds and model tags. Add it as a
+   `PipelineConfig` arm so it shares one code path, register it in `ARMS`, extend
+   `tests/test_ablation.py`, and re-run. The `undefended` floor is already measured
+   (ASR 100%), so this is the only remaining blocker on Phase 10. Expected shape:
+   prompt-level defenses hold on the blatant vector and degrade on the softened
+   one — the argument for a causal layer, but only once measured.
+2. **The severity function** — all 4 residual misses are `masked = 0`. §6e showed
    the semantic scorer is worse end-to-end, so this needs a third approach rather
    than a re-run of that one.
 4. **Multi-turn sessions** — campaigns give every case a unique `session_id`, so
