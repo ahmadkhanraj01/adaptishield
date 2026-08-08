@@ -8,7 +8,12 @@ type: open
 [[Next Task — Repair the Phase 7 Benchmark]] is ✅ **done** (8 Aug 2026). In rough
 priority order from here.
 
-## 0 — Phase 10: an external baseline 🔵 **NEXT — journal-mandatory**
+## 0 — Phase 10: an external baseline 🔴 **IN PROGRESS — blocked on corpus power**
+
+Built and validated; **the comparison is not yet runnable** →
+[[Phase 10 Floor — The Injections Do Not Steer a 4B Planner]]. Decide the
+corpus first (campaign corpus recommended).
+
 
 `static_only` is **our own ablation**; a reviewer will not accept it as the
 comparison (Rules §7). Needed on the **same corpus, seeds and model tags**: a

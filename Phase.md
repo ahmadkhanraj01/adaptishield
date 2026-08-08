@@ -6,8 +6,8 @@ Section 13 holds the detailed task list; this file is the higher-altitude view.
 See [Architecture.md](Architecture.md), [Design.md](Design.md), [Rules.md](Rules.md)
 for structure / rationale / constraints.
 
-*Last updated: 2026-08-08 (session 5 — Phase 7 repaired and re-run). Build ~92%
-complete; **evidence ~50%**.*
+*Last updated: 2026-08-08 (session 5 — Phase 7 repaired and re-run; Phase 10
+baseline built and found under-powered). Build ~93% complete; **evidence ~55%**.*
 
 ---
 
@@ -55,7 +55,7 @@ Layer 5 human gate. Journals have room for that; conferences usually do not.
 | 7 | Eight-vector benchmark (static vs full vs +3D) | ✅ **Done (2026-08-08)** — first result withdrawn, repaired, re-run over 216 cases. **ASR `static_only` 71.4% → `full` 14.3%**, 18/21 stops attributed to 3B, `static_only` produces **zero** detection stops, and Layer 4 adds **nothing incremental**. Per-layer attribution added; two instrument defects found and fixed |
 | 8 | Layer 5 — dashboard / console / override | ✅ **Done** — 4 components, stdlib only, 20 tests. Gate recomputes evidence rather than trusting the proposal; found that every proposal's `blocked_patterns` are **inert** (3A matches `proposed_action`, trainer harvests from `flagged_markers`) |
 | 9 | Grow the pytest suite | 🟡 Ongoing (**161 tests**, ~4 s, no LLM) |
-| **10** | **External baselines** (undefended + spotlighting/data-marking) | 🔵 **NEXT — journal-mandatory.** Undefended arm now measured (ASR 100%); the published prompt-level defense is still absent |
+| **10** | **External baselines** (undefended + spotlighting/data-marking) | 🔴 **Built, blocked on corpus power.** Spotlighting arms implemented and running; the undefended *derived* agent already resists (ASR **1/7**), so there is almost nothing for the defense to improve. Corpus decision needed |
 | **11** | **Per-component ablations** (3A / 3A+3B / +3C / +L4 / full / +3D) | 🔲 Not started — arms exist, matrix does not |
 | **12** | **Second benchmark: InjecAgent** (external validity) | 🔲 Not started |
 | **13** | **Manuscript + reproducibility artifact** | 🔲 Blocked on the journal decision |
@@ -321,11 +321,30 @@ confident no-op. So before (or alongside) the notebook:
      never fail the permission check it existed to test (it ran against a server
      declaring `send_email` in scope, with egress refusing the case first), and a
      `blocked` case could report `reached_tool=True`. Tests 135 → **161**.
-9. 🔵 **START HERE — Phase 10, the external baseline.** `static_only` is *our*
-   ablation; Rules §7 requires a published prompt-level defense (spotlighting /
-   data-marking) on the same corpus, seeds and model tags. Cheap now: a new arm is
-   a `PipelineConfig` value plus a `defended_by` label, and attribution will report
-   what it actually does rather than what it claims.
+9. 🔴 **Phase 10 built, blocked on corpus power (2026-08-08).** The spotlighting
+   baseline (Hines et al.) is implemented as `derived_control` / `spotlighting`
+   arms in `baselines/spotlighting.py` + `PipelineConfig.derive_action`, and it
+   runs. It cannot yet be *measured*: the undefended derived agent already resists.
+   - `derived_control` (no prompt defense): **ASR 1/7**, agent chose a harmful
+     action in only **3/7**, declined in **4/7**. You cannot show a defense reduces
+     an attack that already fails — at n=21 the intervals would overlap almost
+     entirely. This is Phase 7's "equal by construction" from the opposite
+     direction: there the backstop absorbed everything, here the attack never lands.
+   - **Why:** the vectors were validated against 3B's *masked probe*, which has no
+     competing task, and the supplied `proposed_action` assumed the agent had
+     already been steered. Whether the mediator steers a *planner holding a user
+     goal* was never measured until now. Mostly it does not.
+   - **Two defects fixed while validating:** `planner_llm` runs at Ollama's default
+     0.8 while the analyzer runs at 0, so the "identical prompt" was not the same
+     agent (a separate `agent_llm` at temperature 0 now serves the baseline; the
+     floor moved 0/7 → 1/7 on that alone); and attribution credited the *control*
+     arm's declines to a `prompt_defense` that was not applied, split now into
+     `PROMPT_DEFENSE` / `AGENT_DECLINED`.
+   - **🔵 DECISION NEEDED — which corpus.** Recommended: run the derived arms over
+     the **campaign corpus** (120 malicious, 6 families × 4 directives) instead of
+     the 7 benchmark vectors. Alternatives: a more steerable agent model (changes
+     the model tag), or report it underpowered.
+   - Phase 7 is unaffected — its arms keep `derive_action=False`, pinned by a test.
 11. **Carried forward, unchanged by Phase 7** — the two standing limits on the
    detector, both still the largest levers:
    - **FPR side:** `agentdojo-workspace-041` is a birthday-party document with no

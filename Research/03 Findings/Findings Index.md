@@ -45,6 +45,12 @@ first-class** — several of them are the contribution.
   71.4% → 14.3%**, 18/21 stops attributed to 3B, **zero** detection stops in
   `static_only`, and Layer 4 contributes **nothing incremental** once 3B is on
 
+## Phase 10 — the external baseline
+
+- 🔴 [[Phase 10 Floor — The Injections Do Not Steer a 4B Planner]] — the baseline
+  is built, but the undefended derived agent already resists (ASR **1/7**), so
+  there is almost nothing for spotlighting to improve. Blocking a well-powered run
+
 ## ⛔ Withdrawn
 
 - [[Phase 7 Benchmark Withdrawn]] — a headline result that measured its own

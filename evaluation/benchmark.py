@@ -70,18 +70,34 @@ from collections import defaultdict
 from typing import Dict, List, Optional
 
 from adaptishield_pipeline import PipelineConfig
-from evaluation.attribution import (NOT_STOPPED, STOP_ORDER, THREE_A, THREE_B,
-                                    attribute, attribution_counts, backstop_share)
+from evaluation.attribution import (NOT_STOPPED, PROMPT_DEFENSE, STOP_ORDER,
+                                    THREE_A, THREE_B, attribute,
+                                    attribution_counts, backstop_share)
 from evaluation.fpr_report import wilson
 from evaluation.vectors import (REQUIRED_SERVERS, VECTORS, all_vectors, as_cases,
                                 coverage_table, external_corpus_provenance)
 
 ARMS = {
+    # Phase 7 — supplied-action arms. The harness hands the pipeline the action.
     "undefended":  PipelineConfig.undefended,
     "static_only": PipelineConfig.static_only,
     "full":        PipelineConfig.full,
     "no_egress":   PipelineConfig.no_egress,
+    # Phase 10 — derived-action arms. The AGENT picks the action, which is what a
+    # prompt-level defense acts on. Opt in with --arms; not in the default set, so
+    # a plain run still reproduces Phase 7 exactly.
+    "derived_control":  PipelineConfig.derived_control,
+    "spotlighting":     PipelineConfig.spotlighting,
 }
+
+# Arms whose ASR means "the agent CHOSE a harmful action and it passed the gates",
+# as opposed to "the supplied action passed the gates". Mixing the two in one
+# table is the §6n pooling error in a new costume, so the report refuses to do it
+# silently.
+DERIVED_ARMS = {"derived_control", "spotlighting"}
+
+PHASE7_ARMS = "undefended,static_only,full,no_egress"
+PHASE10_ARMS = "derived_control,spotlighting"
 
 DEFAULT_OUT = "logs/benchmark"
 
@@ -381,9 +397,34 @@ def report(results_by_arm: Dict[str, List], manifest: Dict) -> Dict:
               f"({ne['asr']['rate'] - f['asr']['rate']:+.1%})")
         print("    A large gap here means detection was leaning on the allowlist.")
 
-    print("\n  REMINDER: static_only is our own ablation. Rules.md §7 also requires "
-          "an external\n  published baseline (spotlighting / data-marking) — that is "
-          "Phase 10, not this file.")
+    # Phase 10 — the external baseline. Compared against `derived_control`, not
+    # against `static_only`: the control differs from it in exactly one respect
+    # (the transform), whereas `static_only` would also differ in supplied-vs-
+    # derived action and the number could not separate the two causes.
+    if "spotlighting" in summaries and "derived_control" in summaries:
+        sp, dc = summaries["spotlighting"], summaries["derived_control"]
+        print(f"\n  EXTERNAL BASELINE — SPOTLIGHTING (derived_control -> spotlighting):")
+        print(f"    ASR {dc['asr']['rate']:.1%} -> {sp['asr']['rate']:.1%}   "
+              f"({sp['asr']['rate'] - dc['asr']['rate']:+.1%})")
+        print(f"    agent chose a harmless action: "
+              f"{dc['attribution'][PROMPT_DEFENSE]}/{dc['n_malicious']} -> "
+              f"{sp['attribution'][PROMPT_DEFENSE]}/{sp['n_malicious']}")
+        print(f"    WCR {dc['wcr']['rate']:.1%} -> {sp['wcr']['rate']:.1%}")
+        print("    ⚠ Read ASR and WCR together. A transform that destroys the "
+              "content\n      lowers ASR by making the agent unable to do the "
+              "user's task either.")
+        print("    ⚠ These arms' ASR is NOT comparable with the Phase 7 arms' — "
+              "the action\n      is derived here and supplied there. Separate "
+              "cohorts, separate tables.")
+    elif "spotlighting" in summaries:
+        print("\n  ⚠ `spotlighting` ran without `derived_control`. The number is "
+              "uninterpretable\n    on its own — it cannot separate the transform's "
+              "effect from the effect of\n    deriving the action at all. Run both.")
+
+    if not any(a in DERIVED_ARMS for a in results_by_arm):
+        print("\n  REMINDER: static_only is our own ablation. Rules.md §7 also "
+              "requires an external\n  published baseline (spotlighting / "
+              "data-marking) — run `--arms " + PHASE10_ARMS + "`.")
 
     return {"manifest": manifest, "summaries": summaries, "per_vector": pv,
             "approximated": approx}
@@ -391,7 +432,10 @@ def report(results_by_arm: Dict[str, List], manifest: Dict) -> Dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[1])
-    ap.add_argument("--arms", default="undefended,static_only,full,no_egress")
+    ap.add_argument("--arms", default=PHASE7_ARMS,
+                    help=f"comma-separated. Phase 7: {PHASE7_ARMS}. "
+                         f"Phase 10 baseline: {PHASE10_ARMS}. Do not mix the two "
+                         f"sets in one run — their ASR definitions differ.")
     ap.add_argument("--repeats", type=int, default=3)
     ap.add_argument("--out", default=DEFAULT_OUT)
     ap.add_argument("--checkpoint-dir", default="logs/benchmark_checkpoint",
@@ -403,6 +447,19 @@ def main() -> None:
     if unknown:
         raise SystemExit(f"[benchmark] unknown arm(s): {unknown}. "
                          f"Available: {list(ARMS)}")
+
+    derived = [a for a in arms if a in DERIVED_ARMS]
+    supplied = [a for a in arms if a not in DERIVED_ARMS]
+    if derived and supplied:
+        raise SystemExit(
+            f"[benchmark] refusing to run supplied-action arms {supplied} and "
+            f"derived-action arms {derived} in one table.\n"
+            f"  ASR means different things in the two: 'the supplied action passed "
+            f"the gates' vs 'the agent CHOSE a harmful action and it passed'.\n"
+            f"  Pooling them is the §6n cohort error. Run them separately:\n"
+            f"    --arms {PHASE7_ARMS}\n"
+            f"    --arms {PHASE10_ARMS}\n"
+            f"  and report them as two cohorts.")
 
     manifest = build_manifest(arms, args.repeats)
     if manifest["dirty"]:
