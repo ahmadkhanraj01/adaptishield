@@ -6,16 +6,17 @@ date: 2026-08-08
 
 # Current Numbers
 
-*As of 8 August 2026. Last commit: `bbfd918`, pushed to `origin/main`.*
+*As of 9 August 2026. Last commit: `c058902`, pushed to `origin/main`.*
 
 | | |
 | :--- | :--- |
-| **Detection** | **116/120 = 96.7%**, 95% CI **[91.7%, 98.7%]** — 4 misses |
+| **Detection** (our campaign) | **116/120 = 96.7%**, 95% CI **[91.7%, 98.7%]** — 4 misses |
+| **Detection** ([[InjecAgent]] direct-harm) | **~18%** projected — 93.3% where 3B's target-match fires, **10.0%** where it cannot → [[Phase 12 — Detection Is 18% on Someone Else's Attacks]] |
 | **[[FPR]]** (externally-authored, [[AgentDojo]] n=60) | **3.3%**, 95% CI **[0.9%, 11.4%]** — 2 false positives |
 | **FPR** (8 hand-written controls) | 50% — ⚠️ **a diagnostic. Never quote it as a rate** |
 | **IE-alone catches** | **14/116** — attacks the standalone rule cannot make |
 | **Corpus** | **188 episodes** — 120 malicious, 68 benign → [[Evaluation Corpus]] |
-| **Tests** | **310 deterministic**, ~7 s, no LLM / network / GPU → [[Test Suite]] |
+| **Tests** | **343 deterministic**, ~7 s, no LLM / network / GPU → [[Test Suite]] |
 | **[[ASR]]** (campaign) | 0% on address-carrying attacks; **non-zero by design** on [[Address-Free Attacks]] |
 | **Completion** | **~92%** |
 
@@ -60,6 +61,26 @@ belong to the claim. The null is two opposing per-family effects cancelling.
   apparently-steered cases were refusals naming the address →
   [[The Scorer Cannot See Negation]].
 - These arms' ASR is **not comparable** with Phase 7's: derived vs supplied action.
+
+## Phase 12 — external validity
+
+*60 cases (30 per stratum), 3 arms, 9 Aug 2026 →
+[[Phase 12 — Detection Is 18% on Someone Else's Attacks]]*
+
+| Stratum | Share of corpus | Detected | 95% CI |
+| :--- | ---: | ---: | :--- |
+| 3B's target-match fires | 51/510 = 10% | 28/30 = **93.3%** | [78.7%, 98.2%] |
+| Address-free | 459/510 = 90% | 3/30 = **10.0%** | [3.5%, 25.6%] |
+
+**Projected onto the real split: 18.3%.** `static_only` stops **0 of 60**, which
+replicates Phase 11's zero on a corpus we did not write. Layer 4 `backstop_share` 0%.
+
+- ⛔ **Never pool the strata.** The draw is 30/30 from a 51/459 population, so the
+  pooled 51.7% is wrong for the population **by 33 points**.
+- ⚠️ **No [[FPR]] from this corpus** — InjecAgent ships attacks only, so the columns
+  read 0/0: an empty denominator, not a clean sheet.
+- ⚠️ Layer 4 egress could not fire (the harm is a tool call), so its zero is
+  structural here, unlike Phase 11's.
 
 ## Phase 11 per-component ablation
 

@@ -1,9 +1,9 @@
 # tests — Automated Test Suite
 
-**Status:** ✅ **310 tests passing**, ~7 s, no LLM / no network / no GPU
+**Status:** ✅ **343 tests passing**, ~7 s, no LLM / no network / no GPU
 
 ```bash
-python3 -m pytest tests/ -q          # 310 passed in ~7s
+python3 -m pytest tests/ -q          # 343 passed in ~7s
 python3 -m pytest tests/test_layer5.py -v
 ```
 
@@ -26,6 +26,7 @@ python3 -m pytest tests/test_layer5.py -v
 | `test_negation_scoring.py` | Negation handling for agent-chosen actions: refusals naming the address are not steering, clause-scoped so `"do not reply … instead bcc X"` still scores 2, monotone, and **3B's regime scorer is untouched** | 24 |
 | `test_refusal_audit.py` | The regime-scorer refusal exposure **asserted as it currently is**, the semantic path's asymmetry, and the audit that measured the defect absent — its parsers, its guards, and its positive control | 35 |
 | `test_paired.py` | McNemar (exact + asymptotic-unusable flag), the ladder's adjacent-rung logic, the **outcome polarity** at both the statistic and the extraction step, and the Phase 11 arms: each rung adds exactly one component, in pipeline order | 52 |
+| `test_injecagent.py` | Phase 12's external corpus: provenance and exclusions, the stratum computed by **3B's own predicate** (not a regex resembling it), the sampler's determinism and spread, and the two ways Layer 4 could absorb all 60 cases | 33 |
 | `__init__.py` | Package marker | — |
 
 ---

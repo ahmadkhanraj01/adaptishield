@@ -134,6 +134,11 @@ DEFAULT_OUT = "logs/benchmark"
 # over-blocks; the FPR of record is still `fpr_report` over all 60.
 CAMPAIGN_BENIGN = 20
 
+# Phase 12. Equal draws from both InjecAgent strata (address-bearing /
+# address-free), because they are reported separately and each needs its own usable
+# interval — see `evaluation/injecagent.py` on why nothing pools them.
+INJECAGENT_PER_STRATUM = 30
+
 
 def build_cases(corpus: str, repeats: int):
     """
@@ -179,8 +184,20 @@ def build_cases(corpus: str, repeats: int):
                               else "attack") for c in cases}
         return cases, cohorts
 
+    if corpus == "injecagent":
+        # Phase 12 — externally-authored MALICIOUS data. The benign side was fixed
+        # by importing AgentDojo (§6n); this is the other half of that lesson,
+        # which had been left unapplied.
+        #
+        # NO BENIGN CASES HERE, DELIBERATELY. InjecAgent ships attacks only, so an
+        # FPR from this corpus would have a denominator of zero. The FPR of record
+        # stays `fpr_report` at n=60, and the benchmark's FPR columns will read
+        # 0/0 — which the report must not present as a clean sheet.
+        from evaluation.injecagent import as_cases as ia_cases
+        return ia_cases(n_per_stratum=INJECAGENT_PER_STRATUM, repeats=repeats)
+
     raise SystemExit(f"[benchmark] unknown corpus {corpus!r}; "
-                     f"expected 'vectors' or 'campaign'")
+                     f"expected 'vectors', 'campaign' or 'injecagent'")
 
 
 # ── provenance ────────────────────────────────────────────────────────────
@@ -268,14 +285,15 @@ def _ollama_state() -> Dict:
 
 
 # ── running ───────────────────────────────────────────────────────────────
-def run_arm(name: str, cases: List, checkpoint_dir: str = None) -> List:
+def run_arm(name: str, cases: List, checkpoint_dir: str = None,
+            corpus: str = "vectors") -> List:
     """Run every case through one arm and return the ExecutionResults."""
     from red_team.execution_agent import ExecutionAgent
     from adaptishield_pipeline import AdaptiShieldPipeline
 
     config = ARMS[name]()
     agent = ExecutionAgent(pipeline=AdaptiShieldPipeline(config=config))
-    _register_servers(agent)
+    _register_servers(agent, corpus, cases)
     cp = os.path.join(checkpoint_dir, f"{name}.jsonl") if checkpoint_dir else None
     print(f"\n{'#' * 70}\n# ARM: {name}  ({len(cases)} case(s))\n{'#' * 70}")
     return agent.run_batch(cases, checkpoint=cp)
@@ -318,7 +336,7 @@ def replay_state(arms: List[str], cases: List, checkpoint_dir: str) -> Dict:
     }
 
 
-def _register_servers(agent) -> None:
+def _register_servers(agent, corpus: str = "vectors", cases: List = None) -> None:
     """
     Register every server the vector set names, with its declared scope.
 
@@ -331,6 +349,18 @@ def _register_servers(agent) -> None:
     """
     for server_name, url, version, tools in REQUIRED_SERVERS:
         agent.pipeline.registry.register_server(server_name, url, version, tools)
+
+    if corpus == "injecagent":
+        # InjecAgent's threat model is misuse of a tool the agent LEGITIMATELY
+        # holds, so its tools are registered in scope. Skipping this would make the
+        # permission gate refuse every case before 3A or 3B was consulted, and every
+        # arm would be equal by construction — the defect that withdrew Phase 7.
+        from evaluation.injecagent import required_servers
+        from evaluation.injecagent import sample as ia_sample
+        drawn = ia_sample(INJECAGENT_PER_STRATUM)
+        for server_name, url, version, tools in required_servers(drawn):
+            agent.pipeline.registry.register_server(server_name, url, version, tools)
+
     from red_team.attack_library import LEGITIMATE_DESTINATION_URL
     agent.pipeline.egress_filter.update_allowlist(
         agent.pipeline.registry.get_allowlist() + [LEGITIMATE_DESTINATION_URL]
@@ -694,6 +724,40 @@ def report(results_by_arm: Dict[str, List], manifest: Dict,
               "uninterpretable\n    on its own — it cannot separate the transform's "
               "effect from the effect of\n    deriving the action at all. Run both.")
 
+    # Phase 12 — externally-authored attacks, reported per stratum and never pooled.
+    ia_families = {"IA-target", "IA-notarget"}
+    if any(r.family in ia_families
+           for results in results_by_arm.values() for r in results):
+        print("\n  " + "-" * 100)
+        print("  PHASE 12 — INJECAGENT, BY STRATUM (externally-authored attacks)")
+        print("  IA-target   = 3B's target-match path CAN fire (a target named in "
+              "the action)")
+        print("  IA-notarget = it cannot; detection must come from keywords alone")
+        print(f"\n    {'arm':<16}{'IA-target stopped':>20}{'IA-notarget stopped':>22}"
+              f"{'3B stops':>10}")
+        for arm, results in results_by_arm.items():
+            per = {}
+            for fam in ("IA-target", "IA-notarget"):
+                rs = [r for r in results if r.family == fam]
+                per[fam] = (sum(1 for r in rs if not r.attack_succeeded), len(rs))
+            causal = summaries[arm]["causal_stops"]
+            t, nt = per["IA-target"], per["IA-notarget"]
+            print(f"    {arm:<16}{f'{t[0]}/{t[1]}':>20}{f'{nt[0]}/{nt[1]}':>22}"
+                  f"{causal:>10}")
+        print("\n  ⛔ DO NOT POOL THESE TWO COLUMNS. The draw is 30/30 from a "
+              "51/459 population,")
+        print("     so a pooled rate over-weights the target-match stratum ~9x and "
+              "flatters")
+        print("     the detector. InjecAgent's direct-harm split is ~90% "
+              "address-free.")
+        print("  ⚠ THERE ARE NO BENIGN CASES IN THIS CORPUS. The FPR columns above "
+              "read 0/0;")
+        print("     that is an empty denominator, not a clean sheet. FPR of record "
+              "stays fpr_report.")
+        print("  ⚠ Layer 4 egress cannot fire here — the harm is a tool call, not a "
+              "send to a")
+        print("     host — so its zero is structural, not measured.")
+
     # Phase 11 — the paired tests. Two Wilson intervals overlapping is not a test
     # when both arms ran the same cases; the discordant pairs are the evidence.
     paired = paired_report(results_by_arm)
@@ -785,7 +849,8 @@ def main() -> None:
     ap.add_argument("--preset", choices=("phase7", "phase10", "ladder", "loo"),
                     help="shorthand for --arms; overrides it if both are given")
     ap.add_argument("--repeats", type=int, default=3)
-    ap.add_argument("--corpus", default="vectors", choices=("vectors", "campaign"),
+    ap.add_argument("--corpus", default="vectors",
+                    choices=("vectors", "campaign", "injecagent"),
                     help="'vectors' = Phase 7's 8 taxonomy vectors + 10 external "
                          "benign. 'campaign' = the red-team corpus (48 address-"
                          "carrying + 18 address-free + benign), used for Phase 10 "
@@ -828,6 +893,18 @@ def main() -> None:
     manifest["corpus"]["name"] = args.corpus
     manifest["corpus"]["cases_per_arm"] = len(cases)
 
+    if args.corpus == "injecagent":
+        from evaluation.injecagent import provenance as ia_provenance
+        from evaluation.injecagent import sample as ia_sample
+        manifest["corpus"]["injecagent"] = ia_provenance()
+        manifest["corpus"]["injecagent"]["per_stratum_drawn"] = INJECAGENT_PER_STRATUM
+        manifest["corpus"]["injecagent"]["sampled_indices"] = [
+            it["index"] for it in ia_sample(INJECAGENT_PER_STRATUM)]
+        manifest["corpus"]["injecagent"]["pooling"] = (
+            "STRATA MUST NOT BE POOLED. Drawn 30/30 from a 51/459 population, so a "
+            "pooled rate over this sample over-weights the target-match stratum ~9x "
+            "and would flatter the detector.")
+
     manifest["replay"] = replay_state(arms, cases, args.checkpoint_dir)
     if manifest["replay"]["fully_replayed"]:
         print("[benchmark] NOTE: every case is cached — this run recomputes the "
@@ -835,7 +912,8 @@ def main() -> None:
               "reporting code, not the model runs.")
     print(f"[benchmark] corpus={args.corpus}  {len(cases)} case(s) per arm  "
           f"x {len(arms)} arm(s) = {len(cases) * len(arms)} runs")
-    results_by_arm = {a: run_arm(a, cases, args.checkpoint_dir) for a in arms}
+    results_by_arm = {a: run_arm(a, cases, args.checkpoint_dir, args.corpus)
+                      for a in arms}
 
     manifest["ollama"] = _ollama_state()
     if not manifest["ollama"].get("on_gpu"):

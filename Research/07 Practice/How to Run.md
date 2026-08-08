@@ -8,7 +8,7 @@ type: reference
 ## Deterministic — no LLM, no network, no GPU
 
 ```bash
-python3 -m pytest tests/ -q                       # 310 tests, ~7s
+python3 -m pytest tests/ -q                       # 343 tests, ~7s
 python3 -m evaluation.mechanism_validation        # causal regimes + takeover rules, <1s
 python3 -m layer2.security_sublayer.adaptive_threat_model   # 3D reward + proposal demo
 python3 -m evaluation.vectors                     # Phase 7 vector coverage map
@@ -43,6 +43,11 @@ python3 -m evaluation.benchmark --repeats 3
 python3 -m evaluation.benchmark --arms undefended,full --repeats 1   # quick subset
 python3 -m evaluation.benchmark --corpus campaign \
         --arms derived_control,spotlighting --repeats 1               # Phase 10, ~12 min
+python3 -m evaluation.benchmark --preset ladder --repeats 3            # Phase 11, ~1.5 h
+python3 -m evaluation.benchmark --preset loo    --repeats 3            # Phase 11 LOO, ~1.5 h
+python3 -m red_team.vendor_injecagent                                  # once, needs network
+python3 -m evaluation.benchmark --corpus injecagent \
+        --arms undefended,static_only,full --repeats 1                 # Phase 12, ~30 min
 ```
 
 ⚠️ **Delete `logs/campaign_checkpoint/` and `logs/benchmark_checkpoint/` after

@@ -1,8 +1,8 @@
 # AdaptiShield — Session Handover
 
-**Written:** 8 August 2026
-**Last commit:** `bbfd918`, pushed to `origin/main`. Phases 7 and 10 are committed;
-this session's refusal audit is on disk (see §4).
+**Written:** 9 August 2026
+**Last commit:** `c058902`, pushed to `origin/main`. Phases 7, 10, 11 and 12 are all
+measured; Phase 12's work is on disk at time of writing (see §4a).
 **Read this first, then [README.md](README.md) §0 for what the research is.**
 
 ---
@@ -18,8 +18,10 @@ this session's refusal audit is on disk (see §4).
 | **Phase 7 ASR** | `undefended` 100% → `static_only` **71.4%** → `full` **14.3%** |
 | **Phase 7 attribution** | **18/21** stops by 3B in `full`; **0** in `static_only` |
 | **Phase 10 steer rate** | `derived_control` **34.8%** → `spotlighting` **33.3%**, McNemar **p = 1.00** |
+| **Phase 11** | only 3B (18/0, p=0.000) and 3C (18/0 on WCR, p=0.000) move anything; four components at 0/0 |
+| 🔴 **Phase 12 — detection on EXTERNAL attacks** | **~18%** projected. 93.3% where 3B's target-match fires (10% of InjecAgent), **10.0%** where it cannot (90%) |
 | **Corpus** | 188 campaign episodes + 18 benchmark vectors |
-| **Tests** | **310 deterministic**, ~7 s, no LLM / network / GPU |
+| **Tests** | **343 deterministic**, ~7 s, no LLM / network / GPU |
 | **Completion** | ~93% build, ~65% evidence |
 
 The 4 residual campaign misses are all `masked = 0` — **severity-function
@@ -131,12 +133,50 @@ Three things to carry forward:
 ⚠️ These are **our own ablations**. The external-baseline requirement is discharged by
 Phase 10, never by this (Rules §7).
 
-## 2d. START HERE — Phase 12, InjecAgent
+## 2d. Phase 12 is DONE — and it is the hardest result in the project
 
-The last journal-mandatory piece. It is also the only thing that can tell whether
-Phase 11's four inert layers are inert **in general** or only on a corpus of
-tool-response injections aimed at one action shape — which is the obvious reviewer
-question and one Phase 11 cannot answer about itself.
+**Detection falls 96.7% → ~18% on externally-authored attacks.** `results/phase12/`.
+
+| Stratum | Share | Detected | 95% CI |
+| :--- | ---: | ---: | :--- |
+| 3B's target-match fires | 10% | 28/30 = **93.3%** | [78.7%, 98.2%] |
+| Address-free | 90% | 3/30 = **10.0%** | [3.5%, 25.6%] |
+
+One mechanism: 3B rides on `_references_mediator_target`, and InjecAgent mostly
+supplies no target — *"grant permanent access to guest_amy01"* names no address and
+carries no exfil keyword. Phase 11's 3 residual failures all lacked that path; this
+makes it 27 cases on data we did not write.
+
+**Two Phase 11 claims replicated externally:** `static_only` stops **0 of 60**, and
+Layer 4's `backstop_share` is **0%**.
+
+Four things not to get wrong on a re-read:
+
+- ⛔ **Never pool the strata.** 30/30 drawn from a 51/459 population, so the pooled
+  51.7% is wrong for the population by **33 points**.
+- ⚠️ **No FPR from this corpus.** InjecAgent ships attacks only; the columns read
+  0/0, an empty denominator. FPR of record stays `fpr_report` at n=60.
+- ⚠️ **The stratum is 3B's own predicate**, not a regex resembling it. The first
+  attempt counted addresses anywhere in the response and mislabelled 135 of 186
+  cases. A test fails if the label ever diverges from the live predicate.
+- ⚠️ **InjecAgent's attacker tools are registered in scope** on purpose. Unregistered,
+  the permission gate refuses all 60 before 3A/3B run — the Phase 7 withdrawal, third
+  time that trap was laid and first time it was seen coming.
+
+## 2e. START HERE — the severity function
+
+Phase 12 promoted [[Backlog]] item 1 from a 3-case tail to the critical path. **10.0%
+detection on 90% of an external corpus** is the one number standing between 96.7% on
+our data and 18% on anyone else's.
+
+Two closed doors, so this needs a **third** approach: §6e measured the semantic
+scorer as worse end-to-end, and §6p established the probe prompt is not the place
+(three attempts cost 8 detections).
+
+🔴 **Whatever the approach, re-measure the external FPR with it.** InjecAgent gives
+no false-positive signal at all, and the obvious ways to catch address-free
+injections are the over-blocking ways. Rules §2 also requires re-measuring the gen-2
+campaign before any regime-scorer change lands.
 
 ---
 
@@ -176,7 +216,7 @@ documented, but it is now indexable. `kaggle.json` and `.env` remain untracked a
 gitignored — keep them that way. `logs/benchmark/run.log` is untracked for the same
 reason: large, and attacker-authored text verbatim.
 
-## 4a. Uncommitted — this session's refusal audit
+## 4a. This session's work (committed as it landed)
 
 **New**
 - `evaluation/refusal_audit.py` — read-only, no model calls. Applies
@@ -188,7 +228,13 @@ reason: large, and attacker-authored text verbatim.
 - Vault: `03 Findings/3B's Refusal Exposure Is Live and Unrealised`,
   `04 Research Log/Entry XVIII — Measuring a Defect Instead of Fixing It`
 
-**Modified** — `README.md` (v19, §1.3), `Phase.md`, `handover.md`,
+**Phase 11 + 12 (later commits)** — `evaluation/paired.py` (McNemar; exists because
+Phase 10's p-value had no committed source), `evaluation/injecagent.py`,
+`red_team/vendor_injecagent.py`, `red_team/data/injecagent_dh.json`,
+`tests/test_paired.py` (52), `tests/test_injecagent.py` (33),
+`results/phase11/`, `results/phase11_loo/`, `results/phase12/`.
+
+**Modified** — `README.md` (v21, §1.3–§1.5), `Phase.md`, `handover.md`,
 `evaluation/README.md`, `tests/README.md`, `results/README.md`,
 `research_work_so_far.md` (entries XVI–XVIII), and the vault's Findings Index,
 Research Log Index, Current Numbers, Backlog, plus `The Scorer Cannot See Negation`.

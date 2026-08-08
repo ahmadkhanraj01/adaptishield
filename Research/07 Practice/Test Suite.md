@@ -5,7 +5,7 @@ type: reference
 
 # Test Suite
 
-**310 deterministic tests, ~7 seconds, no LLM / network / GPU.**
+**343 deterministic tests, ~7 seconds, no LLM / network / GPU.**
 
 | File | n | Covers |
 | :--- | :--- | :--- |
@@ -20,6 +20,7 @@ type: reference
 | `test_attribution.py` | 39 | [[Per-Layer Attribution]] ordering + the corpus invariants that keep the benchmark able to answer its own question |
 | `test_spotlighting.py` | 25 | The external baseline's transforms; **no layer imports it** |
 | `test_negation_scoring.py` | 24 | Negation handling for agent-chosen actions, clause-scoped; 3B's regime scorer untouched → [[The Scorer Cannot See Negation]] |
+| `test_injecagent.py` | 33 | [[InjecAgent]]'s provenance, the stratum computed by 3B's **own** predicate, the sampler's determinism, and the two ways Layer 4 could absorb the whole corpus |
 | `test_refusal_audit.py` | 35 | The regime-scorer exposure **asserted as-is** + the audit's parsers, guards and positive control → [[3B's Refusal Exposure Is Live and Unrealised]] |
 
 ## The division of labour

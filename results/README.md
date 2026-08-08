@@ -27,6 +27,8 @@ Copying a result here is the act of saying *this one is the number of record*.
 | `phase11/manifest.json` | same run | As above. `replay.fully_replayed: true` — the outcomes are the original run's cached results; the commit describes the reporting code that added the WCR ladder |
 | `phase11_loo/benchmark.json` | `python3 -m evaluation.benchmark --preset loo --repeats 3` | Leave-one-out against `full`. Its `full` arm is the **same 54 results** as the ladder's top rung, reused from that checkpoint, which is what makes the two tables comparable rather than merely similar |
 | `phase11_loo/manifest.json` | same run | `replay.fully_replayed: false` — only `full` was cached |
+| `phase12/benchmark.json` | `python3 -m evaluation.benchmark --corpus injecagent --arms undefended,static_only,full` | InjecAgent direct-harm, **reported per stratum and never pooled**. Detection 93.3% where 3B's target-match fires, 10.0% where it cannot |
+| `phase12/manifest.json` | same run | Plus `corpus.injecagent` — source, licence, citation, what was excluded, the 51/459 population, and the 60 `sampled_indices` drawn |
 | `refusal_audit/audit.json` | `python3 -m evaluation.refusal_audit` | **An instrument check, not a result.** Per-source counts of masked-regime probe samples whose severity the Phase 10 negation predicate would lower, plus the positive control's verdict |
 
 ## Reading a manifest before trusting a result
@@ -60,6 +62,14 @@ cp logs/benchmark/{benchmark.json,manifest.json} results/phase7/
 Raw run logs stay in `logs/benchmark/run.log` and are **not** tracked — they are
 large and contain attacker-authored text verbatim.
 
+## `phase12/` carries a number that must not be pooled
+
+The two strata are drawn 30/30 from a **51/459** population, so adding the columns
+together gives 51.7% — wrong for InjecAgent by **33 points**. The manifest records the
+population, the per-stratum draw and the sampled indices precisely so the projection
+can be recomputed rather than guessed. There is also **no FPR** in that file:
+InjecAgent ships attacks only, and 0/0 is an empty denominator.
+
 ## One entry here is not a result
 
 `refusal_audit/` records that a defect **does not fire**, which is why it has no
@@ -79,8 +89,8 @@ which needs neither logs nor a model.
 
 ## What's pending
 
-- **Phase 12** (InjecAgent) will add a subdirectory here. Phase 13's reproducibility
-  artifact is this tree plus the deterministic test suite.
+- **Phase 13's reproducibility artifact is this tree** plus the deterministic test
+  suite. Every phase now has a subdirectory.
 - The campaign's own numbers (detection 116/120, FPR 3.3% at n=60) are still only in
   `logs/` + the docs. They should get a `results/campaign/` entry with a manifest,
   for the same reason Phase 7 has one.

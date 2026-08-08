@@ -50,3 +50,15 @@ attack side has no equivalent import. That asymmetry is unaddressed →
 
 Pinned by `tests/test_corpus.py` (22 tests: corpus invariants, Wilson,
 IE-ablation join).
+
+## Externally-authored attacks (added 9 Aug 2026)
+
+[[InjecAgent]]'s direct-harm split — 510 cases, MIT, cited — vendored by
+`red_team/vendor_injecagent.py`. This closes the half of
+[[6n — A Corpus That Can Fail]]'s lesson that had been left open: the benign side was
+fixed by importing [[AgentDojo]], the attack side had no equivalent until now.
+
+**Kept as its own cohort** (`attack_external`), never pooled with our campaign or
+the taxonomy vectors, and **stratified** on whether 3B's target-match path can fire —
+51/510 can, 459/510 cannot. That split is the whole finding →
+[[Phase 12 — Detection Is 18% on Someone Else's Attacks]].

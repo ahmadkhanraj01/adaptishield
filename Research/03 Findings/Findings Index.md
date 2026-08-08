@@ -45,6 +45,14 @@ first-class** — several of them are the contribution.
   71.4% → 14.3%**, 18/21 stops attributed to 3B, **zero** detection stops in
   `static_only`, and Layer 4 contributes **nothing incremental** once 3B is on
 
+## Phase 12 — external validity
+
+- ✅ [[Phase 12 — Detection Is 18% on Someone Else's Attacks]] — **96.7% on our
+  campaign, ~18% projected on [[InjecAgent]]'s direct-harm split.** One mechanism:
+  3B's detection rides on the target-match path, and 90% of InjecAgent is
+  address-free (93.3% detected where it fires, **10.0%** where it cannot). Phase 11's
+  `static_only` zero **replicates externally** — 0 of 60
+
 ## Phase 11 — the per-component matrix
 
 - ✅ [[Phase 11 — Only Two Layers Do Anything]] — **3B stops attacks (18/0,
@@ -93,4 +101,9 @@ first-class** — several of them are the contribution.
    ([[A Published p-Value With No Committed Source]]), and the wrong outcome variable
    ([[Phase 11 — Only Two Layers Do Anything]], where the report called 3C inert).
 3. **A defense measured only against a corpus its author wrote measures the
-   author's imagination.**
+   author's imagination.** Measured twice now: 36 false positives on external benign
+   data ([[6n — A Corpus That Can Fail]]), and detection 96.7% → 18% on external
+   attacks ([[Phase 12 — Detection Is 18% on Someone Else's Attacks]]).
+4. **A single rate over cases that are not alike explains nothing.** The 4/8 benign
+   controls, the withdrawn Phase 7 arms, and Phase 12's strata — where the pooled
+   figure is wrong for the population by 33 points.

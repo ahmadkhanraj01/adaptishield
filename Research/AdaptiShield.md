@@ -17,7 +17,7 @@ finding and decision is one note, linked to the notes it depends on. Start here.
 ## Where it stands right now
 
 See [[Current Numbers]] for the live figures. In one line: **detection 96.7%
-(116/120), FPR 3.3% against externally-authored benign data, 310 deterministic
+(116/120), FPR 3.3% against externally-authored benign data, 343 deterministic
 tests, ~93% built / ~65% evidenced**, and the adaptive layer honestly proposes a
 **no-op**.
 
@@ -35,8 +35,14 @@ And the last instrument question behind it is closed: refusal-shaped output does
 **not** inflate 3B's regime severities — 0 of 209 recorded severity-2 masked samples,
 positive control passing → [[3B's Refusal Exposure Is Live and Unrealised]].
 
-The immediate task is **Phase 11 — per-component ablations** → [[Backlog]]. Nothing
-blocks it.
+**Phases 11 and 12 are done too.** Phase 11: **only two layers do anything** — 3B on
+detection, 3C on workflow continuation, four components at 0/0 →
+[[Phase 11 — Only Two Layers Do Anything]]. Phase 12: **detection falls 96.7% → ~18%**
+on externally-authored attacks, because 90% of [[InjecAgent]] is address-free →
+[[Phase 12 — Detection Is 18% on Someone Else's Attacks]].
+
+The immediate task is **the severity function** → [[Backlog]] item 1. Phase 12 turned
+it from a 3-case tail into the one thing separating our number from anyone else's.
 
 ---
 

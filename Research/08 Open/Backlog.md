@@ -28,24 +28,31 @@ continuation (18/0, p = 0.000), and L3 / 3A / both halves of Layer 4 at **0/0 wi
 zero discordant pairs** — confirmed independently by leave-one-out →
 [[Phase 11 — Only Two Layers Do Anything]].
 
-## 0c — Phase 12: InjecAgent 🔴 **NEXT**
+## 0c — Phase 12: InjecAgent ✅ **done**
 
-The remaining journal-mandatory piece. One benchmark invites *"does this
-generalise?"*, and [[6n — A Corpus That Can Fail]] already proved the point that
-matters: our own benign corpus flattered the system by 36 false positives. A second
-externally-authored corpus is the guard against a repeat, and it is also the only
-thing that can test whether Phase 11's four inert layers are inert **in general** or
-only on a corpus of tool-response injections aimed at one action shape.
+**Detection 96.7% → ~18%** on externally-authored attacks →
+[[Phase 12 — Detection Is 18% on Someone Else's Attacks]]. Phase 11's `static_only`
+zero replicated (0 of 60). The severity function is now sized at **27** missed cases
+rather than 3, which promotes item 1 below to the critical path.
+
+Remaining InjecAgent work, both optional: the **data-stealing** split needs a
+second boundary the pipeline does not model, and the per-stratum estimates are
+single-repeat at n=30.
 
 → then Phase 13 (manuscript). 🔵 Still blocked on the **journal decision**, which
-sets how much Phases 12–13 must produce.
+sets how much Phase 13 must produce.
 
-## 1 — The severity function 🔴
+## 1 — The severity function 🔴 **NOW THE CRITICAL PATH**
 
 All **4** residual campaign misses are `masked = 0` → [[Residual Misses Decomposed]].
 Phase 7 confirms this independently: **all 3** of the `full` arm's residual attack
 successes are **V4**, the [[Address-Free Attacks|address-free]] vector, and **none**
 is a threshold failure.
+
+**Phase 12 sized it.** On [[InjecAgent]]'s address-free stratum — 90% of that corpus
+— detection is **10.0%** [3.5%, 25.6%], against 93.3% where the target-match path
+fires. This is no longer a 3-case tail; it is the single thing standing between a
+96.7% number on our data and an 18% number on anyone else's.
 
 ⚠️ [[6e — Semantic Scoring Ablation]] already showed the semantic scorer is
 **worse end-to-end**, so this needs a **third approach**, not a re-run of that
