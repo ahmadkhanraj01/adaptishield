@@ -45,6 +45,14 @@ first-class** — several of them are the contribution.
   71.4% → 14.3%**, 18/21 stops attributed to 3B, **zero** detection stops in
   `static_only`, and Layer 4 contributes **nothing incremental** once 3B is on
 
+## Phase 11 — the per-component matrix
+
+- ✅ [[Phase 11 — Only Two Layers Do Anything]] — **3B stops attacks (18/0,
+  p = 0.000), 3C keeps the workflow alive (18/0 on WCR, p = 0.000), and the other
+  four components change nothing measurable** — cumulatively *and* at the margin,
+  with **zero discordant pairs**. Layer 4 turns out to be *redundant* rather than
+  contributing: 6 of 18 of 3B's stops would also have been caught by the allowlist
+
 ## Phase 10 — the external baseline
 
 - ✅ [[Phase 10 — Spotlighting Has No Measurable Effect]] — datamarking 34.8% →
@@ -78,9 +86,11 @@ first-class** — several of them are the contribution.
 ## Three patterns worth carrying forward
 
 1. **A measured negative beats an unmeasured positive.**
-2. **The instruments failed more often than the mechanisms.** Four times now:
-   [[Phase 7 Benchmark Withdrawn|the benchmark]], [[The Scorer Cannot See Negation|the scorer]],
-   [[3B's Refusal Exposure Is Live and Unrealised|the missing control]], and
-   [[A Published p-Value With No Committed Source|the uncommitted statistic]].
+2. **The instruments failed more often than the mechanisms.** Five times now: the
+   benchmark ([[Phase 7 Benchmark Withdrawn]]), the scorer
+   ([[The Scorer Cannot See Negation]]), the missing control
+   ([[3B's Refusal Exposure Is Live and Unrealised]]), the uncommitted statistic
+   ([[A Published p-Value With No Committed Source]]), and the wrong outcome variable
+   ([[Phase 11 — Only Two Layers Do Anything]], where the report called 3C inert).
 3. **A defense measured only against a corpus its author wrote measures the
    author's imagination.**

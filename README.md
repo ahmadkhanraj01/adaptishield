@@ -5,15 +5,19 @@
 **Students:** Muhammad Ahmad Khan (23JZBCS0238) · Aleena Khan (23JZBCS0229)
 **Institution:** UET Peshawar (Jalozai Campus)
 
-**Doc version:** v19 (8 August 2026) — **Phases 7 and 10 measured; the last
-instrument question closed.** §1.1: the comparative claim, ASR `static_only` 71.4% →
+**Doc version:** v20 (8 August 2026) — **Phases 7, 10 and 11 all measured.** §1.4:
+the per-component matrix — **only two layers do anything.** 3B stops attacks
+(18/0, p = 0.000), 3C keeps the workflow alive (18/0 on WCR, p = 0.000), and L3 / 3A
+/ both halves of Layer 4 are **0/0 with zero discordant pairs**, confirmed
+independently by leave-one-out. **Next: Phase 12** (InjecAgent).
+*v19 (8 August 2026) — Phases 7 and 10 measured; the last instrument question
+closed.* §1.1: the comparative claim, ASR `static_only` 71.4% →
 `full` 14.3% with 18/21 stops attributed to 3B. §1.2: the external baseline,
 spotlighting **34.8% → 33.3%** steered, McNemar **p = 1.00**. §1.3: refusal-shaped
 output does **not** inflate 3B's regime severities — **0 of 209** recorded
 severity-2 masked samples, positive control passing, so the regime scorer is left
 unchanged. Adds per-layer attribution, `baselines/`, `evaluation/refusal_audit.py`,
-a tracked `results/` tree and run manifests. **Next: Phase 11** (per-component
-ablations) — nothing blocks it.
+a tracked `results/` tree and run manifests.
 *v18 (8 August 2026) — Phases 7 and 10 measured.*
 *v16 (26 July 2026) — README restructured: the long per-finding write-ups
 (§6d–§6p) moved to the research log; adds the research introduction (§0).*
@@ -145,6 +149,7 @@ tuned until it shows one. Full evidence for every row:
 | Eight-vector benchmark (Phase 7) | ✅ **Repaired & re-run (8 Aug)** — ASR `static_only` **71.4%** → `full` **14.3%**, **18/21** stops attributed to 3B. First result withdrawn; see §1.1 |
 | Per-layer attribution (`evaluation/attribution.py`) | ✅ Which gate stopped each case, plus the gates that would also have refused |
 | External baseline — spotlighting (Phase 10) | ✅ **Measured (8 Aug)** — datamarking **34.8% → 33.3%** steered, McNemar **p = 1.00**: no measurable effect. See §1.2 |
+| Per-component ablation (Phase 11) | ✅ **Measured (8 Aug)** — ladder + leave-one-out agree: **only 3B and 3C move anything**. See §1.4 |
 | Refusal audit (`evaluation/refusal_audit.py`) | ✅ **Measured (8 Aug)** — refusal-shaped output does **not** inflate 3B's regime severities: **0/209**, control passing. An instrument check, not a result. See §1.3 |
 | pytest suite (`tests/`) | ✅ **310 deterministic tests**, ~7 s, no LLM / network / GPU |
 
@@ -260,6 +265,60 @@ diagnostic cases at 4B. `tests/test_refusal_audit.py` asserts the defect **as it
 currently is**, so changing that scorer fails a test rather than drifting silently.
 And this is **not** the `workspace-041` mechanism — that case is the probe
 *hallucinating* an address, which remains confirmed and open.
+
+### 1.4 Phase 11 — the per-component matrix
+
+*54 cases/arm (21 malicious, 33 benign). Ladder: 7 arms, each adding exactly one
+component in pipeline order. Leave-one-out: 6 arms. `results/phase11/`,
+`results/phase11_loo/`.*
+
+| Rung | Adds | ASR | WCR | 3B stops |
+| :--- | :--- | ---: | ---: | ---: |
+| `undefended` | — | 100.0% | 0.0% | 0 |
+| `screener_only` | L3 screener | 100.0% | 0.0% | 0 |
+| `plus_policy` | 3A patterns | 100.0% | 0.0% | 0 |
+| `plus_causal` | **3B** | **14.3%** | 0.0% | **18** |
+| `plus_sanitizer` | **3C** | 14.3% | **85.7%** | 18 |
+| `plus_permission` | L4 scope | 14.3% | 85.7% | 18 |
+| `full` | L4 allowlist | 14.3% | 85.7% | 18 |
+
+**Paired McNemar on two outcomes.** Attack stopped: only `plus_policy →
+plus_causal` moves — **18 helped / 0 hurt, exact p = 0.000**. Workflow continued:
+only `plus_causal → plus_sanitizer` moves — **18/0, p = 0.000**. Every other rung is
+**0/0 with zero discordant pairs**: not a weak effect, an identical outcome on all 21
+malicious cases.
+
+**Leave-one-out reproduces all of it.** The ladder measures a layer given only those
+below it; LOO measures it given all the others, and the two disagree exactly when
+layers are redundant with each other. They agree on every row, so nothing here is
+redundant with anything else — which was *not* the expected outcome after §1.1.
+
+#### The report called 3C inert, and that was the report's defect
+
+The first pass printed *"`plus_sanitizer` adds NOTHING detectable"* for a rung that
+moves WCR from 0% to 85.7% — true of the outcome tested, false of the layer. 3C runs
+only *after* a takeover is confirmed and converts a blanket block into a safe
+continuation, so its whole contribution is usability and an ASR-only ablation
+structurally cannot see it. Same failure as judging a defense by end-to-end ASR
+while the allowlist absorbs everything. The ladder now runs on both outcomes and
+calls a rung inert only when it moves neither.
+
+#### Two results that cut against the architecture
+
+**Layer 4 is redundant, not contributing.** `backstop_share` climbs 0% → 17% → 33%
+as Layer 4 is added, so by `full`, **6 of 18** of 3B's stops would *also* have been
+caught by a static allowlist. It adds no incremental detection while making a third
+of the novel component's stops non-load-bearing. Defensible as defence-in-depth; not
+evidence for the layer.
+
+**3B's false positives are invisible to every p-value here.** `FPR ours` goes 0/3 →
+**3/3** the moment 3B switches on. Paired tests exclude benign cases by construction
+— an arm that blocks a benign document is *worse*, so pairing them at the same
+polarity would let over-blocking read as a win — so this cost appears in no
+significance test. n=3, a labelled diagnostic, never a rate.
+
+**This is our own ablation.** Rules §7's external-baseline requirement is discharged
+by §1.2, not by this.
 
 ### Known open issues
 
@@ -762,12 +821,13 @@ tokens do not work with CLI 1.7.4.5, which is the newest on PyPI.
 
 ## 13. What to Build Next
 
-1. 🔴 **Phase 11 — per-component ablations.** *Phases 7 and 10 are done (§1.1, §1.2),
-   and §1.3 cleared the last instrument question, so nothing blocks this.* Reuse
-   `evaluation/attribution.py` and turn the two findings Phase 7 already produced
-   into rows with McNemar against `full`: **3A contributes 0 detection stops** in
-   every arm, and **Layer 4 adds nothing incremental** (`full` → `no_egress` leaves
-   ASR unchanged). Then Phase 12 (InjecAgent) and Phase 13 (manuscript).
+1. 🔴 **Phase 12 — InjecAgent.** *Phases 7, 10 and 11 are all done (§1.1–§1.4).* The
+   remaining journal-mandatory piece: one benchmark invites *"does this generalise?"*,
+   and §6n already proved our own benign corpus flattered the system by 36 false
+   positives. It is also the only thing that can test whether §1.4's four inert
+   layers are inert **in general** or only on a corpus of tool-response injections
+   aimed at one action shape. Then Phase 13 (manuscript), 🔵 blocked on the journal
+   decision.
 2. **The severity function** — all 4 residual misses are `masked = 0`. §6e showed
    the semantic scorer is worse end-to-end, so this needs a third approach rather
    than a re-run of that one.

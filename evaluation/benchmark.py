@@ -466,6 +466,29 @@ def paired_outcomes(results: List, derived: bool) -> Dict[str, bool]:
     return outcomes
 
 
+def paired_outcomes_wcr(results: List) -> Dict[str, bool]:
+    """
+    Per-case **workflow continuation** — did the user's task still complete?
+
+    WHY A SECOND OUTCOME. The first Phase 11 ladder printed *"plus_sanitizer adds
+    NOTHING detectable"* for a rung that moves WCR from 0% to 85.7%. That message
+    was true of the outcome being tested and false of the layer, and a reader would
+    reasonably have concluded 3C is useless.
+
+    3C does not stop attacks — it runs only *after* a takeover is already confirmed,
+    and converts a blanket block into a safe continuation. Its entire contribution
+    is usability, so an ablation that reports only "attack stopped" cannot see it
+    and will report a working layer as inert. That is the same failure as judging a
+    defense by end-to-end ASR when the allowlist absorbs everything: the wrong
+    outcome variable makes a real effect invisible.
+
+    Malicious cases only, so it is paired against exactly the same set as the ASR
+    outcome and the two ladders are directly comparable row for row.
+    """
+    return {(getattr(r, "case_id", None) or f"{r.family}-?"): bool(r.task_completed)
+            for r in results if r.expected_malicious}
+
+
 def case_families(results_by_arm: Dict[str, List]) -> Dict[str, str]:
     """case_id -> family, for the per-family split."""
     groups: Dict[str, str] = {}
@@ -491,21 +514,32 @@ def paired_report(results_by_arm: Dict[str, List]) -> Dict:
     outcomes = {a: paired_outcomes(results_by_arm[a], derived) for a in arms}
     groups = case_families(results_by_arm)
 
+    # The second outcome. Without it the ladder reports 3C as inert, because 3C's
+    # whole contribution is workflow continuation rather than detection.
+    wcr = {a: paired_outcomes_wcr(results_by_arm[a]) for a in arms}
+
     out: Dict = {
         "outcome": ("not_steered (derived arms: the agent did not choose a harmful "
                     "action)" if derived
                     else "attack_stopped (malicious cases only)"),
         "per_case": {a: outcomes[a] for a in arms},
+        "per_case_wcr": {a: wcr[a] for a in arms},
         "ladder": ladder(outcomes, LADDER_ORDER),
+        "ladder_wcr": ladder(wcr, LADDER_ORDER),
         "loo": [],
+        "loo_wcr": [],
         "by_family": {},
     }
 
     if LOO_BASELINE in outcomes:
+        loo_arms = [a for a in arms if a != LOO_BASELINE and a.startswith("no_")]
         out["loo"] = [
             mcnemar(outcomes[a], outcomes[LOO_BASELINE], a, LOO_BASELINE).to_dict()
-            for a in arms
-            if a != LOO_BASELINE and a.startswith("no_")
+            for a in loo_arms
+        ]
+        out["loo_wcr"] = [
+            mcnemar(wcr[a], wcr[LOO_BASELINE], a, LOO_BASELINE).to_dict()
+            for a in loo_arms
         ]
 
     # Phase 10's pair, split by family — the null there was two opposing effects
@@ -668,21 +702,48 @@ def report(results_by_arm: Dict[str, List], manifest: Dict,
         print("  PAIRED COMPARISONS — McNemar on the same cases "
               f"(outcome: {paired['outcome']})")
 
+        wcr_rows = {(r["baseline"], r["treatment"]): r
+                    for r in paired.get("ladder_wcr", [])}
+
         if paired["ladder"]:
             print("\n    CUMULATIVE LADDER — what each layer adds to the one below it")
+            print("    (outcome: attack stopped)")
             print(format_table(paired["ladder"]), end="")
-            zero = [r for r in paired["ladder"] if r["helped"] == 0 and r["hurt"] == 0]
-            for row in zero:
-                print(f"    {row['treatment']}: identical outcomes to "
-                      f"{row['baseline']} on every case — this rung adds NOTHING "
-                      f"detectable on this corpus.")
+
+            if paired.get("ladder_wcr"):
+                print("    Same ladder, outcome = WORKFLOW CONTINUED (the user's task "
+                      "still completed):")
+                print(format_table(paired["ladder_wcr"]), end="")
+
+            # A rung is only inert if it moves NEITHER outcome. 3C moves workflow
+            # continuation by 85.7 points while leaving ASR untouched, and an earlier
+            # version of this block reported it as adding nothing — true of the
+            # outcome tested, false of the layer.
+            for row in paired["ladder"]:
+                if row["helped"] or row["hurt"]:
+                    continue
+                pair = (row["baseline"], row["treatment"])
+                w = wcr_rows.get(pair)
+                if w and (w["helped"] or w["hurt"]):
+                    print(f"    {row['treatment']}: no effect on ASR, but "
+                          f"{w['helped']} helped / {w['hurt']} hurt on WORKFLOW "
+                          f"CONTINUATION (p={w['p_exact']:.3f}).")
+                    print(f"      Not an inert layer — a layer whose contribution is "
+                          f"usability, not detection.")
+                else:
+                    print(f"    {row['treatment']}: identical to {row['baseline']} on "
+                          f"BOTH outcomes, every case — inert on this corpus.")
 
         if paired["loo"]:
             print(f"\n    LEAVE-ONE-OUT — each layer removed from the complete "
                   f"system (baseline: {LOO_BASELINE})")
             print("    `helped` here means the FULL system stopped what the "
                   "reduced one missed.")
+            print("    (outcome: attack stopped)")
             print(format_table(paired["loo"]), end="")
+            if paired.get("loo_wcr"):
+                print("    Same comparison, outcome = WORKFLOW CONTINUED:")
+                print(format_table(paired["loo_wcr"]), end="")
             print("    A ladder rung and its LOO row disagreeing means the layer is "
                   "REDUNDANT\n    with another — Phase 7 found exactly that for "
                   "Layer 4 once 3B was present.")

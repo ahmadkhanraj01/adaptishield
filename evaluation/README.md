@@ -203,7 +203,8 @@ python3 -m evaluation.benchmark --repeats 3
 
 ## What's pending
 
-- **Phase 11** — per-component ablations, reusing `attribution.py`. Unblocked.
+- **Phase 12** — InjecAgent, for external validity. Also the only test of whether
+  Phase 11's four inert layers are inert *in general*.
 - Spotlighting's **delimiting** and **encoding** variants are implemented but
   unmeasured. Encoding cannot be read from ASR alone: a transform the model cannot
   decode suppresses the attack and the task equally, so it needs ASR and WCR read
@@ -353,3 +354,64 @@ refusals there); the masked probe structurally does not.
   direction for a zero.
 - **It depends on gitignored logs**, so a fresh clone reports nothing until Phase 7
   or the probe diagnostic has been run.
+
+---
+
+## Phase 11 — the per-component matrix
+
+```bash
+python3 -m evaluation.benchmark --preset ladder --repeats 3 \
+        --checkpoint-dir logs/phase11_cp     --out logs/phase11       # ~1.5 h
+python3 -m evaluation.benchmark --preset loo    --repeats 3 \
+        --checkpoint-dir logs/phase11_loo_cp --out logs/phase11_loo   # ~1.5 h
+```
+
+**Two ablations, because they answer different questions.** The **ladder** adds one
+component at a time in pipeline order, so each rung measures a layer *given only the
+layers below it*. **Leave-one-out** removes one component from `full`, so each row
+measures it *given all the others*. They disagree exactly when layers are redundant
+with each other — Phase 7 made that likely for Layer 4 — and here they agree on every
+row.
+
+### Result: only two layers move anything
+
+| Outcome | The only rung that moves |
+| :--- | :--- |
+| attack stopped | **3B** — 18 helped / 0 hurt, exact **p = 0.000** |
+| workflow continued | **3C** — 18/0, exact **p = 0.000** |
+
+L3, 3A, L4 permission and L4 egress: **0/0 with zero discordant pairs**, both
+directions. `results/phase11/`, `results/phase11_loo/`.
+
+### Read the ladder on BOTH outcomes
+
+The first pass printed *"`plus_sanitizer` adds NOTHING detectable"* — for a rung that
+moves WCR from 0% to 85.7%. True of the outcome tested, false of the layer.
+
+3C runs **only after** a takeover is confirmed and converts a blanket block into a
+safe continuation, so its whole contribution is usability and an ASR-only ablation
+**structurally cannot see it**. Same failure as judging a defense by end-to-end ASR
+while the allowlist absorbs everything: the wrong outcome variable makes a real effect
+invisible. `paired_outcomes_wcr()` exists for exactly this, and a rung is now called
+inert only when it moves **neither** outcome.
+
+### Two things the tables do not say
+
+**Layer 4 is redundant, not contributing.** `backstop_share` climbs 0% → 17% → 33%,
+so 6 of 18 of 3B's stops would also have been caught by the allowlist.
+
+**`FPR ours` goes 0/3 → 3/3 the moment 3B is on, and no p-value sees it.** Paired
+tests exclude benign cases by construction — an arm that blocks a benign document is
+*worse*, so pairing them at the same polarity would let over-blocking read as a win.
+n=3, a labelled diagnostic, never a rate.
+
+### Two arms that deliberately do not exist
+
+**No `full_plus_3d`.** 3D proposes a no-op (§6d/§6l/§6n), so that arm *is* `full` by
+construction — a row whose null would be arithmetic rather than empirical.
+
+**No `no_causal`.** Switching 3B off also makes 3C unreachable, so the arm would move
+two components. That case is `static_only`, where the confound is documented instead
+of hidden inside a row claiming to move one thing. For the same reason no rung enables
+3C without 3B — it would be identical to the rung below it, which is the "equal by
+construction" defect Phase 7 was withdrawn for.

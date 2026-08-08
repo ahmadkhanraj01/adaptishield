@@ -1,7 +1,7 @@
 ---
 tags: [adaptishield, phase]
 type: phase
-status: running
+status: done
 date: 2026-08-08
 ---
 
@@ -86,8 +86,15 @@ rationalisation of whatever came out.
 | `plus_causal` → `plus_sanitizer` | ASR flat, **[[WCR]] large** | 3C buys usability, not detection |
 | `plus_permission` → `full` | **`helped == 0`** | Phase 7: `full` → `no_egress` left ASR unchanged |
 
-The smoke run (1 repeat) already gave `plus_policy → plus_causal` = **6 helped /
-0 hurt, exact p = 0.031**, with no Layer 4 present to absorb anything.
+**All four predictions held** → [[Phase 11 — Only Two Layers Do Anything]]. 3B's
+rung is 18/0 at p = 0.000; 3A, L3 and both halves of Layer 4 are 0/0 with **zero
+discordant pairs**; 3C is ASR-flat and WCR 18/0. Leave-one-out agrees on every row,
+so no layer turned out to be redundant with another — which was the outcome Phase 7
+had made likely.
+
+One thing the predictions did **not** anticipate: the report called 3C inert,
+because it tested only the "attack stopped" outcome. That was the report's defect,
+not 3C's, and the ladder now runs on both outcomes.
 
 ## How to run
 

@@ -8,7 +8,8 @@ for structure / rationale / constraints.
 
 *Last updated: 2026-08-08 (session 5 — Phase 7 repaired and re-run; Phase 10
 external baseline measured; the refusal audit closed the last instrument question
-blocking Phase 11). Build ~93% complete; **evidence ~65%**.*
+and Phase 11's per-component matrix measured — only two layers do anything).
+Build ~93% complete; **evidence ~75%**.*
 
 ---
 
@@ -58,8 +59,8 @@ Layer 5 human gate. Journals have room for that; conferences usually do not.
 | 9 | Grow the pytest suite | 🟡 Ongoing (**310 tests**, ~7 s, no LLM) |
 | **10** | **External baselines** (undefended + spotlighting/data-marking) | ✅ **Done (2026-08-08).** Undefended floor ASR 100% (Phase 7). Spotlighting (datamarking) measured on the campaign corpus: steered **34.8% → 33.3%**, paired McNemar **p = 1.00** — **no measurable effect**, with the null being two opposing per-family effects cancelling. The raw figure said *17 points worse* until a scorer negation defect was fixed |
 | 10b | **Refusal audit** — does refusal-shaped output inflate 3B's regime severities? | ✅ **Done (2026-08-08).** **0 of 209** recorded severity-2 masked-regime samples are refusal-shaped, positive control passing → the regime scorer is left unchanged. The exposure is **live on the shipped keyword path** and has never fired, because the masked probe gives the model no competing goal to refuse in favour of. An instrument check, not a result |
-| **11** | **Per-component ablations** (3A / 3A+3B / +3C / +L4 / full / +3D) | 🔲 **NEXT — nothing blocks it.** Arms exist, matrix does not. 10b cleared the foundation; reuse `evaluation/attribution.py` and make 3A's **zero detection stops** and Layer 4's **zero incremental contribution** rows with McNemar against `full` |
-| **12** | **Second benchmark: InjecAgent** (external validity) | 🔲 Not started |
+| **11** | **Per-component ablations** (ladder + leave-one-out) | ✅ **Done (2026-08-08).** **Only two layers do anything.** 3B: 18/0 on attack-stopped, exact **p = 0.000**. 3C: 18/0 on workflow-continued, **p = 0.000**. L3, 3A and **both** halves of Layer 4: **0/0 with zero discordant pairs**, reproduced independently by leave-one-out. Layer 4 is *redundant* rather than contributing — `backstop_share` 33%. The report initially called 3C inert, which was the report's defect (ASR-only outcome) and is fixed |
+| **12** | **Second benchmark: InjecAgent** (external validity) | 🔲 **NEXT** — the last journal-mandatory piece. Also the only way to test whether Phase 11's four inert layers are inert *in general* or only on this corpus |
 | **13** | **Manuscript + reproducibility artifact** | 🔲 Blocked on the journal decision |
 
 ---
@@ -451,29 +452,57 @@ masked probe masks the user's goal, leaving the model nothing to refuse the inje
 in favour of. `tests/test_refusal_audit.py` asserts the defect as-is, so a future
 change to that scorer fails a test rather than drifting silently.
 
-### 11 · Per-component ablations — 🔵 *NEXT; justifies the layering*
+### 11 · Per-component ablations — ✅ *done; and the layering is only half justified*
 
-Without this, seven layers read as unjustified complexity. Minimum matrix:
-`3A` · `3A+3B` · `3A+3B+3C` · `+Layer 4` · `full` · `full+3D`. Two results are
-already half-known and should be reported as ablation rows rather than prose:
+**Result: only two layers do anything** → the vault note
+`Phase 11 — Only Two Layers Do Anything`, `results/phase11/`, `results/phase11_loo/`.
 
-- **IE is non-redundant** — 13/115 (later 14/116) malicious takeovers caught by
-  `IE >= 1` where `masked >= 2` misses. Run it as a 2×2 contingency table with a
-  McNemar test; that is the form a reviewer expects.
-- ~~**Layer 4 is the ASR backstop**~~ — **Phase 7 falsified this on its vector
-  set.** With the egress allowlist off, layer-attributed detection and end-to-end
-  ASR did **not** separate: `full` → `no_egress` left ASR at 14.3%, because 3B had
-  already caught everything the allowlist would have (V3 included, as a takeover,
-  before Layer 4 was consulted). Layer 4 was the backstop only while the *corpus*
-  handed it every case. Report it that way — `backstop_share` 33% in `full` means
-  **12 of 18** detection stops are load-bearing — rather than repeating the
-  prediction. **3A**, by contrast, produced **0** detection stops in every arm.
-- **3A's zero is a new ablation row** and it is not prose: the static pattern engine
-  never fired on 21 malicious cases × 4 arms, consistent with the inert
-  `blocked_patterns` defect Layer 5 found.
-- **Reuse `evaluation/attribution.py`** for the whole matrix rather than
-  re-deriving per arm — one scoring function across arms is the property that makes
-  the rows comparable.
+Two ablations, 54 cases each, and they agree completely. A **cumulative ladder** where
+each rung adds exactly one component in pipeline order, and **leave-one-out** where
+each is removed from the complete system. The two disagree exactly when layers are
+redundant with each other — Phase 7 had made that likely for Layer 4 — and here they
+do not disagree on a single row.
+
+| Outcome | The only rung that moves |
+| :--- | :--- |
+| attack stopped | `plus_policy → plus_causal` (**3B**) — 18 helped / 0 hurt, exact **p = 0.000** |
+| workflow continued | `plus_causal → plus_sanitizer` (**3C**) — 18/0, exact **p = 0.000** |
+
+Everything else — the L3 screener, 3A, Layer 4 permission, Layer 4 egress — is
+**0/0 with zero discordant pairs**. Not a weak effect: an identical outcome on all 21
+malicious cases, from both directions.
+
+**The predictions were stated before the run and all four held:** 3B's rung large,
+3A's `helped == 0`, 3C ASR-flat with WCR large, and Layer 4 egress `helped == 0`.
+That is what makes this evidence rather than a rationalisation.
+
+**One defect, and it was the report's.** The first pass printed *"plus_sanitizer adds
+NOTHING detectable"* for a rung moving WCR from 0% to 85.7% — true of the outcome
+tested, false of the layer. 3C runs only after a takeover is confirmed and converts a
+blanket block into a safe continuation, so its entire contribution is usability and an
+ASR-only ablation structurally cannot see it. The same failure as judging a defense by
+end-to-end ASR while the allowlist absorbs everything: the wrong outcome variable
+makes a real effect invisible. The ladder now runs on both outcomes and calls a rung
+inert only when it moves neither.
+
+**Two results that cut against the architecture.** `backstop_share` climbs 0% → 17% →
+**33%** as Layer 4 is added, so 6 of 18 of 3B's stops would also have been caught by a
+static allowlist — Layer 4 is *redundant* rather than contributing, defensible as
+defence-in-depth but not evidence for the layer. And `FPR ours` goes **0/3 → 3/3** the
+moment 3B switches on, which **no p-value in either table sees**, because paired tests
+exclude benign cases by construction (an arm that blocks a benign document is worse,
+so pairing them at the same polarity would let over-blocking read as a win). n=3, a
+diagnostic, never a rate.
+
+**What it does not establish.** That L3, 3A and Layer 4 are useless in general — only
+that this corpus gives them nothing to do. All 21 malicious cases are tool-response
+injections reaching a `send_email`-shaped action; a rug pull or a poisoned manifest is
+what L3 and the registry exist for, and V5/V6 are approximated because the pipeline
+consumes tool *responses*, not manifests. Phase 12 is the test of that.
+
+Arms live in `PipelineConfig` (`--preset ladder` / `--preset loo`); the statistic is
+`evaluation/paired.py`; `tests/test_paired.py` asserts each rung changes exactly one
+flag, in pipeline order, only ever turning things on.
 
 ### 12 · Second benchmark: InjecAgent — *external validity*
 

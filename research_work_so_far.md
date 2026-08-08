@@ -50,6 +50,7 @@ announced a verdict it had not tested.
 | XVI | 8 Aug 2026 | What the instrument was hiding · the benchmark repaired · the comparative claim measured · per-layer attribution |
 | XVII | 8 Aug 2026, later | The baseline that scored its own refusals · a floor that could not be measured · a sign reversed by a scorer |
 | XVIII | 8 Aug 2026, later still | Measuring a defect instead of fixing it · the exposure that ships and never fires |
+| XIX | 8 Aug 2026, evening | Only two layers do anything · a ladder and a leave-one-out that agree · the wrong outcome variable |
 
 ---
 
@@ -553,3 +554,99 @@ nothing about whether the severity function is right — the four residual misse
 that score zero under masking are untouched, and remain the largest and hardest
 detection lever — and nothing about what the per-component ablation matrix will
 find.
+
+---
+
+## 8 August 2026, evening PKT
+
+### XIX. Only Two Layers Do Anything
+
+This entry records the per-component ablation, which is the experiment that either
+justifies a seven-layer architecture or does not, and a defect in its first report
+that would have retired a working component.
+
+**A. Two ablations, because they answer different questions.** A cumulative ladder
+adds one component at a time in pipeline order, so each rung measures a layer given
+only the layers beneath it. Leave-one-out removes one component from the complete
+system, so each row measures it given all the others. The two disagree precisely
+when layers are redundant with each other, and Entry XVI had already found one such
+case — Layer 4 looked like the attack-success backstop until the causal sub-layer
+was present, at which point it added nothing incremental. So disagreement was the
+expected outcome here, and its absence is itself informative.
+
+The rungs were built so that each changes exactly one flag and only ever turns
+something on, asserted by tests rather than by inspection, because a rung that moved
+two components would attribute both contributions to one row. Two arms deliberately
+do not exist. There is no arm applying the adaptive layer's proposal, because that
+proposal is a no-op and the arm would be the complete system by construction — a row
+whose null is arithmetic rather than empirical. And there is no leave-one-out arm for
+the causal analyzer, because switching it off also makes the sanitiser unreachable;
+that configuration already exists as the static baseline, where the confound is
+documented instead of hidden inside a row claiming to move one thing.
+
+**B. The result is stark.** Over 54 cases per arm, on the outcome *attack stopped*,
+exactly one rung moves: adding the causal analyzer, eighteen cases helped and none
+hurt, exact two-sided p of 0.000. On the outcome *workflow continued*, exactly one
+rung moves: adding the context sanitiser, again eighteen and none, again 0.000. Every
+other rung — the tool-response screener, the static policy engine, the permission
+check, the egress allowlist — is zero and zero with **no discordant pairs at all**.
+That is not a weak effect measured at low power. It is an identical outcome on all
+twenty-one malicious cases, and leave-one-out reproduces every row of it.
+
+Four predictions had been written down before the run: that the causal rung would be
+large, that the policy engine's would be exactly zero, that the sanitiser would leave
+attack success flat while moving workflow continuation sharply, and that the egress
+allowlist's would be zero. All four held. Recording them first is what makes this
+evidence rather than a rationalisation of whatever emerged, and it is a discipline
+this project adopted only after several results had to be withdrawn.
+
+**C. The first report retired a working layer.** It printed that adding the
+sanitiser "adds NOTHING detectable" — for a rung that moves workflow continuation
+from zero to 85.7 percent. The statement was true of the outcome being tested and
+false of the layer.
+
+The mechanism is worth stating because it generalises. The sanitiser runs *only
+after* a takeover has been confirmed, and its job is to convert a blanket block into
+a safe continuation of the user's task. It therefore cannot change whether an attack
+was stopped; that decision has already been made when it runs. An ablation scored
+only on attack success is structurally incapable of seeing it, and will report a
+functioning component as dead weight. This is the same failure as judging a defense
+by end-to-end attack success while an allowlist absorbs every case, which is what
+invalidated the benchmark in Entry XVI, and the same failure as pairing on attack
+success in the spotlighting comparison, where both arms were zero because the
+allowlist absorbed them. Three appearances of one error: **the wrong outcome variable
+makes a real effect invisible.** The ladder now runs on both outcomes and calls a rung
+inert only when it moves neither.
+
+**D. Two results that cut against the architecture, and both are reported.** The
+share of the causal layer's detections that a static allowlist would also have caught
+rises from zero to seventeen to thirty-three percent as Layer 4 is added. So six of
+eighteen of the novel component's stops are not load-bearing: Layer 4 contributes no
+incremental detection while making a third of the detections redundant. That is
+defensible as defence-in-depth — a backstop that never fires is doing its job — but
+it is not evidence for the layer, and the honest framing is redundancy rather than
+contribution.
+
+The second is sharper. The hand-written benign controls go from zero of three to
+three of three false positives the moment the causal analyzer switches on, and stay
+there in every downstream rung. **No p-value in either table sees this**, because the
+paired tests exclude benign cases by construction: an arm that blocks a benign
+document is worse, so pairing benign cases at the same polarity as malicious ones
+would let over-blocking read as an improvement. The exclusion is correct and its
+consequence is that the ablation's central claim is measured on one side of the
+ledger only. Three cases is a labelled diagnostic and never a rate, and the external
+benign cohort's clean sheet is not reassurance either, since it is the stride
+subsample that omits both documents already known to fail.
+
+**What this entry does not establish.** That the four inert layers are useless in
+general — only that this corpus gives them nothing to do. All twenty-one malicious
+cases are tool-response injections arriving at one action shape; a rug pull or a
+poisoned tool manifest is what the screener and the registry exist for, and the two
+vectors modelling those are approximations because the pipeline consumes tool
+responses rather than manifests. It is also our own ablation, and the
+external-baseline requirement is discharged by Entry XVII's comparison and not by
+this. Finally, twenty-one malicious cases per arm is small: a p of 1.000 with zero
+discordant pairs is a strong statement about this corpus and a weak one about the
+population. The three residual attack successes remain unexplained by this phase —
+all are the address-free vector, all score zero under masking, and the severity
+function remains the largest and hardest lever.

@@ -21,19 +21,24 @@ closed.
 Delimiting and encoding variants remain unmeasured; encoding needs [[ASR]] and
 [[WCR]] read together at 4B.)*
 
-## 0b — Phase 11: per-component ablations 🔴 **NEXT**
+## 0b — Phase 11: per-component ablations ✅ **done**
 
-Nothing blocks it now. Reuse `evaluation/attribution.py` and turn the two findings
-Phase 7 already produced into rows with McNemar against the `full` arm:
+**Only two layers do anything**: 3B on detection (18/0, p = 0.000), 3C on workflow
+continuation (18/0, p = 0.000), and L3 / 3A / both halves of Layer 4 at **0/0 with
+zero discordant pairs** — confirmed independently by leave-one-out →
+[[Phase 11 — Only Two Layers Do Anything]].
 
-- **3A contributes 0 detection stops** in every arm → [[Inert Blocked Patterns]]
-- **Layer 4 adds nothing incremental** — `full` → `no_egress` leaves ASR unchanged
+## 0c — Phase 12: InjecAgent 🔴 **NEXT**
 
-→ then Phase 12 (InjecAgent), Phase 13 (manuscript).
+The remaining journal-mandatory piece. One benchmark invites *"does this
+generalise?"*, and [[6n — A Corpus That Can Fail]] already proved the point that
+matters: our own benign corpus flattered the system by 36 false positives. A second
+externally-authored corpus is the guard against a repeat, and it is also the only
+thing that can test whether Phase 11's four inert layers are inert **in general** or
+only on a corpus of tool-response injections aimed at one action shape.
 
-⚠️ `static_only` is **our own ablation**; a reviewer will not accept it as the
-comparison (Rules §7). That is what Phase 10 answered, and Phase 11 must not be
-written as though it substitutes for an external baseline.
+→ then Phase 13 (manuscript). 🔵 Still blocked on the **journal decision**, which
+sets how much Phases 12–13 must produce.
 
 ## 1 — The severity function 🔴
 

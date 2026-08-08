@@ -61,6 +61,31 @@ belong to the claim. The null is two opposing per-family effects cancelling.
   [[The Scorer Cannot See Negation]].
 - These arms' ASR is **not comparable** with Phase 7's: derived vs supplied action.
 
+## Phase 11 per-component ablation
+
+*54 cases/arm, 18 vectors × 3 repeats. Ladder (7 arms) + leave-one-out (6 arms),
+8 Aug 2026 → [[Phase 11 — Only Two Layers Do Anything]]*
+
+| Rung | Adds | [[ASR]] | [[WCR]] |
+| :--- | :--- | ---: | ---: |
+| `undefended` → `plus_policy` | L3, then 3A | 100.0% (unchanged) | 0.0% |
+| `plus_causal` | **3B** | **14.3%** | 0.0% |
+| `plus_sanitizer` | **3C** | 14.3% | **85.7%** |
+| `plus_permission` → `full` | L4 scope, then allowlist | 14.3% (unchanged) | 85.7% |
+
+**Paired McNemar, two outcomes.** Attack stopped: only `plus_policy → plus_causal`
+moves, **18/0, p = 0.000**. Workflow continued: only `plus_causal → plus_sanitizer`
+moves, **18/0, p = 0.000**. Every other rung is **0/0 with zero discordant pairs**,
+and leave-one-out reproduces all of it.
+
+- **Layer 4 is redundant, not contributing** — `backstop_share` 0% → 17% → **33%**,
+  so 6 of 18 of 3B's stops would also have been caught by the allowlist.
+- ⚠️ **`FPR ours` goes 0/3 → 3/3 the moment 3B is on**, and no p-value in either
+  table sees it — paired tests exclude benign cases by construction. n=3, a
+  diagnostic, never a rate.
+- ⚠️ **Our own ablation.** The external-baseline requirement is discharged by the
+  Phase 10 table above, not by this one.
+
 ## The most important qualifier
 
 > **All 4 residual misses are `masked = 0` — severity-function failures, and

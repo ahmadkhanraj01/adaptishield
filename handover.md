@@ -103,17 +103,40 @@ does **not** inflate 3B's regime severities — 0 of 209 recorded severity-2 mas
 samples, positive control passing. So the regime scorer is unchanged and Rules §2's
 re-measurement cost is not incurred. Details in §4a.
 
-## 2c. START HERE — Phase 11, per-component ablations
+## 2c. Phase 11 is DONE — only two layers do anything
 
-Nothing blocks it. Reuse `evaluation/attribution.py` and turn the two findings Phase
-7 already produced into rows with McNemar against `full`:
+Ladder (7 arms, each adding one component in pipeline order) **and** leave-one-out
+(6 arms), 54 cases each, agreeing on every row. `results/phase11/`,
+`results/phase11_loo/`.
 
-- **3A contributes 0 detection stops** in every arm (the inert-pattern problem, now
-  a measurement rather than an inspection)
-- **Layer 4 adds nothing incremental** — `full` → `no_egress` leaves ASR unchanged
+| Outcome | The only rung that moves |
+| :--- | :--- |
+| attack stopped | **3B** — 18 helped / 0 hurt, exact **p = 0.000** |
+| workflow continued | **3C** — 18/0, exact **p = 0.000** |
 
-⚠️ Phase 11's arms are **our own ablations**. Do not write them as though they
-substitute for the external baseline — that is what Phase 10 is for (Rules §7).
+L3, 3A, Layer 4 permission and Layer 4 egress are all **0/0 with zero discordant
+pairs** — an identical outcome on all 21 malicious cases, from both directions.
+
+Three things to carry forward:
+
+- **`backstop_share` 0% → 17% → 33%.** Layer 4 is *redundant*, not contributing: 6 of
+  18 of 3B's stops would also have been caught by the allowlist. Defensible as
+  defence-in-depth; not evidence for the layer.
+- **`FPR ours` 0/3 → 3/3 the moment 3B is on, and no p-value sees it.** Paired tests
+  exclude benign cases by construction. n=3, a diagnostic, never a rate.
+- **The ladder must be read on both outcomes.** An ASR-only ladder reported 3C as
+  inert. That was the report's defect and is fixed, but the shape recurs: pick the
+  outcome variable the layer can actually move.
+
+⚠️ These are **our own ablations**. The external-baseline requirement is discharged by
+Phase 10, never by this (Rules §7).
+
+## 2d. START HERE — Phase 12, InjecAgent
+
+The last journal-mandatory piece. It is also the only thing that can tell whether
+Phase 11's four inert layers are inert **in general** or only on a corpus of
+tool-response injections aimed at one action shape — which is the obvious reviewer
+question and one Phase 11 cannot answer about itself.
 
 ---
 

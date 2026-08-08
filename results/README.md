@@ -23,6 +23,10 @@ Copying a result here is the act of saying *this one is the number of record*.
 | `phase7/manifest.json` | same run | Commit SHA + dirty flag, corpus provenance and version, model tags, 3B's knobs, Ollama VRAM state, Python/platform, seeding statement |
 | `phase10/benchmark.json` | `python3 -m evaluation.benchmark --corpus campaign --arms derived_control spotlighting` | Per-arm `steer_rate` with Wilson intervals and the paired McNemar table. **`steer_rate`, not ASR, is the outcome** — ASR is 0/66 in both arms because the allowlist absorbs every address-carrying attack |
 | `phase10/manifest.json` | same run | As above, plus the spotlighting variant and the separate `agent_llm` tag — the derived-action agent runs at temperature 0 to match 3B's probe, and a mismatch here is a confound, not a detail |
+| `phase11/benchmark.json` | `python3 -m evaluation.benchmark --preset ladder --repeats 3` | The cumulative ladder: per-rung ASR/WCR, per-layer attribution, and **paired McNemar on two outcomes** — an ASR-only ladder reports 3C as inert |
+| `phase11/manifest.json` | same run | As above. `replay.fully_replayed: true` — the outcomes are the original run's cached results; the commit describes the reporting code that added the WCR ladder |
+| `phase11_loo/benchmark.json` | `python3 -m evaluation.benchmark --preset loo --repeats 3` | Leave-one-out against `full`. Its `full` arm is the **same 54 results** as the ladder's top rung, reused from that checkpoint, which is what makes the two tables comparable rather than merely similar |
+| `phase11_loo/manifest.json` | same run | `replay.fully_replayed: false` — only `full` was cached |
 | `refusal_audit/audit.json` | `python3 -m evaluation.refusal_audit` | **An instrument check, not a result.** Per-source counts of masked-regime probe samples whose severity the Phase 10 negation predicate would lower, plus the positive control's verdict |
 
 ## Reading a manifest before trusting a result
@@ -75,8 +79,8 @@ which needs neither logs nor a model.
 
 ## What's pending
 
-- **Phase 11** (per-component ablations) will add a subdirectory here. Phase 13's
-  reproducibility artifact is this tree plus the deterministic test suite.
+- **Phase 12** (InjecAgent) will add a subdirectory here. Phase 13's reproducibility
+  artifact is this tree plus the deterministic test suite.
 - The campaign's own numbers (detection 116/120, FPR 3.3% at n=60) are still only in
   `logs/` + the docs. They should get a `results/campaign/` entry with a manifest,
   for the same reason Phase 7 has one.
