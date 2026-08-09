@@ -615,50 +615,54 @@ output needed re-recording.
 
 ```text
 ┌──────────────────────────────────────────────────────────────────┐
-│  Layer 5 — Human-in-the-Loop & Observability        [BUILT]      │
-│  Audit Dashboard · Policy Inspection Console · Manual Override   │
-│  Gate recomputes a proposal's evidence; recommends, never decides│
+│  Layer 5 — Human-in-the-Loop & Observability       [built]       │
+│  Audit Dashboard · Policy Console · Manual Override              │
+│  recomputes a proposal's evidence; recommends, never decides     │
 ├──────────────────────────────────────────────────────────────────┤
-│  Red Team Module                                    [built]      │
-│  Attack Generator · Execution Agent · Evaluator · Optimizer      │
-│  ours: 6 families × 4 directives + 18 address-free               │
-│  external (vendored, MIT, cited):                                │
-│    AgentDojo benign    60   true negatives → FPR of record       │
-│    InjecAgent          510  attacks, 51/459 by stratum           │
-│    AgentDojo attacks   253  HOLDOUT, 119/134 (frozen-lexicon)    │
-├──────────────────────────────────────────────────────────────────┤
-│  Evaluation and Measurement                         [built]      │
-│  benchmark · paired (McNemar) · fpr_report · refusal_audit       │
-│  offline re-scoring:  probe_corpus ──► rescore                   │
-│    records what the probe said, then replays it through the      │
-│    scorer — a candidate costs seconds, not a 1.5-hour campaign   │
-├──────────────────────────────────────────────────────────────────┤
-│  Layer 4 — Sandbox and Isolation                    [built]      │
-│  Docker Sandbox · Permission Control · Network Egress Filter     │
+│  Layer 4 — Sandbox and Isolation                   [built]       │
+│  Permission Control · Network Egress Filter · Docker Sandbox     │
 │  Telemetry Stream                                                │
 ├──────────────────────────────────────────────────────────────────┤
-│  Layer 3 — MCP Tool Execution Plane                 [built]      │
+│  Layer 3 — MCP Tool Execution Plane                [built]       │
 │  APIs · Databases · File Systems · Tool Response Screener        │
 ├──────────────────────────────────────────────────────────────────┤
-│  Layer 2 — LLM Agent Control Plane                  [built]      │
+│  Layer 2 — LLM Agent Control Plane                 [built]       │
 │  Planner Agent · Tool Selector · Execution Agent                 │
-│  ┌────────────────────────────────────────────────────────────┐  │
-│  │  Security and Adaptive Sub-layer  (3A → 3B → 3C → 3D)      │  │
-│  │  3A  Policy Engine            ✅  static triage; 0 stops    │  │
-│  │  3B  Causal Analyzer          🟡  96.7% ours / ~18% external│  │
-│  │        severity = data-movement kw                         │  │
-│  │                 + capability-misuse   (measured, OFF)      │  │
-│  │        targets  = emails, http URLs                        │  │
-│  │                 + schemeless hosts    (measured, OFF)      │  │
-│  │  3C  Context Sanitizer        🟡  runs only after takeover  │  │
-│  │  3D  Adaptive Threat Model    🟡  GRPO; proposes a no-op    │  │
-│  └────────────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────────┐│
+│  │  Security and Adaptive Sub-layer   3A → 3B → 3C → 3D         ││
+│  │                                                              ││
+│  │  3A  Policy Engine          static triage; 0 detection stops ││
+│  │  3B  Causal Analyzer        96.7% ours · ~18% external       ││
+│  │        severity = data-movement keywords                     ││
+│  │                 + capability-misuse     (measured, OFF)      ││
+│  │        targets  = emails, http URLs                          ││
+│  │                 + schemeless hosts      (measured, OFF)      ││
+│  │  3C  Context Sanitizer      runs only after a takeover       ││
+│  │  3D  Adaptive Threat Model  GRPO; honestly proposes a no-op  ││
+│  └──────────────────────────────────────────────────────────────┘│
 ├──────────────────────────────────────────────────────────────────┤
-│  Layer 1 — Input and Supply Chain Screening         [built]      │
+│  Layer 1 — Input and Supply Chain Screening        [built]       │
 │  Input Parser · Context Builder · Provenance Memory Store        │
 ├──────────────────────────────────────────────────────────────────┤
-│  Layer 0 — MCP Transport and Server Trust           [built]      │
+│  Layer 0 — MCP Transport and Server Trust          [built]       │
 │  Server Trust Registry (rug-pull detection · allowlist)          │
+└──────────────────────────────────────────────────────────────────┘
+
+        ↑ the request path.   ↓ these run against it, offline.
+
+┌──────────────────────────────────────────────────────────────────┐
+│  Red Team Module                                   [built]       │
+│  Attack Generator → Execution Agent → Evaluator → Optimizer      │
+│  ours      6 families × 4 directives + 18 address-free           │
+│  external  AgentDojo benign    60  true negatives → FPR          │
+│            InjecAgent         510  attacks,  51/459 strata       │
+│            AgentDojo attacks  253  HOLDOUT, 119/134 strata       │
+├──────────────────────────────────────────────────────────────────┤
+│  Evaluation and Measurement                        [built]       │
+│  benchmark · paired (McNemar) · fpr_report · refusal_audit       │
+│  offline re-scoring    probe_corpus ──→ rescore                  │
+│    replays recorded probe output through the scorer, so a        │
+│    candidate costs seconds instead of a 1.5-hour campaign        │
 └──────────────────────────────────────────────────────────────────┘
 ```
 ![alt text](<AdaptiShield_Architecture_v3.drawio (1).png>)
