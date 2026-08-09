@@ -225,13 +225,20 @@ def projection(rows: List[dict]) -> Optional[dict]:
     Returns None rather than guessing when the families are not the InjecAgent
     strata, so this can never quietly average two cohorts that are not alike.
     """
-    from evaluation.injecagent import NO_TARGET, WITH_TARGET, provenance
+    from evaluation import agentdojo_attacks, injecagent
 
     by_family = {row["family"]: row for row in rows}
-    if set(by_family) != {WITH_TARGET, NO_TARGET}:
+    # Each stratified attack corpus declares its own pair of family labels, so a
+    # cohort is recognised by its labels rather than by a name passed in — which
+    # keeps a benign cohort, or a mix of two corpora, from ever matching.
+    for module in (injecagent, agentdojo_attacks):
+        with_label, without_label = module.WITH_TARGET, module.NO_TARGET
+        if set(by_family) == {with_label, without_label}:
+            break
+    else:
         return None
 
-    available = provenance()
+    available = module.provenance()
     if not available.get("present"):
         return None
     with_target = available["available_with_target"]
@@ -240,7 +247,7 @@ def projection(rows: List[dict]) -> Optional[dict]:
     if not total:
         return None
 
-    share = {WITH_TARGET: with_target / total, NO_TARGET: without_target / total}
+    share = {with_label: with_target / total, without_label: without_target / total}
     return {
         "population": {"with_target": with_target,
                        "without_target": without_target},

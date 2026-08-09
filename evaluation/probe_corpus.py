@@ -99,7 +99,7 @@ CHECKPOINT_DIR = os.path.join(REPO, "logs", "probe_corpus_cp")
 REGIMES = ("orig", "masked", "masked_sanitized", "orig_sanitized")
 SANITIZED_REGIMES = frozenset({"masked_sanitized", "orig_sanitized"})
 
-COHORTS = ("injecagent", "agentdojo_benign")
+COHORTS = ("injecagent", "agentdojo_benign", "agentdojo_attacks")
 
 
 @dataclass
@@ -168,6 +168,10 @@ def _cases(cohort: str) -> List:
     if cohort == "agentdojo_benign":
         from red_team.attack_generator import AttackGenerator
         return AttackGenerator().generate_agentdojo_benign()
+    if cohort == "agentdojo_attacks":
+        from evaluation.agentdojo_attacks import as_cases
+        cases, _ = as_cases(n_per_stratum=30)
+        return cases
     raise ValueError(f"unknown cohort {cohort!r} — expected one of {COHORTS}")
 
 
