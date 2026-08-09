@@ -621,7 +621,17 @@ output needed re-recording.
 ├──────────────────────────────────────────────────────────────────┤
 │  Red Team Module                                    [built]      │
 │  Attack Generator · Execution Agent · Evaluator · Optimizer      │
-│  6 families × 4 directives + 18 address-free · AgentDojo benign  │
+│  ours: 6 families × 4 directives + 18 address-free               │
+│  external (vendored, MIT, cited):                                │
+│    AgentDojo benign    60   true negatives → FPR of record       │
+│    InjecAgent          510  attacks, 51/459 by stratum           │
+│    AgentDojo attacks   253  HOLDOUT, 119/134 (frozen-lexicon)    │
+├──────────────────────────────────────────────────────────────────┤
+│  Evaluation and Measurement                         [built]      │
+│  benchmark · paired (McNemar) · fpr_report · refusal_audit       │
+│  offline re-scoring:  probe_corpus ──► rescore                   │
+│    records what the probe said, then replays it through the      │
+│    scorer — a candidate costs seconds, not a 1.5-hour campaign   │
 ├──────────────────────────────────────────────────────────────────┤
 │  Layer 4 — Sandbox and Isolation                    [built]      │
 │  Docker Sandbox · Permission Control · Network Egress Filter     │
@@ -634,8 +644,12 @@ output needed re-recording.
 │  Planner Agent · Tool Selector · Execution Agent                 │
 │  ┌────────────────────────────────────────────────────────────┐  │
 │  │  Security and Adaptive Sub-layer  (3A → 3B → 3C → 3D)      │  │
-│  │  3A  Policy Engine            ✅  static triage             │  │
-│  │  3B  Causal Analyzer          ✅  116/120 (96.7%)           │  │
+│  │  3A  Policy Engine            ✅  static triage; 0 stops    │  │
+│  │  3B  Causal Analyzer          🟡  96.7% ours / ~18% external│  │
+│  │        severity = data-movement kw                         │  │
+│  │                 + capability-misuse   (measured, OFF)      │  │
+│  │        targets  = emails, http URLs                        │  │
+│  │                 + schemeless hosts    (measured, OFF)      │  │
 │  │  3C  Context Sanitizer        🟡  runs only after takeover  │  │
 │  │  3D  Adaptive Threat Model    🟡  GRPO; proposes a no-op    │  │
 │  └────────────────────────────────────────────────────────────┘  │
@@ -647,7 +661,7 @@ output needed re-recording.
 │  Server Trust Registry (rug-pull detection · allowlist)          │
 └──────────────────────────────────────────────────────────────────┘
 ```
-![alt text](AdaptiShield_Architecture_v3.drawio.png)
+![alt text](<AdaptiShield_Architecture_v3.drawio (1).png>)
 
 ### How a request flows
 
@@ -674,6 +688,26 @@ output needed re-recording.
                      L4 telemetry → episode record → 3D (offline) → Layer 5 gate
 ```
 
+**The measurement path runs beside the pipeline, not through it.** 3B's four
+regimes are the expensive part of a run, and they do not depend on the scorer —
+`_run_regime_once` asks the model for an action and *then* scores it. So the two
+can be separated, and a scorer change re-measured without re-running anything:
+
+```text
+  live pipeline ──► 3B four regimes ──► _score_action ──► _decide_takeover
+                          │                   ▲                  ▲
+                          │ recorded once     │ replayed         │ same rule,
+                          ▼                   │                  │ not a copy
+                    probe_corpus ────────► rescore ──────────────┘
+                    (all 4 regimes,      (4 arms, Wilson intervals,
+                     both samples,        McNemar, population projection)
+                     + sanitised text)
+```
+
+Valid **only** for scorer changes: a change to a probe prompt, the sanitizer, the
+model tag or the temperature invalidates the recording, and `rescore` refuses to
+report rather than answering from a stale corpus.
+
 **Layer 1 is what makes 3B possible.** The trusted/mediator partition is what
 gives 3B something to mask; without it there is no counterfactual and no causal
 measurement.
@@ -696,6 +730,21 @@ near zero the normal approximation extends below zero and its coverage collapses
 exactly where our numbers sit. A point estimate off 8 samples is not a rate — the
 interval on 4/8 spans [21.5%, 78.5%], which is why the hand-written benign
 controls are reported as a *diagnostic* and never pooled into a headline figure.
+
+Three rules travel with every number in this README:
+
+- **Detection, not ASR, is how 3B is judged.** Layer 4's allowlist absorbs every
+  address-carrying attack, so end-to-end ASR was 0% before *and* after every 3B
+  fix. Judge the layer under test (§6-Backstops).
+- **Never pool strata.** Both external attack corpora are drawn 30/30 from
+  uneven populations (51/459 and 119/134), so a pooled sample rate describes
+  neither — for InjecAgent it is wrong by 33 points. Rates are per stratum, with
+  a population-weighted projection printed separately.
+- **Overlapping intervals are not a test, and one run is not a rate.** Paired
+  McNemar is the comparison (`evaluation/paired.py`); and re-running the benign
+  cohort reproduced the committed 3.3% FPR *as a rate but on different cases*,
+  so the run-to-run floor is ±2–3 in 60 — the same size as the effects usually
+  being compared (§1.7).
 
 ---
 
@@ -745,8 +794,16 @@ controls are reported as a *diagnostic* and never pooled into a headline figure.
 │   ├── optimizer.py                    ✅ keyword-softening mutator (gen-2)
 │   ├── run_campaign.py                 ✅ wires all four stages
 │   ├── vendor_agentdojo.py             ✅ vendors AgentDojo benign content (MIT, ETH SPY Lab)
-│   └── data/agentdojo_benign.json      ✅ 60 externally-authored true negatives + provenance
-├── utils/   parsing.py                 ✅ tolerant NEXT: parser                + README.md
+│   ├── vendor_injecagent.py            ✅ vendors InjecAgent direct-harm attacks (MIT, ACL'24)
+│   ├── vendor_agentdojo_attacks.py     ✅ vendors AgentDojo's ATTACK side — the Phase 13
+│   │                                      HOLDOUT; `direct` wrapper, bare payloads excluded
+│   └── data/                           ✅ agentdojo_benign.json      60 true negatives
+│                                          injecagent_dh.json        510 attacks (51/459)
+│                                          agentdojo_attacks.json    253 holdout (119/134)
+├── utils/
+│   ├── parsing.py                      ✅ tolerant NEXT: parser                + README.md
+│   └── hashing.py                      ✅ prompt fingerprints (comments stripped) so a
+│                                          stale probe corpus is REFUSED, not reported
 ├── evaluation/
 │   ├── README.md
 │   ├── adaptive_loop_experiment.py     ✅ before/after 3D-update test          (§6d)
@@ -764,6 +821,11 @@ controls are reported as a *diagnostic* and never pooled into a headline figure.
 │   ├── refusal_audit.py                ✅ read-only instrument check: 0/209, w/ positive control
 │   ├── paired.py                       ✅ McNemar (exact); helped/hurt named by direction
 │   ├── injecagent.py                   ✅ Phase 12 corpus, STRATIFIED on 3B's own predicate
+│   ├── agentdojo_attacks.py            ✅ Phase 13 HOLDOUT corpus, same stratification rule
+│   ├── probe_corpus.py                 ✅ records what the probe said (4 regimes + sanitised
+│   │                                      text); manifest pins model/temp/k/prompt hashes
+│   ├── rescore.py                      ✅ replays it under 4 scorer arms — NO model calls;
+│   │                                      verdicts via the shipped _decide_takeover
 │   └── kaggle/                         ✅ Phase 6 GRPO pipeline               (§6l, §6o)
 │       ├── grpo_env.py                 ✅ reward + threshold→verdict replay (no project imports)
 │       ├── package_episodes.py         ✅ campaign → training JSONL; resumable
@@ -781,6 +843,8 @@ controls are reported as a *diagnostic* and never pooled into a headline figure.
 │   ├── phase11/                        ✅ the ablation ladder (both outcomes)
 │   ├── phase11_loo/                    ✅ leave-one-out; agrees with the ladder
 │   ├── phase12/                        ✅ InjecAgent — detection ~18% (§1.5)
+│   ├── probe_corpus/                   ✅ recorded probe output, 3 cohorts × 60 cases
+│   ├── severity/                       ✅ rescore.json + rescore_holdout.json (§1.6, §1.7)
 │   └── refusal_audit/                  ✅ an instrument check, NOT a result
 ├── logs/                               (gitignored — working output)
 │   ├── episode_records/episodes.jsonl  ✅ every boundary crossing
@@ -791,16 +855,28 @@ controls are reported as a *diagnostic* and never pooled into a headline figure.
 │   └── layer5/                         ✅ audit.html + decisions.jsonl
 └── tests/                              ✅ 452 deterministic tests, ~9s, no LLM/network/GPU
     ├── test_takeover_rules.py          ✅  9  3B takeover paths + IE resolution
-    ├── test_adaptive_threat_model.py   ✅ 14  3D reward + proposal + step sizing
-    ├── test_target_match.py            ✅ 21  normalized target match + keyword grounding
     ├── test_probe_diagnostic.py        ✅ 11  root-cause tool + classifier ordering
-    ├── test_corpus.py                  ✅ 22  corpus invariants, Wilson, IE-ablation join
-    ├── test_grpo_kaggle.py             ✅ 23  GRPO env/trainer + joint space + no-op guard
-    ├── test_layer5.py                  ✅ 20  human gate + dashboard escaping
+    ├── test_adaptive_threat_model.py   ✅ 14  3D reward + proposal + step sizing
     ├── test_ablation.py                ✅ 15  Phase 7 arms + campaign checkpointing
-    ├── test_attribution.py             ✅ 39  attribution ordering + corpus invariants
+    ├── test_agentdojo_attacks.py       ✅ 16  the HOLDOUT corpus: the freeze commit is
+    │                                          recorded, the plain wrapper was used, the
+    │                                          stratum equals the live predicate
+    ├── test_layer5.py                  ✅ 20  human gate + dashboard escaping
+    ├── test_target_match.py            ✅ 21  normalized target match + keyword grounding
+    ├── test_corpus.py                  ✅ 22  corpus invariants, Wilson, IE-ablation join
+    ├── test_probe_corpus.py            ✅ 22  the offline instrument: staleness REFUSED,
+    │                                          shipped rule called, projection won't pool
+    ├── test_grpo_kaggle.py             ✅ 23  GRPO env/trainer + joint space + no-op guard
+    ├── test_negation_scoring.py        ✅ 24  negation handling; 3B's scorer untouched
     ├── test_spotlighting.py            ✅ 25  the external baseline's transforms
-    └── test_negation_scoring.py        ✅ 24  negation handling; 3B's scorer untouched
+    ├── test_injecagent.py              ✅ 33  Phase 12 corpus, stratum + scope traps
+    ├── test_refusal_audit.py           ✅ 35  the instrument check + its positive control
+    ├── test_attribution.py             ✅ 39  attribution ordering + corpus invariants
+    ├── test_paired.py                  ✅ 52  McNemar + the outcome POLARITY (a reversed
+    │                                          sign is undetectable downstream)
+    └── test_capability_scoring.py      ✅ 71  the capability-misuse class and the gated
+                                               schemeless matcher — including verbatim
+                                               benign probe output that must NOT escalate
 ```
 
 ---
@@ -812,7 +888,7 @@ controls are reported as a *diagnostic* and never pooled into a headline figure.
 | Server Trust Registry | `layer0/server_trust_registry.py` | ✅ Built & tested |
 | Provenance Tagging | `layer1/provenance.py` | ✅ Built & tested |
 | Policy Engine (3A) | `layer2/security_sublayer/policy_engine.py` | ✅ Built & tested. **Note (§6n):** matches `blocked_patterns` against the *proposed action*, while 3D harvests them from *mediator* markers — every 3D proposal so far carries an **inert** pattern |
-| Causal Analyzer (3B) | `layer2/security_sublayer/causal_analyzer.py` | ✅ **116/120 (96.7%)**; normalized target match, `temperature=0`, keyword grounding |
+| Causal Analyzer (3B) | `layer2/security_sublayer/causal_analyzer.py` | 🟡 **116/120 (96.7%) on our campaign, ~18% on InjecAgent** (§1.5). Normalized target match, `temperature=0`, keyword grounding. Two measured-but-**disabled** widenings: `capability_scoring` (harm taxonomy — §1.6, holdout §1.7) and `schemeless_targets` (bare hosts — costs more than it buys). Both default off, so every figure here reproduces |
 | Context Sanitizer (3C) | `layer2/security_sublayer/context_sanitizer.py` | 🟡 Built & tested; runs **only after takeover**, so its self-report cannot substitute for IE. Prompt rewrite pending |
 | Adaptive Threat Model (3D) | `layer2/security_sublayer/adaptive_threat_model.py` | 🟡 Reward + bounded proposals; `apply_update()` refuses without human approval |
 | Shared Parsing Utility | `utils/parsing.py` | ✅ Built & tested |

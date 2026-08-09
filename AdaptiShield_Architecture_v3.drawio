@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="AdaptiShield">
   <diagram name="AdaptiShield v3 - current state" id="adaptishield-v3">
-    <mxGraphModel dx="673" dy="332" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1400" background="#0D0D0D" math="0" shadow="0">
+    <mxGraphModel dx="975" dy="481" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1400" background="#0D0D0D" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -288,9 +288,8 @@
         <mxCell id="e17" edge="1" parent="1" source="l3_screener" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#4E9A5F;fontColor=light-dark(#DDDDDD,#FFFFFF);fontSize=10;exitX=0;exitY=0.25;entryX=1;entryY=0.25" target="l1_ctx" value="clean → context">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1300" y="100" />
-              <mxPoint x="1260" y="100" />
-              <mxPoint x="1260" y="106" />
+              <mxPoint x="1274.19" y="180" />
+              <mxPoint x="1274.19" y="106" />
               <mxPoint x="560" y="106" />
             </Array>
           </mxGeometry>
@@ -320,12 +319,12 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e23" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#C9A24A;fontColor=light-dark(#E0C77A,#FFFFFF);fontSize=10;dashed=1;exitX=0.5;exitY=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" value="ProposedUpdate (never auto-applied)">
+        <mxCell id="e23" edge="1" parent="1" source="sl_3d" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#C9A24A;fontColor=light-dark(#E0C77A,#FFFFFF);fontSize=10;dashed=1;exitX=0.453;exitY=1.002;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitDx=0;exitDy=0;exitPerimeter=0;" value="ProposedUpdate (never auto-applied)">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="778" y="1106.5" />
-              <mxPoint x="2048" y="1106.5" />
-              <mxPoint x="2048" y="379.02" />
+              <mxPoint x="778.72" y="1106.52" />
+              <mxPoint x="2047.97" y="1106.52" />
+              <mxPoint x="2047.97" y="379" />
             </Array>
             <mxPoint x="778" y="741.5" as="sourcePoint" />
             <mxPoint x="1968" y="379" as="targetPoint" />
@@ -469,13 +468,15 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e43" edge="1" parent="1" source="l0_registry" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#D98A4A;fontColor=light-dark(#E9B57A,#FFFFFF);fontSize=10;dashed=1;exitX=0.5;exitY=0;entryX=0;entryY=0.25" target="l4_perm" value="scope + allowlist">
+        <mxCell id="e43" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#D98A4A;fontColor=light-dark(#E9B57A,#FFFFFF);fontSize=10;dashed=1;exitX=0.5;exitY=0;entryX=0;entryY=0.25" value="scope + allowlist">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="240" y="75.37" />
-              <mxPoint x="1490" y="75.37" />
-              <mxPoint x="1490" y="177.47" />
+              <mxPoint x="243" y="76" />
+              <mxPoint x="1493" y="76" />
+              <mxPoint x="1493" y="166.28" />
             </Array>
+            <mxPoint x="243" y="153.76" as="sourcePoint" />
+            <mxPoint x="1543" y="166.26" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="e44" edge="1" parent="1" source="l2_planner" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#888888;dashed=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5" target="l2_toolsel">
