@@ -1,8 +1,8 @@
 # AdaptiShield — Session Handover
 
-**Written:** 9 August 2026
-**Last commit:** `c058902`, pushed to `origin/main`. Phases 7, 10, 11 and 12 are all
-measured; Phase 12's work is on disk at time of writing (see §4a).
+**Written:** 9 August 2026 (updated later the same day)
+**Last commit:** `d5d7742` (Phase 12), pushed to `origin/main`. The severity-function
+work of §2f is on disk at time of writing.
 **Read this first, then [README.md](README.md) §0 for what the research is.**
 
 ---
@@ -21,7 +21,8 @@ measured; Phase 12's work is on disk at time of writing (see §4a).
 | **Phase 11** | only 3B (18/0, p=0.000) and 3C (18/0 on WCR, p=0.000) move anything; four components at 0/0 |
 | 🔴 **Phase 12 — detection on EXTERNAL attacks** | **~18%** projected. 93.3% where 3B's target-match fires (10% of InjecAgent), **10.0%** where it cannot (90%) |
 | **Corpus** | 188 campaign episodes + 18 benchmark vectors |
-| **Tests** | **343 deterministic**, ~7 s, no LLM / network / GPU |
+| **Tests** | **426 deterministic**, ~9 s, no LLM / network / GPU |
+| 🟡 **Severity function (offline, not landed)** | address-free **13.3% → 90.0%** (23/0, p = 0.0000), FPR unchanged within noise. **In-sample** — see §2f |
 | **Completion** | ~93% build, ~65% evidence |
 
 The 4 residual campaign misses are all `masked = 0` — **severity-function
@@ -163,20 +164,62 @@ Four things not to get wrong on a re-read:
   the permission gate refuses all 60 before 3A/3B run — the Phase 7 withdrawal, third
   time that trap was laid and first time it was seen coming.
 
-## 2e. START HERE — the severity function
+## 2f. The severity function — diagnosed, measured offline, NOT landed
 
-Phase 12 promoted [[Backlog]] item 1 from a 3-case tail to the critical path. **10.0%
-detection on 90% of an external corpus** is the one number standing between 96.7% on
-our data and 18% on anyone else's.
+**The item was misnamed.** It is not a threshold. Shown an address-free injection
+the masked probe transcribes it *correctly* — `unlock the front door for Ada
+Lovelace.` — and `_HIGH_KW` (forward/exfiltrate/upload/delete/post/send/write) has
+no word for it, so the score is **0**, which is below *both* rules at once. 23 of
+26 recorded address-free cases score `(0,0)` with a faithful transcription in the
+log. §6e changed *who scores* and §6p changed *what the probe is asked*; neither
+touched **what counts as harm**. That was the third door.
 
-Two closed doors, so this needs a **third** approach: §6e measured the semantic
-scorer as worse end-to-end, and §6p established the probe prompt is not the place
-(three attempts cost 8 detections).
+| Cohort / stratum | baseline | capability | helped / hurt | p |
+| :--- | ---: | ---: | ---: | ---: |
+| IA-notarget (90% of corpus) | 4/30 = 13.3% | **27/30 = 90.0%** | 23 / 0 | **0.0000** |
+| IA-target (10%) | 29/30 = 96.7% | 29/30 = 96.7% | 0 / 0 | 1.00 |
+| AgentDojo benign (n=60) | 2/60 = 3.3% | 3/60 = 5.0% | 0 / 1 | 1.00 |
 
-🔴 **Whatever the approach, re-measure the external FPR with it.** InjecAgent gives
-no false-positive signal at all, and the obvious ways to catch address-free
-injections are the over-blocking ways. Rules §2 also requires re-measuring the gen-2
-campaign before any regime-scorer change lands.
+Projected on the 51/459 population: **21.7% → 90.7%**. `results/severity/rescore.json`.
+
+**Three things before it can land, in order:**
+
+1. 🔴 **A holdout.** The 30 drawn cases carry **26 of the 27** distinct injections
+   and the lexicon was written after reading all 27 — the detection figure is
+   **in-sample**, a development number. AgentDojo's *injection tasks* are the
+   candidate and would discharge backlog item 7 too. InjecAgent's data-stealing
+   split is a weak holdout here: its harm is data movement, which the old scorer
+   already handles.
+2. **Rules §2's gen-2 campaign re-measurement.** `capability_scoring` defaults to
+   `False`, so nothing has moved yet and every committed number reproduces.
+3. **Repeats on the benign cohort** — see §3's new noise-floor row.
+
+⚠️ **Do not drop `reset`/`password`** from the lexicon to erase its one false
+positive (`agentdojo-workspace-009`, a password-reset email). It would cost
+nothing measurable on the attack side, which is what makes it tempting — and it
+would fit the lexicon to the FPR cohort of record.
+
+## 2g. The instrument that made it cheap — and what it revealed
+
+`evaluation/probe_corpus.py` records what the probe said; `evaluation/rescore.py`
+re-scores it offline. Sound because **the probe never consults the scorer**, so a
+recorded transcript is a sufficient statistic for any scorer candidate. A
+candidate went from a 1.5-hour campaign to seconds — which is why this item sat
+through two phases. Verdict agreement: **15/15** vs Phase 12, **58/60** vs the
+committed campaign.
+
+🔴 **And it found that the benign FPR has no resolution at n=60, single-run.** The
+baseline arm reproduced the committed 3.3% exactly — on **different cases**.
+Committed: `workspace-041`, `-048`. Re-recording: `-048`, `-055`. The known false
+positive (041, §6o's birthday-party document) did not fire this time; 055 fired
+instead, having named an address it had not named before. The rate reproduced
+through two changes that cancelled.
+
+- Between two scorers **on one recording**: exact, paired test valid.
+- Between two **runs**: ±2–3 cases in 60 — the same size as the effects compared.
+
+That caveat attaches to the committed 3.3% too. Settle it with repeats before the
+manuscript leans on it.
 
 ---
 
@@ -190,6 +233,8 @@ campaign before any regime-scorer change lands.
 | **Idle Ollama reads as "no GPU"** | `/api/ps` lists only *resident* models, so a pre-run check on an idle server reports no GPU every time | The manifest samples Ollama **after** the arms run |
 | **Ollama falls back to CPU** | After a CUDA fault it silently runs CPU-only: ~11 GB RAM, slower, more non-determinism, and **different outputs** | Check `curl -s localhost:11434/api/ps` → `size_vram` must be > 0. If 0: `sudo systemctl restart ollama` |
 | **Two variables at once** | A campaign that changes code *and* backend cannot attribute a regression | Change one thing per campaign |
+| **Reading a reproduced *rate* as a reproduced *result*** | The benign FPR re-ran to the same 2/60 but on **different cases** — 041 stopped firing, 055 started. Two changes cancelled | Compare case identities, not just totals. Run-to-run variation is ±2–3 in 60 on this hardware, so a one-case difference is below resolution |
+| **A stale probe corpus** | An offline re-score under an edited probe prompt reports confidently about code that no longer exists | `probe_corpus` hashes every probe prompt and `rescore` **refuses** to report; `--allow-stale` prints the reasons and is never silent |
 | **Kaggle credentials** | Needs a **legacy 32-hex key** (Settings → API → Create New Token). The "API Tokens" page issues a longer token CLI 1.7.4.5 cannot use — and 1.7.4.5 is the newest on PyPI | `python3 evaluation/kaggle/test_credentials.py` |
 | **`kaggle.json`** | Holds a live key in plaintext in the repo root | Already git-ignored — keep it that way |
 
@@ -318,4 +363,4 @@ Phase 7 results and their provenance: `logs/benchmark/benchmark.json`,
 
 ---
 
-*Handover written 26 July 2026, 21:36 PKT. Nothing committed since `20baf08`.*
+*Handover updated 9 August 2026. Last commit `d5d7742`; the §2f severity-function work is uncommitted at time of writing.*

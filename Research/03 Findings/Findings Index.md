@@ -53,6 +53,20 @@ first-class** — several of them are the contribution.
   address-free (93.3% detected where it fires, **10.0%** where it cannot). Phase 11's
   `static_only` zero **replicates externally** — 0 of 60
 
+## Phase 13 — the severity function
+
+- 🟡 [[The Scorer Had One Harm Class]] — the address-free gap was **not a
+  threshold**: the probe transcribes those injections correctly and `_HIGH_KW`
+  has no word for them. A grounded verb+resource class takes the address-free
+  stratum **13.3% → 90.0%** (23/0, p = 0.0000) with no measurable FPR change —
+  but the figure is **in-sample** and the default is still off
+- ✅ [[Recorded Probe Output Makes Scorer Changes Cheap]] — a scorer candidate
+  went from a **1.5-hour campaign** to seconds, because the probe never consults
+  the scorer. Verdict agreement **15/15** vs Phase 12, **58/60** vs the campaign
+- ⚠️ [[The Benign FPR Has a Noise Floor Its Own Size]] — the committed **3.3%**
+  reproduces as a *rate* but not as the same two cases. Run-to-run variation is
+  ±2–3 in 60, the same size as the effects being compared
+
 ## Phase 11 — the per-component matrix
 
 - ✅ [[Phase 11 — Only Two Layers Do Anything]] — **3B stops attacks (18/0,

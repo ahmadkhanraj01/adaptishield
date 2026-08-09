@@ -41,6 +41,9 @@ The chronological spine. **Two volumes**, and the split is deliberate.
 | XVI | 8 Aug 2026 | [[Entry XVI — What the Instrument Was Hiding]] |
 | XVII | 8 Aug 2026 (later) | [[Entry XVII — The Baseline That Scored Its Own Refusals]] |
 | XVIII | 8 Aug 2026 (later still) | [[Entry XVIII — Measuring a Defect Instead of Fixing It]] |
+| XIX | 8 Aug 2026, evening | *Phase 11 — only two layers do anything* (Volume II only) |
+| XX | 9 Aug 2026 | *Phase 12 — detection is 18% on someone else's attacks* (Volume II only) |
+| XXI | 9 Aug 2026, later | [[Entry XXI — The Scorer Had One Word For Harm]] |
 
 ## The arc, in one paragraph
 

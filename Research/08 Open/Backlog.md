@@ -42,7 +42,36 @@ single-repeat at n=30.
 → then Phase 13 (manuscript). 🔵 Still blocked on the **journal decision**, which
 sets how much Phase 13 must produce.
 
-## 1 — The severity function 🔴 **NOW THE CRITICAL PATH**
+## 1 — The severity function 🟡 **MEASURED OFFLINE, NOT LANDED**
+
+**9 Aug 2026.** The item was misnamed: it is not a threshold, it is a harm
+taxonomy with one class → [[The Scorer Had One Harm Class]]. A grounded
+verb+resource class takes the address-free stratum **13.3% → 90.0%** (23 helped /
+0 hurt, exact p = 0.0000), leaves the target-match stratum untouched, and shows
+**no measurable** FPR change (2/60 → 3/60, p = 1.00). Projected on the 51/459
+population: **21.7% → 90.7%**.
+
+Three things before this can land, in order:
+
+1. 🔴 **A holdout.** The 30 drawn cases carry 26 of the 27 distinct injections and
+   the lexicon was written after reading all 27 — the detection figure is
+   **in-sample**. [[AgentDojo]]'s injection tasks are the candidate and would
+   discharge item 7 below at the same time. (InjecAgent's data-stealing split is
+   a weak holdout here: its harm is data movement, which the old scorer already
+   handles.)
+2. **Rules §2's gen-2 campaign re-measurement**, since this touches the regime
+   scorer. `capability_scoring` defaults to `False` until then, so every
+   committed number still reproduces.
+3. **Repeats on the benign cohort**, because a single run cannot resolve a
+   one-case difference → [[The Benign FPR Has a Noise Floor Its Own Size]].
+
+⚠️ Do **not** drop `reset`/`password` from the lexicon to erase its one false
+positive. It would cost nothing measurable on the attack side, which is what
+makes it tempting — and it would fit the lexicon to the [[FPR]] cohort of record.
+
+*Original framing, kept because the diagnosis is the finding:*
+
+## 1b — The severity function, as it was described
 
 All **4** residual campaign misses are `masked = 0` → [[Residual Misses Decomposed]].
 Phase 7 confirms this independently: **all 3** of the `full` arm's residual attack
@@ -99,7 +128,7 @@ The gate *detects* [[Inert Blocked Patterns]]; it does not make them fire.
 Whether [[3A Policy Engine]] should match mediator markers, or
 [[3D Adaptive Threat Model]] should harvest from proposed actions, is **undecided**.
 
-## 7 — Externally-authored *malicious* data
+## 7 — Externally-authored *malicious* data 🔴 **now also gates item 1**
 
 The benign side was fixed by importing [[AgentDojo]]. The attack side has no
 equivalent import, so [[6n — A Corpus That Can Fail]]'s central lesson is only

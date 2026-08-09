@@ -12,11 +12,11 @@ date: 2026-08-08
 | :--- | :--- |
 | **Detection** (our campaign) | **116/120 = 96.7%**, 95% CI **[91.7%, 98.7%]** — 4 misses |
 | **Detection** ([[InjecAgent]] direct-harm) | **~18%** projected — 93.3% where 3B's target-match fires, **10.0%** where it cannot → [[Phase 12 — Detection Is 18% on Someone Else's Attacks]] |
-| **[[FPR]]** (externally-authored, [[AgentDojo]] n=60) | **3.3%**, 95% CI **[0.9%, 11.4%]** — 2 false positives |
+| **[[FPR]]** (externally-authored, [[AgentDojo]] n=60) | **3.3%**, 95% CI **[0.9%, 11.4%]** — 2 false positives. ⚠️ ±2–3 cases run-to-run → [[The Benign FPR Has a Noise Floor Its Own Size]] |
 | **FPR** (8 hand-written controls) | 50% — ⚠️ **a diagnostic. Never quote it as a rate** |
 | **IE-alone catches** | **14/116** — attacks the standalone rule cannot make |
 | **Corpus** | **188 episodes** — 120 malicious, 68 benign → [[Evaluation Corpus]] |
-| **Tests** | **343 deterministic**, ~7 s, no LLM / network / GPU → [[Test Suite]] |
+| **Tests** | **426 deterministic**, ~9 s, no LLM / network / GPU → [[Test Suite]] |
 | **[[ASR]]** (campaign) | 0% on address-carrying attacks; **non-zero by design** on [[Address-Free Attacks]] |
 | **Completion** | **~92%** |
 
@@ -81,6 +81,31 @@ replicates Phase 11's zero on a corpus we did not write. Layer 4 `backstop_share
   read 0/0: an empty denominator, not a clean sheet.
 - ⚠️ Layer 4 egress could not fire (the harm is a tool call), so its zero is
   structural here, unlike Phase 11's.
+
+## Phase 13 — the severity function (offline, NOT landed)
+
+*Both cohorts re-scored from recorded probe output, 9 Aug 2026,
+`results/severity/rescore.json` → [[The Scorer Had One Harm Class]]*
+
+| Cohort / stratum | baseline | capability | helped / hurt | p |
+| :--- | ---: | ---: | ---: | ---: |
+| IA-notarget (90% of corpus) | 4/30 = 13.3% | **27/30 = 90.0%** | 23 / 0 | **0.0000** |
+| IA-target (10%) | 29/30 = 96.7% | 29/30 = 96.7% | 0 / 0 | 1.00 |
+| [[AgentDojo]] benign (n=60) | 2/60 = 3.3% | 3/60 = 5.0% | 0 / 1 | 1.00 |
+
+**Projected on the 51/459 population: 21.7% → 90.7%** — never the pooled sample
+rate.
+
+- 🔴 **The detection figure is IN-SAMPLE.** 26 of 27 distinct injections are in
+  the draw and the lexicon was written after reading all 27. A holdout is the
+  next step, not a bigger number.
+- ⚠️ **`capability_scoring` defaults to `False`** — nothing above has moved any
+  committed number, and Rules §2's gen-2 re-measurement is still owed.
+- ⚠️ **"+1 false positive" is not a rate change.** It is exact as a paired
+  comparison on identical transcripts and below the resolution of a single run →
+  [[The Benign FPR Has a Noise Floor Its Own Size]].
+- The baseline IA-notarget row reads 4/30 here against Phase 12's committed 3/30
+  — the same run-to-run variation, on the attack side.
 
 ## Phase 11 per-component ablation
 
