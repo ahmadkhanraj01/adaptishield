@@ -11,8 +11,10 @@ date: 2026-08-09
 / 0 hurt, exact p = 0.0000, with no measurable change in false positives.**
 Measured offline on recorded probe output, `results/severity/rescore.json`.
 
-🔴 **The detection number is in-sample.** See [[#Why this number is a development
-figure]] before quoting it anywhere.
+🔴 **The detection number is in-sample, and the holdout has since come in at
+43.3%** → [[The Lexicon Generalises About Half]]. **Quote that note, not this
+one.** What survives here is the diagnosis — the gap was a harm taxonomy, not a
+threshold — and the instrument. The 90.0% is an artifact of fitting.
 
 ## What was actually broken — not what [[Backlog]] item 1 said
 

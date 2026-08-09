@@ -55,6 +55,10 @@ first-class** — several of them are the contribution.
 
 ## Phase 13 — the severity function
 
+- 🔴 [[The Lexicon Generalises About Half]] — the **holdout**. In-sample 90.0%,
+  holdout **43.3%** [27.4%, 60.8%], 4 helped / 0 hurt, p = 0.125. Intervals do not
+  overlap: the in-sample figure overstated generalization by ~47 points. Also
+  found a **schemeless-URL gap** in `_extract_suspicious_targets`
 - 🟡 [[The Scorer Had One Harm Class]] — the address-free gap was **not a
   threshold**: the probe transcribes those injections correctly and `_HIGH_KW`
   has no word for them. A grounded verb+resource class takes the address-free

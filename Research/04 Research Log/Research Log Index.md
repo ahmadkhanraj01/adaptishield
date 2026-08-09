@@ -44,6 +44,7 @@ The chronological spine. **Two volumes**, and the split is deliberate.
 | XIX | 8 Aug 2026, evening | *Phase 11 — only two layers do anything* (Volume II only) |
 | XX | 9 Aug 2026 | *Phase 12 — detection is 18% on someone else's attacks* (Volume II only) |
 | XXI | 9 Aug 2026, later | [[Entry XXI — The Scorer Had One Word For Harm]] |
+| XXII | 9 Aug 2026, later still | *The holdout — ninety per cent becomes forty-three* (Volume II) |
 
 ## The arc, in one paragraph
 

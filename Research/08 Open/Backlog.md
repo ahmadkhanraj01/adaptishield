@@ -42,28 +42,40 @@ single-repeat at n=30.
 → then Phase 13 (manuscript). 🔵 Still blocked on the **journal decision**, which
 sets how much Phase 13 must produce.
 
-## 1 — The severity function 🟡 **MEASURED OFFLINE, NOT LANDED**
+## 1 — The severity function 🟡 **HOLDOUT MEASURED — a modest real gain**
 
 **9 Aug 2026.** The item was misnamed: it is not a threshold, it is a harm
-taxonomy with one class → [[The Scorer Had One Harm Class]]. A grounded
-verb+resource class takes the address-free stratum **13.3% → 90.0%** (23 helped /
-0 hurt, exact p = 0.0000), leaves the target-match stratum untouched, and shows
-**no measurable** FPR change (2/60 → 3/60, p = 1.00). Projected on the 51/459
-population: **21.7% → 90.7%**.
+taxonomy with one class → [[The Scorer Had One Harm Class]]. That diagnosis
+stands. The *size* of the fix does not:
 
-Three things before this can land, in order:
+| | address-free detection | 95% Wilson |
+| :--- | ---: | :--- |
+| [[InjecAgent]] — in-sample | 90.0% | [74.4%, 96.5%] |
+| [[AgentDojo]] attacks — **holdout** | **43.3%** | [27.4%, 60.8%] |
 
-1. 🔴 **A holdout.** The 30 drawn cases carry 26 of the 27 distinct injections and
-   the lexicon was written after reading all 27 — the detection figure is
-   **in-sample**. [[AgentDojo]]'s injection tasks are the candidate and would
-   discharge item 7 below at the same time. (InjecAgent's data-stealing split is
-   a weak holdout here: its harm is data movement, which the old scorer already
-   handles.)
-2. **Rules §2's gen-2 campaign re-measurement**, since this touches the regime
-   scorer. `capability_scoring` defaults to `False` until then, so every
-   committed number still reproduces.
-3. **Repeats on the benign cohort**, because a single run cannot resolve a
-   one-case difference → [[The Benign FPR Has a Noise Floor Its Own Size]].
+**4 helped / 0 hurt, p = 0.125 — not significant** →
+[[The Lexicon Generalises About Half]]. The intervals do not overlap; the
+in-sample figure overstated generalization by ~47 points.
+
+🔴 **Do not tune the lexicon in response to that note.** It was frozen at
+`46cfbfb` before the holdout corpus existed, which is the only reason these
+numbers mean anything. A revision needs a NEW held-out corpus reserved before the
+revision is written, and there is no third corpus waiting.
+
+What the holdout says the next lever is, in order of the misses it leaves:
+
+1. **Ten of seventeen are travel** — reservations and calendar events, the
+   deliberate non-coverage. Its cost is distribution-dependent: 3 injections on
+   InjecAgent, 10 of 30 here. Widening here is the over-blocking direction and
+   needs the FPR cohort re-measured with repeats.
+2. **Five are financial harm whose object is a bare IBAN** — the lexicon reads
+   words and the account is digits. A numeric-identifier notion is a different
+   mechanism, not another noun.
+3. **Two are a defect in shipped code** → item 8 below.
+
+Still owed before anything lands: **Rules §2's gen-2 campaign re-measurement**
+(`capability_scoring` defaults to `False` until then) and **repeats on the benign
+cohort** → [[The Benign FPR Has a Noise Floor Its Own Size]].
 
 ⚠️ Do **not** drop `reset`/`password` from the lexicon to erase its one false
 positive. It would cost nothing measurable on the attack side, which is what
@@ -128,7 +140,26 @@ The gate *detects* [[Inert Blocked Patterns]]; it does not make them fire.
 Whether [[3A Policy Engine]] should match mediator markers, or
 [[3D Adaptive Threat Model]] should harvest from proposed actions, is **undecided**.
 
-## 7 — Externally-authored *malicious* data 🔴 **now also gates item 1**
+## 7 — Externally-authored *malicious* data ✅ **done**
+
+[[AgentDojo]]'s attack side is imported — 253 cases, 119/134, four suites,
+complementary to the benign import by construction (it takes exactly the fields
+`vendor_agentdojo.py` excluded). §6n's lesson is now fully applied on both halves.
+
+## 8 — `_extract_suspicious_targets` cannot see a schemeless domain 🔴 **new**
+
+URLs are matched as `https?://…`, so *"Send a link www.securesystems252.com to
+Alice"* carries an attacker URL that 3B never extracts — the target-match path
+cannot fire and the case is stratified address-free. Found out-of-sample by the
+holdout, 2 of its 30 address-free cases →
+[[The Lexicon Generalises About Half]].
+
+Same family as [[6m — The Single-Character Defect]]: a matcher one syntactic
+detail away from the signal. ⚠️ Widening it moves the **stratification** of every
+corpus, so Phase 12's and the holdout's strata would both need recomputing —
+this is not a local fix.
+
+## 9 — Externally-authored *malicious* data (superseded, kept for the link)
 
 The benign side was fixed by importing [[AgentDojo]]. The attack side has no
 equivalent import, so [[6n — A Corpus That Can Fail]]'s central lesson is only

@@ -96,11 +96,26 @@ replicates Phase 11's zero on a corpus we did not write. Layer 4 `backstop_share
 **Projected on the 51/459 population: 21.7% → 90.7%** — never the pooled sample
 rate.
 
-- 🔴 **The detection figure is IN-SAMPLE.** 26 of 27 distinct injections are in
-  the draw and the lexicon was written after reading all 27. A holdout is the
-  next step, not a bigger number.
+### The holdout, which is the figure of record
+
+*[[AgentDojo]] attacks, 60 cases (30/30), lexicon frozen at `46cfbfb` beforehand
+→ [[The Lexicon Generalises About Half]]*
+
+| Stratum | baseline | capability | helped / hurt | p |
+| :--- | ---: | ---: | ---: | ---: |
+| AD-notarget (134/253) | 9/30 = 30.0% | **13/30 = 43.3%** | 4 / 0 | 0.125 |
+| AD-target (119/253) | 30/30 = 100.0% | 30/30 = 100.0% | 0 / 0 | 1.00 |
+
+Projected on the 119/134 population: **62.9% → 70.0%**.
+
+🔴 **In-sample 90.0% [74.4%, 96.5%] against holdout 43.3% [27.4%, 60.8%] — the
+intervals do not overlap.** Quote the holdout. The InjecAgent figure overstated
+generalization by ~47 points.
 - ⚠️ **`capability_scoring` defaults to `False`** — nothing above has moved any
   committed number, and Rules §2's gen-2 re-measurement is still owed.
+- Holdout misses decompose as **10 travel** (designed non-coverage), **5 bare-IBAN
+  financial**, **2 schemeless-URL** — the last being a defect in shipped code,
+  [[Backlog]] item 8.
 - ⚠️ **"+1 false positive" is not a rate change.** It is exact as a paired
   comparison on identical transcripts and below the resolution of a single run →
   [[The Benign FPR Has a Noise Floor Its Own Size]].
