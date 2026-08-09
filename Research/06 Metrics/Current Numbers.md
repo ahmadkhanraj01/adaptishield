@@ -16,7 +16,7 @@ date: 2026-08-08
 | **FPR** (8 hand-written controls) | 50% — ⚠️ **a diagnostic. Never quote it as a rate** |
 | **IE-alone catches** | **14/116** — attacks the standalone rule cannot make |
 | **Corpus** | **188 episodes** — 120 malicious, 68 benign → [[Evaluation Corpus]] |
-| **Tests** | **426 deterministic**, ~9 s, no LLM / network / GPU → [[Test Suite]] |
+| **Tests** | **452 deterministic**, ~9 s, no LLM / network / GPU → [[Test Suite]] |
 | **[[ASR]]** (campaign) | 0% on address-carrying attacks; **non-zero by design** on [[Address-Free Attacks]] |
 | **Completion** | **~92%** |
 
@@ -114,8 +114,22 @@ generalization by ~47 points.
 - ⚠️ **`capability_scoring` defaults to `False`** — nothing above has moved any
   committed number, and Rules §2's gen-2 re-measurement is still owed.
 - Holdout misses decompose as **10 travel** (designed non-coverage), **5 bare-IBAN
-  financial**, **2 schemeless-URL** — the last being a defect in shipped code,
-  [[Backlog]] item 8.
+  financial**, **2 schemeless-URL**. The last was a real defect and is now fixed
+  behind `schemeless_targets` — and left **off**, because it buys 2 detections for
+  **3 false positives** → [[The Schemeless URL Fix Costs More Than It Buys]].
+
+### All four arms, one recording each
+
+| Arm | IA-notarget | AD-notarget (holdout) | Benign [[FPR]] |
+| :--- | ---: | ---: | ---: |
+| `baseline` | 13.3% | 30.0% | 3.3% |
+| `capability` | **90.0%** | 43.3% | 5.0% |
+| `schemeless` | 26.7% | 36.7% | **8.3%** |
+| `both` | 90.0% | **50.0%** (p = 0.031) | **10.0%** |
+
+⚠️ `both` is the only arm significant on held-out attacks, and it triples the
+false-positive rate to do it — with significance leaning on the in-sample
+`schemeless` component. Not a result to bank.
 - ⚠️ **"+1 false positive" is not a rate change.** It is exact as a paired
   comparison on identical transcripts and below the resolution of a single run →
   [[The Benign FPR Has a Noise Floor Its Own Size]].

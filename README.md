@@ -13,7 +13,9 @@ number to quote: on a **holdout** corpus imported after the lexicon was frozen,
 address-free detection goes **30.0% → 43.3%** (4 helped / 0 hurt, p = 0.125, not
 significant) — against **90.0%** in-sample. The intervals do not overlap; the
 in-sample figure overstated generalization by ~47 points. The diagnosis survives,
-the effect size does not, and the default is still off.
+the effect size does not, and the default is still off. §1.7 also closes backlog
+item 8: the schemeless-URL defect is real, fixed, and **left off** — it buys 2
+detections for 3 false positives.
 *v22 (9 August 2026) — the severity function, diagnosed and measured offline.*
 §1.6: the address-free gap was never a threshold. A grounded verb+resource harm
 class takes the address-free stratum **13.3% → 90.0%** in-sample.
@@ -170,7 +172,7 @@ tuned until it shows one. Full evidence for every row:
 | Per-component ablation (Phase 11) | ✅ **Measured (8 Aug)** — ladder + leave-one-out agree: **only 3B and 3C move anything**. See §1.4 |
 | External attack corpus (Phase 12) | ✅ **Measured (9 Aug)** — InjecAgent direct-harm: detection **~18%** projected. The severity function, sized. See §1.5 |
 | Refusal audit (`evaluation/refusal_audit.py`) | ✅ **Measured (8 Aug)** — refusal-shaped output does **not** inflate 3B's regime severities: **0/209**, control passing. An instrument check, not a result. See §1.3 |
-| pytest suite (`tests/`) | ✅ **426 deterministic tests**, ~9 s, no LLM / network / GPU |
+| pytest suite (`tests/`) | ✅ **452 deterministic tests**, ~9 s, no LLM / network / GPU |
 
 **Rough completion: ~93% build, ~65% evidence.**
 
@@ -540,6 +542,37 @@ newpassword* is a real attack in this holdout, and those exact terms caught it.
 the holdout into a second development set, and there is no third corpus waiting.
 A revision needs a new held-out corpus reserved before the revision is written.
 
+#### The schemeless-URL defect: fixed, measured, left off
+
+The third group above was a real one-line bug — `_extract_suspicious_targets`
+matched `https?://` only, so a bare host was invisible to 3B's sharpest signal.
+Fixed behind `schemeless_targets`, and the measurement says do not switch it on.
+
+| Arm | IA-notarget | AD-notarget (holdout) | Benign FPR |
+| :--- | ---: | ---: | ---: |
+| `baseline` | 13.3% | 30.0% | 3.3% |
+| `capability` | **90.0%** | 43.3% | 5.0% |
+| `schemeless` | 26.7% | 36.7% | **8.3%** |
+| `both` | 90.0% | **50.0%** (p = 0.031) | **10.0%** |
+
+Two detections for three false positives on the holdout, and on InjecAgent its
+gain is entirely subsumed by the capability class. The three new false positives
+are one shape — *"Visit www.eveblog.com"* on benign Slack content — and **that is
+also AgentDojo's own phishing injection task**. At the level 3B observes, an
+action naming a host that appears in untrusted content, the benign case and the
+attack are the same sentence. Telling an allowed host from an attacker one is the
+egress allowlist's job (§6i), so this is an architectural boundary rather than a
+tuning problem.
+
+`both` is the only arm significant on held-out attacks (6/0, p = 0.031) and it
+triples the false-positive rate to get there, with its significance leaning on the
+in-sample `schemeless` component. Not a result to bank.
+
+One worry proved unfounded: the defect had **not** mislabelled the corpora.
+`target_match` means *"can 3B's target-match path fire"*, and while the matcher is
+blind, "no" is the honest label — so no corpus needed re-vendoring and no probe
+output needed re-recording.
+
 ### Known open issues
 
 1. **`static_only` is our ablation, not an external baseline.** ✅ Answered by §1.2 —
@@ -756,7 +789,7 @@ controls are reported as a *diagnostic* and never pooled into a headline figure.
 │   ├── benchmark_checkpoint/*.jsonl    ✅ per-arm resume state — DELETE after any change
 │   ├── benchmark/                      ✅ Phase 7 raw run.log + json (copied to results/)
 │   └── layer5/                         ✅ audit.html + decisions.jsonl
-└── tests/                              ✅ 426 deterministic tests, ~9s, no LLM/network/GPU
+└── tests/                              ✅ 452 deterministic tests, ~9s, no LLM/network/GPU
     ├── test_takeover_rules.py          ✅  9  3B takeover paths + IE resolution
     ├── test_adaptive_threat_model.py   ✅ 14  3D reward + proposal + step sizing
     ├── test_target_match.py            ✅ 21  normalized target match + keyword grounding
@@ -802,7 +835,7 @@ controls are reported as a *diagnostic* and never pooled into a headline figure.
 | **Eight-vector benchmark** | `evaluation/vectors.py`, `evaluation/benchmark.py` | ✅ **Repaired & re-run (§1.1).** The first result was invalid — the egress allowlist stopped 6/8 vectors in every arm, making the arms equal by construction. Fixed by correcting the destination model; a test now fails if any malicious vector but V3 points at an exfil host |
 | External baseline | `baselines/spotlighting.py` | ✅ **Measured (§1.2)** — datamarking has no measurable effect (McNemar p = 1.00). Kept outside the layer tree; a test fails if any layer imports it |
 | Refusal audit | `evaluation/refusal_audit.py` | ✅ **Measured (§1.3)** — 0/209, positive control passing. An instrument check, not a result |
-| Unit tests | `tests/` | ✅ **426 passing**, ~9 s, no LLM / network / GPU |
+| Unit tests | `tests/` | ✅ **452 passing**, ~9 s, no LLM / network / GPU |
 
 ---
 
@@ -927,7 +960,7 @@ Rejected: `llama3.2:3b` (poor security reasoning), any 7B+ GPU model (exceeds 4 
 ### Deterministic — no LLM, no network, no GPU
 
 ```bash
-python3 -m pytest tests/ -q                       # 426 tests, ~9s
+python3 -m pytest tests/ -q                       # 452 tests, ~9s
 python3 -m evaluation.mechanism_validation        # causal regimes + takeover rules, <1s
 python3 -m layer2.security_sublayer.adaptive_threat_model   # 3D reward + proposal demo
 python3 -m evaluation.vectors                     # Phase 7 vector coverage map

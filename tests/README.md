@@ -1,9 +1,9 @@
 # tests — Automated Test Suite
 
-**Status:** ✅ **426 tests passing**, ~9 s, no LLM / no network / no GPU
+**Status:** ✅ **452 tests passing**, ~9 s, no LLM / no network / no GPU
 
 ```bash
-python3 -m pytest tests/ -q          # 426 passed in ~9s
+python3 -m pytest tests/ -q          # 452 passed in ~9s
 python3 -m pytest tests/test_layer5.py -v
 ```
 
@@ -26,7 +26,7 @@ python3 -m pytest tests/test_layer5.py -v
 | `test_negation_scoring.py` | Negation handling for agent-chosen actions: refusals naming the address are not steering, clause-scoped so `"do not reply … instead bcc X"` still scores 2, monotone, and **3B's regime scorer is untouched** | 24 |
 | `test_refusal_audit.py` | The regime-scorer refusal exposure **asserted as it currently is**, the semantic path's asymmetry, and the audit that measured the defect absent — its parsers, its guards, and its positive control | 35 |
 | `test_paired.py` | McNemar (exact + asymptotic-unusable flag), the ladder's adjacent-rung logic, the **outcome polarity** at both the statistic and the extraction step, and the Phase 11 arms: each rung adds exactly one component, in pipeline order | 52 |
-| `test_capability_scoring.py` | The capability-misuse harm class: that the default is **off** (every committed number depends on it), that each class fires on verbatim recorded InjecAgent probe output, that §6o's grounding still gates it, and — the point of the conjunction — that verbatim recorded **benign** probe output does not escalate. Its three deliberate misses are pinned so a later widening must delete the reason. | 61 |
+| `test_capability_scoring.py` | The capability-misuse harm class **and** the gated schemeless-host matcher (backlog item 8), including the measured false-positive shape that keeps it off: that the default is **off** (every committed number depends on it), that each class fires on verbatim recorded InjecAgent probe output, that §6o's grounding still gates it, and — the point of the conjunction — that verbatim recorded **benign** probe output does not escalate. Its three deliberate misses are pinned so a later widening must delete the reason. | 61 |
 | `test_probe_corpus.py` | The offline instrument: that a stale corpus is **refused** rather than reported, that prompt fingerprints ignore comments but catch an edited prompt string, that `rescore` calls the shipped `_decide_takeover` (asserted by interception, not by matching numbers), that sanitized regimes are scored against the **sanitized** text, and that the projection declines to pool. | 22 |
 | `test_injecagent.py` | Phase 12's external corpus: provenance and exclusions, the stratum computed by **3B's own predicate** (not a regex resembling it), the sampler's determinism and spread, and the two ways Layer 4 could absorb all 60 cases | 33 |
 | `__init__.py` | Package marker | — |

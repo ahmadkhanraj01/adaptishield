@@ -54,8 +54,15 @@ DEFAULT_JSON = os.path.join(REPO, "results", "severity", "rescore.json")
 # The two arms. `baseline` is every committed number in the project; `capability`
 # is the candidate. Both run the identical code path apart from the one flag.
 ARMS = {
-    "baseline": dict(capability_scoring=False),
-    "capability": dict(capability_scoring=True),
+    "baseline": dict(capability_scoring=False, schemeless_targets=False),
+    "capability": dict(capability_scoring=True, schemeless_targets=False),
+    # Backlog item 8. Kept as its own arm rather than folded into `capability`
+    # because the two change different things: the harm class widens what counts
+    # as a high-impact ACTION, while this widens what counts as a TARGET — and
+    # the target predicate is also the stratification, so a combined arm would
+    # confound a detection gain with a re-labelling of the strata.
+    "schemeless": dict(capability_scoring=False, schemeless_targets=True),
+    "both": dict(capability_scoring=True, schemeless_targets=True),
 }
 
 
@@ -175,19 +182,26 @@ def compare(payload: dict) -> dict:
     """Both arms over one cohort, plus the paired test per family."""
     arms = {arm: run_arm(payload, arm) for arm in ARMS}
 
+    def correct(results, family):
+        # "Correct" is detection on attacks and NOT flagging on benign, so the
+        # sign is right for both cohorts. `mcnemar` requires this polarity
+        # explicitly and cannot detect an inverted input.
+        return {cid: (d["takeover"] if d["expected_malicious"]
+                      else not d["takeover"])
+                for cid, d in results.items() if d["family"] == family}
+
     paired = []
     for family in sorted({d["family"] for d in arms["baseline"].values()}):
-        def correct(results):
-            # "Correct" is detection on attacks and NOT flagging on benign, so
-            # the sign is right for both cohorts. `mcnemar` requires this
-            # polarity explicitly and cannot detect an inverted input.
-            return {cid: (d["takeover"] if d["expected_malicious"]
-                          else not d["takeover"])
-                    for cid, d in results.items() if d["family"] == family}
-
-        test = mcnemar(correct(arms["baseline"]), correct(arms["capability"]),
-                       "baseline", "capability")
-        paired.append({"family": family, **test.to_dict()})
+        # Every arm against baseline, never against each other: these are
+        # nested changes measured on one recording, and a chain of pairwise
+        # tests between them would invite reading a difference of differences
+        # that no single comparison supports.
+        for arm in ARMS:
+            if arm == "baseline":
+                continue
+            test = mcnemar(correct(arms["baseline"], family),
+                           correct(arms[arm], family), "baseline", arm)
+            paired.append({"family": family, "arm": arm, **test.to_dict()})
 
     rows = {arm: _rate_rows(results) for arm, results in arms.items()}
 
@@ -199,11 +213,10 @@ def compare(payload: dict) -> dict:
         "per_case": {
             cid: {
                 "family": arms["baseline"][cid]["family"],
-                "baseline": arms["baseline"][cid]["takeover"],
-                "capability": arms["capability"][cid]["takeover"],
                 "capability_class": arms["capability"][cid]["capability_class"],
-                "masked_baseline": arms["baseline"][cid]["masked_severity"],
-                "masked_capability": arms["capability"][cid]["masked_severity"],
+                **{arm: arms[arm][cid]["takeover"] for arm in ARMS},
+                **{f"masked_{arm}": arms[arm][cid]["masked_severity"]
+                   for arm in ARMS},
             }
             for cid in arms["baseline"]
         },
@@ -275,10 +288,11 @@ def report(results: Dict[str, dict]) -> None:
                       f"{projected['rate']:>13.1%}   "
                       f"({pop['with_target']}/{pop['with_target'] + pop['without_target']}"
                       f" target-match; NOT the pooled sample rate)")
-        print("\n  paired (baseline -> capability)")
+        print("\n  paired (baseline -> arm)")
         for row in result["paired"]:
-            print(f"    {row['family']:<16} helped {row['helped']:>3}  "
-                  f"hurt {row['hurt']:>3}  discordant {row['discordant']:>3}  "
+            print(f"    {row['family']:<16} {row['arm']:<12} "
+                  f"helped {row['helped']:>3}  hurt {row['hurt']:>3}  "
+                  f"discordant {row['discordant']:>3}  "
                   f"p_exact = {row['p_exact']:.4f}")
 
 

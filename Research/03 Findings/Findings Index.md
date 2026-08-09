@@ -55,6 +55,11 @@ first-class** — several of them are the contribution.
 
 ## Phase 13 — the severity function
 
+- ⚠️ [[The Schemeless URL Fix Costs More Than It Buys]] — a real one-line defect
+  (`https?://` only, so a bare host is invisible), fixed and left **off**: **+2
+  detections for +3 false positives** on the holdout, FPR 3.3% → 8.3%. All three
+  FPs are *"visit www.X.com"*, which is also AgentDojo's own phishing injection —
+  the [[3B Layer 4 Boundary]], not a tuning problem
 - 🔴 [[The Lexicon Generalises About Half]] — the **holdout**. In-sample 90.0%,
   holdout **43.3%** [27.4%, 60.8%], 4 helped / 0 hurt, p = 0.125. Intervals do not
   overlap: the in-sample figure overstated generalization by ~47 points. Also
