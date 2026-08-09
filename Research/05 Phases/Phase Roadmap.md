@@ -5,7 +5,7 @@ type: hub
 
 # Phase Roadmap
 
-*Last updated in the repo: 2026-07-26. Rough completion: **~90%**.*
+*Last updated in the repo: 2026-08-09. Rough completion: **~93% build, ~70% evidence**.*
 
 | Phase | Scope | State |
 | :--- | :--- | :--- |
@@ -22,7 +22,12 @@ type: hub
 | **6d** | Joint GRPO action space + propose-and-verify | ✅ Done — the one gain was a **corpus artifact** |
 | **7** | Eight-vector benchmark | 🟡 **Built & run — first result withdrawn** → [[Phase 7 — Eight-Vector Benchmark]] |
 | **8** | [[Layer 5 — Human in the Loop]] | ✅ Done — found [[Inert Blocked Patterns]] on its first run |
-| **9** | Grow the pytest suite | 🟡 Ongoing → [[Test Suite]] |
+| **9** | Grow the pytest suite | 🟡 Ongoing — **452** tests → [[Test Suite]] |
+| **10** | External baseline (spotlighting) | ✅ Done — **no measurable effect** → [[Phase 10 — Spotlighting Has No Measurable Effect]] |
+| **11** | Per-component ablations | ✅ Done — **only two layers do anything** → [[Phase 11 — Only Two Layers Do Anything]] |
+| **12** | [[InjecAgent]] — external attacks | ✅ Done — detection **96.7% → ~18%** → [[Phase 12 — Detection Is 18% on Someone Else's Attacks]] |
+| **13** | The severity function | 🟡 Diagnosed + **held out**, not landed — in-sample 90.0%, holdout **43.3%** → [[The Lexicon Generalises About Half]] |
+| **14** | Manuscript + reproducibility artifact | 🔵 Blocked on the journal decision |
 
 ## The shape of the roadmap
 
@@ -36,5 +41,11 @@ tell us whether the thing worked."* → [[Instruments Fail More Than Mechanisms]
 
 ## What is actually left
 
-Phase 7's repair is the only blocking item → [[Next Task — Repair the Phase 7 Benchmark]].
-Everything else is in [[Backlog]].
+Phase 7's repair is ✅ done, and so are 10, 11 and 12. **Phase 13 is measured but
+not landed**: two scorer flags ship off, and landing either owes Rules §2's gen-2
+campaign re-measurement → [[Backlog]] item 1. Phase 14 (manuscript) is 🔵 blocked
+on the journal decision, which sets how much it must produce.
+
+The one methodological rule carried out of Phase 13: **any further lexicon revision
+needs a new held-out corpus reserved before the revision is written.** Both external
+attack corpora are now spent as measurement sets.

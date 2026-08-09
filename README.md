@@ -174,7 +174,7 @@ tuned until it shows one. Full evidence for every row:
 | Refusal audit (`evaluation/refusal_audit.py`) | ✅ **Measured (8 Aug)** — refusal-shaped output does **not** inflate 3B's regime severities: **0/209**, control passing. An instrument check, not a result. See §1.3 |
 | pytest suite (`tests/`) | ✅ **452 deterministic tests**, ~9 s, no LLM / network / GPU |
 
-**Rough completion: ~93% build, ~65% evidence.**
+**Rough completion: ~93% build, ~70% evidence.**
 
 ### 1.1 Phase 7 — the comparative claim, measured
 

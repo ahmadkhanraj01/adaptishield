@@ -17,8 +17,8 @@ finding and decision is one note, linked to the notes it depends on. Start here.
 ## Where it stands right now
 
 See [[Current Numbers]] for the live figures. In one line: **detection 96.7%
-(116/120), FPR 3.3% against externally-authored benign data, 343 deterministic
-tests, ~93% built / ~65% evidenced**, and the adaptive layer honestly proposes a
+(116/120), FPR 3.3% against externally-authored benign data, 452 deterministic
+tests, ~93% built / ~70% evidenced**, and the adaptive layer honestly proposes a
 **no-op**.
 
 **Phase 7 is done (8 Aug 2026)** — the comparative claim the thesis was framed

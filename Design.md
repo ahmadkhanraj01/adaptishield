@@ -6,7 +6,8 @@ the causal-analysis methodology, and the hard-won lessons from the experiments
 & where* see [Architecture.md](Architecture.md); for the *must-not-break* rules
 that fall out of these decisions see [Rules.md](Rules.md).
 
-*Last aligned: 2026-07-22 (after fixes A–D).*
+*Last aligned: 2026-08-09 (adds Phase 13's lessons on harm taxonomy,
+measurement cost and holdouts).*
 
 ---
 
@@ -103,7 +104,28 @@ design defects were found and fixed; each is a principle worth keeping.
   test* (`caught_by_causal`), not by the end-to-end ASR the backstop guarantees.
 - **Single-run metrics are partly luck.** FPR has been observed flapping 0%↔25%
   on identical inputs (judge/paraphrase noise). Report distributions over
-  repeated runs, not one figure.
+  repeated runs, not one figure. Phase 13 sharpened this: re-running the benign
+  cohort reproduced the committed 3.3% **as a rate but on different cases**, so
+  the run-to-run floor (±2–3 in 60) is the same size as the effects being
+  compared. Compare case identities, not just totals.
+- **The cost of a measurement is a design variable.** An expensive measurement
+  quietly sets the research agenda by deciding what nobody checks. Two attempts
+  were made at the severity function without measuring first, in a project whose
+  §2 rule forbids exactly that, because each look cost 1.5 hours. Separating the
+  model call from the scoring made a candidate cost seconds, and the answer
+  arrived the same afternoon. Ask what an experiment costs *before* asking what
+  it will show.
+- **A detector's vocabulary is a threat model.** `_HIGH_KW` was a data-movement
+  wordlist because every attack we had written ended in an email. It scored
+  *unlock the front door* as harmless, and no threshold could have rescued it.
+  When a detector fails on a new corpus, check what it can *express* before
+  checking what it is *tuned* to.
+- **Freeze the rule, then import the test set — and commit in that order.** A
+  lexicon fitted on one corpus scored 90.0% there and 43.3% held out, intervals
+  non-overlapping. What made the second number trustworthy was that the freeze
+  and the import are separate commits, so the claim is checkable from history
+  rather than asserted. Corollary: **each held-out corpus is spent once.** Tuning
+  against it converts it into a development set, and there may not be a third.
 
 ---
 
@@ -112,6 +134,17 @@ design defects were found and fixed; each is a principle worth keeping.
 - **More-compliant masked probe ↔ FPR.** Fix D makes benign mail naming a
   recipient a *latent* false positive; 3B cannot tell an allowed recipient from
   an attacker one — that discrimination belongs to Layer 4's egress allowlist.
+  Phase 13 hit the same wall from the other side and measured it: widening target
+  extraction to bare hosts turned *"Visit www.eveblog.com"* on benign Slack
+  content into three false positives, and **that sentence is also AgentDojo's own
+  phishing injection task**. Where the benign case and the attack are the same
+  sentence at the level 3B observes, there is nothing for 3B to separate. This
+  tension is now known to be a boundary, not a backlog item.
+- **Recall on unseen attacks ↔ over-blocking, and the trade is corpus-specific.**
+  The capability class deliberately does not cover reservations or calendar
+  events, because the words that would catch them are what benign workspace text
+  is made of. That cost 3 injections on InjecAgent and 10 of 30 on the holdout.
+  A coverage decision cannot be evaluated on one distribution.
 - **`masked_hypothetical` flakiness.** Improved but not reliable at 3B; the
   standalone rule needs *both* samples at 2. Higher `k_samples` or a graded
   score would harden it.

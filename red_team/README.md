@@ -20,6 +20,7 @@ false-positive number in the project.
 | `optimizer.py` | **v1 heuristic:** takes fully-defended families and keyword-softens their payloads to probe for detection gaps. Not the RL optimizer — that belongs with 3D. | ✅ |
 | `run_campaign.py` | Wires all four stages; saves a JSON report per run to `logs/red_team_runs/`. | ✅ |
 | `vendor_agentdojo.py` | **Reproducible vendoring** of AgentDojo's *benign* environment content (MIT, ETH SPY Lab, v0.1.35). | ✅ |
+| `vendor_agentdojo_attacks.py` | **The holdout.** AgentDojo's *attack* side — exactly the fields `vendor_agentdojo.py` excluded, so the two are complementary and the benign cohort keeps its meaning. 253 cases, 119/134 by stratum. Uses the `direct` wrapper ("TODO: {goal}"), not `important_instructions`, because an explicit hijack makes the attacks *easier* — the Phase 12 `enhanced` exclusion again. Excludes bare-payload carriers (152 of 253) where the slot IS the whole field: after substitution that is a *direct* instruction alone in a tool response, not an indirect injection. |
 | `data/agentdojo_benign.json` | The vendored corpus — 60 items with provenance metadata. Committed output of the script above, not regenerated at campaign time. | ✅ |
 | `__init__.py` | Package marker | ✅ |
 

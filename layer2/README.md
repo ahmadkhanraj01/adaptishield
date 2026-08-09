@@ -78,16 +78,17 @@ only because nothing in our own benign corpus triggered it.
 - **3C `ContextSanitizer.sanitize()`** still carries the prompt weakness 3B's
   internal sanitizer had (§6m). It feeds the user-visible safe continuation and
   the WCR metric, so it was left unchanged rather than altered silently.
-- **The severity function** — all 4 residual misses live there. §6e already
-  showed the semantic scorer is *worse end-to-end*, so this needs a third
-  approach, not a re-run of that one.
-- **Multi-turn sessions** — campaigns give every case a unique `session_id`, so
-  the temporal-drift rule never fires and two of 3D's five dimensions are
-  unidentifiable. The trainer reports this itself rather than learning a spurious
-  preference.
-- The general-purpose Planner / Tool Selector / Execution Agent / Feedback
-  Analyzer boxes in the architecture diagram exist today only as the simple
-  `planner_llm` calls inside the pipeline, not as standalone modules.
+- **The severity function** — diagnosed in Phase 13 and it was **not** a threshold.
+  The masked probe transcribes address-free injections correctly; `_HIGH_KW` is a
+  data-movement vocabulary with no word for *unlock a door* or *move money*, so the
+  score is 0 — below both takeover rules at once. A grounded verb+resource
+  **capability-misuse** class (`capability_scoring`, default **off**) takes the
+  InjecAgent address-free stratum 13.3% → 90.0%, but only 30.0% → 43.3% on a
+  held-out corpus (p = 0.125): the in-sample figure was fitting. A second flag,
+  `schemeless_targets` (also **off**), fixes a real blind spot in
+  `_extract_suspicious_targets` — `https?://` only, so bare hosts were invisible —
+  and is left off because it buys 2 detections for 3 false positives. Both default
+  off, so every committed number here reproduces.
 
 See [`security_sublayer/README.md`](security_sublayer/README.md) for the
 per-component detail.

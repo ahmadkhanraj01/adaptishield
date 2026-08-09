@@ -5,7 +5,7 @@ type: reference
 
 # Test Suite
 
-**343 deterministic tests, ~7 seconds, no LLM / network / GPU.**
+**452 deterministic tests, ~9 seconds, no LLM / network / GPU.**
 
 | File | n | Covers |
 | :--- | :--- | :--- |

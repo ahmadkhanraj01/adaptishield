@@ -1,8 +1,9 @@
 # AdaptiShield — Session Handover
 
-**Written:** 9 August 2026 (updated later the same day)
-**Last commit:** `d5d7742` (Phase 12), pushed to `origin/main`. The severity-function
-work of §2f is on disk at time of writing.
+**Written:** 9 August 2026 (updated through the evening)
+**Last commit:** `8185f71` (Phase 13). ⚠️ Four commits are **local and unpushed** —
+`46cfbfb`, `4d48efd`, `ef75f01`, `8185f71`. `d5d7742` (Phase 12) is the last one on
+`origin/main`.
 **Read this first, then [README.md](README.md) §0 for what the research is.**
 
 ---
@@ -23,7 +24,7 @@ work of §2f is on disk at time of writing.
 | **Corpus** | 188 campaign episodes + 18 benchmark vectors |
 | **Tests** | **452 deterministic**, ~9 s, no LLM / network / GPU |
 | 🟡 **Severity function (offline, not landed)** | in-sample **13.3% → 90.0%**; **holdout 30.0% → 43.3%** (4/0, p = 0.125, not significant). Quote the holdout — see §2f |
-| **Completion** | ~93% build, ~65% evidence |
+| **Completion** | ~93% build, **~70% evidence** |
 
 The 4 residual campaign misses are all `masked = 0` — **severity-function
 failures**, and **none is reachable by the threshold 3D controls.** That is the
@@ -348,27 +349,43 @@ existed only as vault notes is discharged.
 
 ---
 
-## 6. Backlog after Phase 11
+## 6. Backlog after Phase 13
 
 0. ✅ **Refusal-shaped output does not inflate 3B's regime severities** — 0/209,
-   control passing. The exposure is **live on the shipped keyword path** and has
-   never fired; recorded, not closed. Do not "fix" `_score_action` on the strength
-   of reading the code: it would move no measured number and Rules §2 would then
-   require re-measuring the gen-2 campaign and benign FPR.
-1. **The severity function** — all 4 campaign misses are `masked = 0`, and all 3
-   Phase 7 residual successes are the address-free vector. §6e already showed the
-   semantic scorer is *worse end-to-end* and §6p showed the prompt is not the
-   place either, so this needs a **third** approach.
-2. **Multi-turn sessions** — campaigns give every case a unique `session_id`, so
+   control passing. Live on the shipped keyword path and has never fired;
+   recorded, not closed. Do not "fix" `_score_action` on the strength of reading
+   the code: it would move no measured number and Rules §2 would then require
+   re-measuring the gen-2 campaign and benign FPR.
+1. 🟡 **The severity function — measured, not landed.** Diagnosed (a harm taxonomy,
+   not a threshold), fixed behind `capability_scoring`, and held out: in-sample
+   90.0%, **holdout 43.3%** (4/0, p = 0.125). See §2f. Landing it owes Rules §2's
+   gen-2 campaign re-measurement. 🔴 **Do not tune the lexicon against the
+   holdout** — that spends it, and there is no third corpus.
+2. ✅ **Externally-authored malicious data** — discharged. InjecAgent (510) and
+   AgentDojo attacks (253) are both vendored, stratified and measured.
+3. ✅ **The schemeless-URL defect** — real, fixed behind `schemeless_targets`, and
+   left **off**: 2 detections for 3 false positives, and the false positives are
+   §6i's boundary rather than a tuning problem. See §2f.
+4. **Repeats on the benign cohort** 🔴 — every FPR figure here is single-run, and
+   §3 now records that the run-to-run floor is the same size as the effects being
+   compared. `probe_corpus` makes *k* recordings cheap; the spread across them is
+   the noise floor measured rather than inferred.
+5. **Multi-turn sessions** — campaigns give every case a unique `session_id`, so
    the drift rule never fires and 2 of 3D's 5 dimensions are unidentifiable. The
    trainer reports this itself.
-3. **3C `ContextSanitizer.sanitize()`** — still carries the prompt weakness 3B's
+6. **3C `ContextSanitizer.sanitize()`** — still carries the prompt weakness 3B's
    internal sanitizer had (§6m). Feeds the user-visible continuation and WCR.
-4. **Screen tool descriptions at registration** — V5/V6 are approximated because
+7. **Screen tool descriptions at registration** — V5/V6 are approximated because
    the pipeline consumes tool *responses*, not manifests.
-5. **Publish the Layer 5 dashboard** as a shareable artifact (task #6). Decide
-   visibility first, and render the AgentDojo attribution on the page — it
-   currently embeds 828 records including attacker-authored text.
+8. **Publish the Layer 5 dashboard** as a shareable artifact. Decide visibility
+   first, and render the AgentDojo attribution on the page — it currently embeds
+   828 records including attacker-authored text.
+
+**If the next lever is detection, the evidence now points at Layer 4, not the
+scorer.** Two scorer changes were measured this phase; the better one gains 13
+points on held-out attacks and is not significant, and the other is net-negative.
+The cases both fail on are ones where 3B is architecturally blind — an action
+naming a host or a resource that is equally at home in benign content.
 
 ---
 
@@ -385,7 +402,7 @@ existed only as vault notes is discharged.
 **Quick health check:**
 
 ```bash
-python3 -m pytest tests/ -q                  # expect 161 passed, ~4s
+python3 -m pytest tests/ -q                  # expect 452 passed, ~9s
 python3 -m evaluation.fpr_report             # check the STALE header first
 python3 -m evaluation.vectors                # coverage map: 1 of 7 absorbable
 curl -s localhost:11434/api/ps               # size_vram must be > 0 (once loaded)
@@ -396,4 +413,4 @@ Phase 7 results and their provenance: `logs/benchmark/benchmark.json`,
 
 ---
 
-*Handover updated 9 August 2026. Last commit `d5d7742`; the §2f severity-function work is uncommitted at time of writing.*
+*Handover updated 9 August 2026, evening. HEAD is `8185f71`; four Phase 13 commits are local and unpushed.*

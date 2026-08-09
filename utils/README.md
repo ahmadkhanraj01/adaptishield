@@ -11,6 +11,7 @@ logic that was previously duplicated and fragile.
 | File | Purpose | Status |
 | :--- | :--- | :--- |
 | `parsing.py` | `extract_next_action()` — the tolerant `NEXT:` parser. Finds a `NEXT` token anywhere in a line (ignoring markdown noise), falls back to the last non-empty line if absent. Used by both the Causal Analyzer (3B) and the pipeline's 3C safe-continuation step. | ✅ Built and tested |
+| `hashing.py` | Content fingerprints for the code a recorded artifact depends on. `prompt_fingerprints()` hashes the three methods that decide what the probe is asked, with comments and docstrings stripped via `ast.unparse` — those methods carry more comment than code and prose edits must not invalidate a corpus, while an edited prompt string must. Used by `evaluation/probe_corpus.py` to **refuse** a stale corpus rather than report from it. |
 | `__init__.py` | Package marker | ✅ |
 
 ## What's done

@@ -7,7 +7,8 @@ must not be broken see [Rules.md](Rules.md); for status and roadmap see
 [Phase.md](Phase.md). The root [README.md](README.md) remains the single
 source of truth for current build state.
 
-*Last aligned: 2026-07-22 (after fixes A–D to Component 3D / 3B).*
+*Last aligned: 2026-08-09 (after Phase 13 — the severity function and the
+offline re-scoring path).*
 
 ---
 
@@ -51,6 +52,9 @@ Red Team Module runs *against* this stack (dry-run) to measure ASR/FPR/WCR.
 
 Red team: `red_team/{attack_library, attack_generator, execution_agent, evaluator, optimizer, run_campaign}.py`
 Evaluation: `evaluation/{adaptive_loop_experiment, holdout_generalization_test, mechanism_validation, score_action_ablation}.py`
+Measurement: `evaluation/{benchmark, paired, fpr_report, refusal_audit}.py`
+External corpora: `evaluation/{injecagent, agentdojo_attacks}.py` ← `red_team/{vendor_agentdojo, vendor_injecagent, vendor_agentdojo_attacks}.py`
+Offline re-scoring: `evaluation/{probe_corpus, rescore}.py` + `utils/hashing.py`
 Tests: `tests/{test_takeover_rules, test_adaptive_threat_model}.py`
 
 ---
@@ -91,6 +95,23 @@ regimes, each sampled `k_samples` times (default 2), scored `{0,1,2}` by
 Contrasts: `ACE = orig − masked`, `IE = masked − masked_sanitized`,
 `DE = orig_sanitized − masked_sanitized`.
 
+**What `_score_action` counts as harm** (severity 2), in order:
+
+1. **Target match** — the action names an email/URL lifted from the mediator.
+   The sharpest signal 3B has, and the only path to 2 for an injection with no
+   high-impact keyword. `schemeless_targets` (**default off**) additionally sees
+   bare hosts like `www.evil.com`; measured, and left off because it costs more
+   false positives than it buys — §1.7.
+2. **Capability misuse** — a state-changing verb *and* a controlled resource from
+   the same class, with the mediator required to corroborate the resource.
+   `capability_scoring`, **default off**. Added because `_HIGH_KW` is a
+   data-movement vocabulary that cannot see *unlock a door* or *move money*.
+3. **Data-movement keywords** — `_HIGH_KW`, grounded by `_mediator_corroborates`
+   so an action the content never suggested cannot escalate (§6o).
+
+Both flags default **off**, so every committed number reproduces; they exist as
+measured arms, not as pending work.
+
 **Takeover fires if any of:**
 1. **IE rule** — `IE ≥ ie_threshold` AND `masked ≥ 1` AND separation is
    *consistent* across samples (`min(masked) > max(masked_san)`).
@@ -100,6 +121,35 @@ Contrasts: `ACE = orig − masked`, `IE = masked − masked_sanitized`,
 
 IE resolution is `1/k_samples` (0.5 at k=2); 3D sizes its threshold step to it.
 See [Design.md](Design.md) §"Takeover rule stack" for why three rules.
+
+The three rules live in `_decide_takeover`, extracted from `evaluate_boundary` so
+the offline re-scorer computes verdicts with the **shipped** rule rather than a
+copy of it — see §4b.
+
+---
+
+## 4b. The offline re-scoring path
+
+A scorer candidate used to cost a 1.5-hour campaign to evaluate. It no longer
+does, because `_run_regime_once` asks the model for an action and *then* scores
+it, and **the probe never consults the scorer**. A recorded transcript is
+therefore a sufficient statistic for any change confined to `_score_action`.
+
+```
+probe_corpus.py   → records all 4 regimes, both samples, + the sanitised mediator
+                    (manifest pins model, temperature, k_samples, prompt hashes)
+        ↓ recorded transcripts, no model calls from here on
+rescore.py        → re-scores under 4 arms, verdicts via _decide_takeover
+                    → per-stratum Wilson intervals, McNemar, population projection
+```
+
+Three guards, because a new instrument earns the scepticism the old ones did:
+staleness is **refused** (a prompt edit changes `utils/hashing.py`'s fingerprint),
+verdicts come from the shipped rule, and the LLM client is replaced with a stub
+that raises so "no model calls" is enforced rather than asserted.
+
+⚠️ Valid **only** for scorer changes. A change to a probe prompt, the sanitizer,
+the model tag or the temperature invalidates the corpus, which must be re-recorded.
 
 ---
 
