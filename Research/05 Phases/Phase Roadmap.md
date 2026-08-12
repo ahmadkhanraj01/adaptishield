@@ -27,8 +27,8 @@ type: hub
 | **11** | Per-component ablations | ✅ Done — **only two layers do anything** → [[Phase 11 — Only Two Layers Do Anything]] |
 | **12** | [[InjecAgent]] — external attacks | ✅ Done — detection **96.7% → ~18%** → [[Phase 12 — Detection Is 18% on Someone Else's Attacks]] |
 | **13** | The severity function | 🟡 Diagnosed + **held out**, not landed — in-sample 90.0%, holdout **43.3%** → [[The Lexicon Generalises About Half]] |
-| **14a** | Repeat measurements — noise floor + stratum power | 🟢 **In flight (12 Aug)** — backlog 2b, `evaluation/noise_floor.py` |
-| **15** | **Multi-turn sessions** — is the adaptive layer measurable at all? | 🔲 **Pre-registered (12 Aug)** → [[Phase 15 — Multi-Turn Sessions (Pre-Registration)]] |
+| **14a** | Repeat measurements — noise floor + stratum power | 🟡 **Half done (12 Aug)** — FPR count stable at 2/60 across k=3, membership churns → [[The Benign FPR Has a Noise Floor Its Own Size]]. InjecAgent strata still single-repeat |
+| **15** | **Multi-turn sessions** — is the adaptive layer measurable at all? | 🔴 **First run: primary not met, 0/3 — and no session posed the question** → [[Phase 15 — The Cohort Never Posed the Question]] |
 | **14** | Manuscript + reproducibility artifact | 🔲 Drafting from week 1; 🔵 journal decision still open |
 
 ## The shape of the roadmap

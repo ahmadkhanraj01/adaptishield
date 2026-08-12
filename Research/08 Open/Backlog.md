@@ -124,7 +124,17 @@ stronger negative result than *"we never built a corpus that could tell."*
 second development set — the trap [[The Lexicon Generalises About Half]] fenced
 off for the lexicon.
 
-## 2b — Benign-cohort repeats 🟢 **IN FLIGHT** (12 Aug 2026)
+## 2b — Benign-cohort repeats ✅ **MEASURED** (12 Aug 2026)
+
+**k = 3 recordings: 2/60 every time.** The count never moved; the membership did
+(048 always, then exactly one of 041/055). That **corrects** the ±2–3 figure this
+item was built to confirm — it had compared two instruments, not two runs →
+[[The Benign FPR Has a Noise Floor Its Own Size]].
+
+Still owed: the InjecAgent per-stratum repeats, where §12's flagship ~18% rests
+on single-repeat n=30.
+
+*Original framing:*
 
 Phase 14a(i). Every FPR figure in this project is **single-run**, including the
 committed **3.3%**, and [[The Benign FPR Has a Noise Floor Its Own Size]] showed
