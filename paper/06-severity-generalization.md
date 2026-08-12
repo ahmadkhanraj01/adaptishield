@@ -33,6 +33,14 @@ ordering is verifiable rather than asserted.
 
 **In-sample 90.0% [74.4%, 96.5%] against holdout 43.3% [27.4%, 60.8%] —
 the intervals do not overlap.** The diagnosis survives; the effect size does not.
+
+![The lexicon generalises about half](figures/fig3_generalisation.png)
+
+**Figure 3.** Address-free detection for the capability lexicon, in-sample
+(InjecAgent, frozen before the holdout) versus holdout (AgentDojo). 90.0% falls to
+43.3%; error bars are Wilson 95% intervals and do not overlap. *Source:
+`results/severity/{rescore,rescore_holdout}.json`.*
+
 The in-sample figure overstated generalization by roughly 47 points, and the
 holdout gain is not statistically significant.
 

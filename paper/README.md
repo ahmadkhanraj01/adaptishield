@@ -20,9 +20,11 @@ changes the argument — so nothing here is typeset for a template yet.
 | 8 | [Negative results as contribution](07-negative-results.md) | frozen | ✅ drafted |
 | 9 | [Limitations](09-limitations.md) | frozen | ✅ drafted |
 
-**All nine drafted.** What remains is not writing but three things a draft cannot
-supply: the venue decision, related work, and the one measurement still owed
-(§5's per-stratum repeats, flagged in-text).
+**All nine drafted, and the four core figures are embedded** (§3, §5, §6, §7 —
+see `figures/`, generated from `results/` by `make_figures.py`). What remains is
+not writing but two things a draft cannot supply: the venue decision and related
+work. The last owed measurement (§5's per-stratum repeats) is done and its
+placeholder is replaced.
 
 ## The single claim the paper now turns on
 
@@ -70,9 +72,7 @@ methodological argument (§8).
    negative result and rests on single-repeat n = 30. §5 carries an explicit
    placeholder that must be replaced or the weakness stated outright — it must
    not survive as written.
-4. **A figure pass.** Candidates, in order of how much they carry: the ablation
-   ladder, the two-stratum detection split, the observed-vs-target trajectory
-   plot from §7, and the Layer 5 review console (which shows the machine
-   disagreeing with itself and a human adjudicating — the thesis in one image,
-   though its visibility question is unsettled and it currently embeds
-   attacker-authored text).
+4. ✅ **A figure pass — done.** Four figures generated from `results/` and
+   embedded in §3/§5/§6/§7 (`make_figures.py`, colorblind-validated, PDF+PNG). A
+   fifth candidate — the Layer 5 review console as a figure — is left out pending
+   its visibility question, since it currently embeds attacker-authored text.

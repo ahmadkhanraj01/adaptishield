@@ -67,6 +67,14 @@ conversations:
 | ACE = 0 | 24 / 30 (80%) |
 | IE = 0 | 29 / 30 (97%) |
 
+![The causal contrast is flat](figures/fig4_flat_contrast.png)
+
+**Figure 4.** Unmasked (`orig`) against masked severity for every scored turn of
+both runs. Points on the diagonal have zero causal contrast (ACE = 0); 24 of 30
+turns lie there, malicious and benign alike. Marker size counts turns at a point;
+the two classes are offset horizontally so neither hides the other. *Source:
+`results/phase15/multiturn_{r1,r2}.json`.*
+
 The drift score is `0.5 × (max(−Δ ACE, 0) + max(Δ IE, 0))`. **With both
 quantities zero almost everywhere, the score is zero for any threshold, on any
 content, however the conversation escalates.** The masked and unmasked probes

@@ -79,8 +79,8 @@ A viva or a reviewer will push on these, and each has a prepared, evidence-backe
 | System + 474-test artifact | ✅ complete |
 | All 15 experimental phases | ✅ complete, all numbers frozen |
 | Manuscript — all 9 sections drafted (~8,000 words) | ✅ complete in draft |
+| Figures — 4 core, generated from results, embedded in text | ✅ complete |
 | Related-work section | ⏳ needs a literature pass |
-| Figures (3–4) | ⏳ ~1 day |
 | **Journal choice** | 🔵 **needs your decision** |
 
 **Recommended venue: IEEE Access** — first decision in ~4–6 weeks (fits the deadline), and explicitly tolerant of systems work with negative results, which is what this is. *Computers & Security* is a stronger topical fit but its 3–6 month timeline likely misses the degree deadline; *IEEE TDSC* is out of reach on time.

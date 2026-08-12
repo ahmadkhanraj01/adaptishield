@@ -25,6 +25,14 @@ stratification is the finding rather than a caveat on it.
 End-to-end, the complete system's ASR on this corpus is **29/60 = 48.3%**,
 against 60/60 for both `undefended` and `static_only`.
 
+![Detection by stratum](figures/fig2_stratified.png)
+
+**Figure 2.** Detection on externally-authored attacks, split by whether the
+target-match path can fire. 96.7% where it can (~10% of the corpus) against 10.0%
+where it cannot (~90%); dots are the three independent recordings. The pooled 54%
+(dashed) is what a balanced 30/30 draw reports and is wrong for the population by
+33 points. *Source: `results/noise_floor/injecagent.json`.*
+
 **⛔ The strata must not be pooled.** The evaluation draws 30 cases from each
 stratum, but the underlying population is split 51/459. A pooled figure over the
 balanced draw gives 51.7%, which is wrong for InjecAgent by **33 points**. This

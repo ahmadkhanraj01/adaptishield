@@ -40,6 +40,14 @@ permission control, Layer 4 egress allowlist — is **0 helped / 0 hurt with zer
 discordant pairs**. Not a weak effect: an identical outcome on all 21 malicious
 cases, confirmed from both directions.
 
+![Cumulative component ablation](figures/fig1_ablation.png)
+
+**Figure 1.** Cumulative ablation over the seven-arm ladder (21 attacks, 33 benign).
+Attack-stopped rate rises only at the causal analyzer (3B, +85.7 pts) and
+workflow-continued rate only at the sanitiser (3C, +85.7 pts); every other rung —
+screener, policy engine, and both halves of Layer 4 — is flat. *Source:
+`results/phase11/benchmark.json`.*
+
 **Predictions were registered before the run and all four held**: 3B's rung
 large, 3A's `helped == 0`, 3C flat on ASR but large on WCR, and Layer 4 egress
 `helped == 0`. That is what makes this evidence rather than post-hoc
