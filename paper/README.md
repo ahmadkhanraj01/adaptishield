@@ -10,15 +10,19 @@ changes the argument — so nothing here is typeset for a template yet.
 
 | § | Section | Numbers | State |
 | :--- | :--- | :--- | :--- |
-| 1 | Introduction + contributions | — | 🔲 after §15 lands |
-| 2 | Threat model + architecture | — | 🔲 |
+| 1 | [Introduction + contributions](01-introduction.md) | frozen | ✅ drafted |
+| 2 | [Threat model + architecture](02-threat-model-architecture.md) | — | ✅ drafted |
 | 3 | [Per-component ablations](03-ablations.md) | frozen | ✅ drafted |
 | 4 | [External baselines](04-external-baselines.md) | frozen | ✅ drafted |
 | 5 | [External validity](05-external-validity.md) | frozen | ✅ drafted |
 | 6 | [Detector generalization](06-severity-generalization.md) | frozen | ✅ drafted |
 | 7 | [The adaptive layer](08-adaptive-layer.md) | frozen | ✅ drafted |
 | 8 | [Negative results as contribution](07-negative-results.md) | frozen | ✅ drafted |
-| 9 | Limitations | — | 🔲 |
+| 9 | [Limitations](09-limitations.md) | frozen | ✅ drafted |
+
+**All nine drafted.** What remains is not writing but three things a draft cannot
+supply: the venue decision, related work, and the one measurement still owed
+(§5's per-stratum repeats, flagged in-text).
 
 ## The single claim the paper now turns on
 
@@ -54,3 +58,21 @@ actually buy, and where does it stop?*
 **Negative results are the spine, not an appendix.** Three of them are only
 visible because the instrumentation was built to see them, which is itself the
 methodological argument (§8).
+
+## Still owed before submission
+
+1. 🔵 **The venue decision** — the only blocking item. Sets page and figure
+   limits, whether an artifact-availability statement is required, and author
+   order. The architecture figure needs an inverted colour scheme for print.
+2. **Related work.** Not draftable from the repository; needs a literature pass.
+   The three families in §1 (prompt-level, gate-level, causal) are the frame.
+3. **§5's per-stratum repeats.** The 96.7% → 18% collapse is the flagship
+   negative result and rests on single-repeat n = 30. §5 carries an explicit
+   placeholder that must be replaced or the weakness stated outright — it must
+   not survive as written.
+4. **A figure pass.** Candidates, in order of how much they carry: the ablation
+   ladder, the two-stratum detection split, the observed-vs-target trajectory
+   plot from §7, and the Layer 5 review console (which shows the machine
+   disagreeing with itself and a human adjudicating — the thesis in one image,
+   though its visibility question is unsettled and it currently embeds
+   attacker-authored text).
