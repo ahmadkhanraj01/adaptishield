@@ -132,12 +132,37 @@ def matrix(payloads: List[dict], arm: str = "baseline") -> Dict[str, dict]:
 
 def summarize(cells: Dict[str, dict]) -> dict:
     """
-    Per-run rates with their own intervals, and the run-to-run spread apart.
+    Per-run rates with their own intervals, the run-to-run spread apart, and
+    **the same breakdown per family**.
 
-    The two uncertainties are deliberately not combined — see the module
-    docstring. `spread` is the number a reader should compare an effect size
-    against before believing it.
+    🔴 THE PER-FAMILY SPLIT IS NOT OPTIONAL FOR EVERY COHORT. For InjecAgent the
+    family IS the stratum, and the corpus draws 30 cases from each of two strata
+    whose population split is 51/459. A pooled figure over that draw is wrong for
+    the population by 33 points (Phase 12) — it reports the sampling design
+    rather than the system. `by_family` exists so a stratified cohort cannot be
+    read off the pooled row by accident, and the report prints the strata first.
+
+    For a single-stratum cohort (the AgentDojo benign set) the family split is
+    degenerate and the pooled row is the answer; nothing is lost by computing
+    both.
     """
+    if not cells:
+        return {}
+
+    out = _summarize_subset(cells)
+    families = sorted({cell["family"] for cell in cells.values()})
+    out["by_family"] = {
+        family: _summarize_subset(
+            {cid: cell for cid, cell in cells.items()
+             if cell["family"] == family})
+        for family in families
+    }
+    out["stratified"] = len(families) > 1
+    return out
+
+
+def _summarize_subset(cells: Dict[str, dict]) -> dict:
+    """The per-run / spread / stability triple for any set of cases."""
     if not cells:
         return {}
 
@@ -158,6 +183,7 @@ def summarize(cells: Dict[str, dict]) -> dict:
     return {
         "n_runs": len(runs),
         "n_cases": n,
+        "families": sorted({cell["family"] for cell in cells.values()}),
         "per_run": per_run,
         "spread": {
             "min_hits": min(hits), "max_hits": max(hits),
@@ -188,6 +214,28 @@ def report(cohort: str, cells: Dict[str, dict], summary: dict) -> None:
     if summary["n_runs"] < 2:
         print("⚠️  ONE RUN ONLY — this reports a rate, not a floor. Record a "
               "repeat with `--run 1` before quoting any spread.\n")
+
+    # Strata first, and the pooled row explicitly labelled as not-the-answer,
+    # because Phase 12's pooled figure was wrong for the population by 33 points
+    # and the only defence against that is to make the split the default reading.
+    if summary.get("stratified"):
+        print("--- BY STRATUM (the reportable figures) ---")
+        for family, sub in summary["by_family"].items():
+            spread = sub["spread"]
+            rates = "  ".join(f"{row['hits']}/{row['n']}"
+                              for row in sub["per_run"])
+            print(f"\n  {family}  (n={sub['n_cases']})")
+            print(f"    per run: {rates}"
+                  f"   -> {spread['min_rate']:.1%}-{spread['max_rate']:.1%}"
+                  f"  (range {spread['range_hits']} cases)")
+            for row in sub["per_run"]:
+                print(f"      run {row['run']}: {row['rate']:>6.1%}  "
+                      f"[{row['ci_low']:.1%}, {row['ci_high']:.1%}]")
+            stab = sub["stability"]
+            print(f"    stability: {stab[ALWAYS]} always, {stab[NEVER]} never, "
+                  f"{stab[UNSTABLE]} unstable")
+        print("\n--- pooled (⛔ NOT the reportable figure for a stratified "
+              "cohort) ---")
 
     print(f"{'run':>5} {'fired':>7} {'rate':>8}   95% Wilson")
     for row in summary["per_run"]:
