@@ -95,6 +95,22 @@ We list these because a negative result should say what would overturn it:
    non-zero on content lacking a liftable target, the IE and drift rules become
    testable for the first time and this paper's main claim would need re-testing
    rather than extending.
+
+   *We ran a preliminary read-only test of this (`evaluation/logprob_probe.py`,
+   `results/phase15/logprob_probe.json`): a forced-choice log-probability probe
+   over the 15 Phase-15 turns, bypassing the integer scorer. Three results. (i)
+   The quantisation does destroy signal — all 5 integer-flat turns showed a
+   continuous contrast above 0.5 nats. (ii) But the dominant contrast (ACE) is
+   as large on benign turns as on attacks — mean |ACE| 7.1 vs 7.5 nats, the
+   largest of all on a benign turn — because it measures task-relevance, not
+   attack. (iii) The sanitisation contrast (IE) is the only measure that
+   separated the classes — exactly 0 on all 6 benign turns, non-zero on 3 of 9
+   attacks — but those signals are 0.85–3.2 nats riding on saturated ~20-nat
+   pedestals (35/45 forced choices saturated at >10 nats). So on a 4B model the
+   naive continuous replacement does not cleanly separate; the sanitisation
+   contrast in probability space is the one surviving thread, and pursuing it
+   needs a larger, better-calibrated model. This moves the item from conjecture
+   to a measured, bounded next step.*
 2. **A larger multi-turn corpus with genuinely differential regimes.** If
    conversations exist where `orig` and `masked` reliably diverge without an
    address present, the drift rule's parameters become identifiable.
