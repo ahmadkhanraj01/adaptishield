@@ -102,14 +102,50 @@ one. And [[6p — Probe Hallucination Fixed at the Scorer]] establishes that the
 
 This is the largest remaining detection lever, and the hardest.
 
-## 2 — Multi-turn sessions 🟡
+## 2 — Multi-turn sessions 🟢 **PROMOTED TO PHASE 15** (12 Aug 2026)
 
 Campaigns give every case a unique `session_id`, so the drift rule never fires and
 **two of 3D's five dimensions are unidentifiable** — the trainer reports this
 itself → [[6g — Temporal Drift Scoping]].
 
-Sharing a session across cases would make the temporal-drift rule learnable **for
-the first time**.
+**No longer a backlog item — it is the journal paper's last experiment** →
+[[Phase 15 — Multi-Turn Sessions (Pre-Registration)]]. The deadline extension to
+**14 Sept** is what made it affordable, and the cost estimate fell once the code
+was actually read: `session_history` is already keyed by `session_id`
+(`causal_analyzer.py:914`) and the drift rule is already written with both §6g
+guards. **What is missing is a corpus, not code.**
+
+Both outcomes are publishable, which is why it is worth the runway: drift firing
+gives the first measured evidence the adaptive layer does anything, on a threat
+model spotlighting cannot address even in principle; drift not firing gives a far
+stronger negative result than *"we never built a corpus that could tell."*
+
+🔴 Pre-register and commit the cohort **before** running it, or it becomes a
+second development set — the trap [[The Lexicon Generalises About Half]] fenced
+off for the lexicon.
+
+## 2b — Benign-cohort repeats 🟢 **IN FLIGHT** (12 Aug 2026)
+
+Phase 14a(i). Every FPR figure in this project is **single-run**, including the
+committed **3.3%**, and [[The Benign FPR Has a Noise Floor Its Own Size]] showed
+the run-to-run floor is ±2–3 in 60 — *the same size as the effects being
+compared*.
+
+`evaluation/noise_floor.py` (new) aggregates *k* recordings into a per-run rate
+**plus** a per-case fire/no-fire matrix, and refuses to pool the runs: *k*
+recordings of 60 documents are not 60*k* observations, and pooling would divide
+the interval by √k and manufacture precision the measurement does not have.
+
+The per-case matrix is the part that matters. A spread of ±2 is compatible with
+two documents flipping every run (§6i's architectural boundary) or twenty
+flipping occasionally (an instrument defect) — opposite implications for the
+paper, and only a per-case breakdown separates them.
+
+⚠️ **The trap this nearly walked into:** `probe_corpus`'s checkpoint was keyed by
+cohort alone, so a second recording would have *resumed* from the first, made no
+model calls, and written a byte-identical file — a measured noise floor of
+exactly zero, and the most convincing possible wrong answer. Both the output and
+checkpoint paths are now keyed by run.
 
 ## 3 — 3C `ContextSanitizer.sanitize()` 🟡
 

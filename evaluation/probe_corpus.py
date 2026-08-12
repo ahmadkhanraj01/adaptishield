@@ -207,14 +207,65 @@ def record_case(analyzer, case) -> CaseRecord:
     return record
 
 
+def _slug(cohort: str, run: Optional[int]) -> str:
+    """
+    Filename stem for one recording.
+
+    Run 0 (and `None`) keeps the original bare `<cohort>` stem so every existing
+    consumer — `rescore`, the tests, the committed results — reads exactly the
+    file it read before. Repeats are additive; nothing is renamed.
+    """
+    return cohort if not run else f"{cohort}.run{run}"
+
+
+def _out_path(cohort: str, run: Optional[int] = None) -> str:
+    return os.path.join(OUT_DIR, f"{_slug(cohort, run)}.json")
+
+
+def _cp_path(cohort: str, run: Optional[int] = None) -> str:
+    return os.path.join(CHECKPOINT_DIR, f"{_slug(cohort, run)}.jsonl")
+
+
+def available_runs(cohort: str) -> List[Optional[int]]:
+    """
+    The run ids recorded for a cohort, in order, starting at 0 if it exists.
+
+    Used by `evaluation/noise_floor.py` to discover repeats rather than being
+    told how many there are — an aggregator given a count would silently report
+    on fewer runs than it claimed if one had failed.
+    """
+    runs: List[Optional[int]] = []
+    if os.path.exists(_out_path(cohort, None)):
+        runs.append(None)
+    index = 1
+    while os.path.exists(_out_path(cohort, index)):
+        runs.append(index)
+        index += 1
+    return runs
+
+
 def record(cohort: str, limit: Optional[int] = None,
-           analyzer=None, resume: bool = True) -> dict:
+           analyzer=None, resume: bool = True,
+           run: Optional[int] = None) -> dict:
     """
     Record a cohort, checkpointing per case.
 
     Checkpointed for the same reason campaigns are (handover §3): this is ~9 LLM
     calls per case and an interruption partway through should cost the case in
     flight, not the run. Re-running the same command resumes.
+
+    🔴 `run` EXISTS BECAUSE A REPEAT IS NOT A RE-RUN OF THE SAME COMMAND. Phase
+    13 found the benign cohort reproduces the committed 3.3% FPR *as a rate*
+    while firing on different cases (041/048 -> 048/055), so the run-to-run
+    floor is ±2-3 in 60 — the same size as the effects being compared. Measuring
+    that floor needs k independent recordings kept side by side.
+
+    Both the output path AND the checkpoint path are keyed by `run`, and the
+    checkpoint is the one that matters: it is keyed by cohort alone in the
+    single-run design, so a second recording would have "resumed" from the
+    first, replayed its cases without making a single model call, and written a
+    byte-identical file. A noise floor measured from that is exactly zero — the
+    most convincing possible wrong answer.
     """
     from layer2.security_sublayer.causal_analyzer import CausalAnalyzer
 
@@ -224,7 +275,7 @@ def record(cohort: str, limit: Optional[int] = None,
         cases = cases[:limit]
 
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
-    cp_path = os.path.join(CHECKPOINT_DIR, f"{cohort}.jsonl")
+    cp_path = _cp_path(cohort, run)
 
     done: Dict[str, dict] = {}
     if resume and os.path.exists(cp_path):
@@ -246,23 +297,24 @@ def record(cohort: str, limit: Optional[int] = None,
             checkpoint.flush()
 
     payload = {
-        "manifest": manifest(analyzer, cohort),
+        "manifest": {**manifest(analyzer, cohort), "run": run or 0},
         "cases": [done[c.case_id] for c in cases if c.case_id in done],
     }
 
     os.makedirs(OUT_DIR, exist_ok=True)
-    out_path = os.path.join(OUT_DIR, f"{cohort}.json")
+    out_path = _out_path(cohort, run)
     with open(out_path, "w") as handle:
         json.dump(payload, handle, indent=1)
     print(f"[probe_corpus] wrote {len(payload['cases'])} case(s) -> {out_path}")
     return payload
 
 
-def load(cohort: str) -> Optional[dict]:
-    path = os.path.join(OUT_DIR, f"{cohort}.json")
+def load(cohort: str, run: Optional[int] = None) -> Optional[dict]:
+    path = _out_path(cohort, run)
     if not os.path.exists(path):
+        suffix = "" if not run else f" --run {run}"
         print(f"[probe_corpus] no corpus at {path} — run "
-              f"`python3 -m evaluation.probe_corpus --cohort {cohort}` first.")
+              f"`python3 -m evaluation.probe_corpus --cohort {cohort}{suffix}` first.")
         return None
     with open(path) as handle:
         return json.load(handle)
@@ -296,11 +348,17 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=None,
                         help="record only the first N cases (smoke test)")
     parser.add_argument("--no-resume", action="store_true")
+    parser.add_argument("--run", type=int, default=None,
+                        help="repeat id. Omit (or 0) for the original "
+                             "recording; 1, 2, ... are independent repeats kept "
+                             "side by side for the noise floor (see "
+                             "evaluation/noise_floor.py)")
     args = parser.parse_args()
 
     cohorts = COHORTS if args.cohort == "all" else (args.cohort,)
     for cohort in cohorts:
-        record(cohort, limit=args.limit, resume=not args.no_resume)
+        record(cohort, limit=args.limit, resume=not args.no_resume,
+               run=args.run)
     return 0
 
 

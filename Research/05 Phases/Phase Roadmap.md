@@ -27,7 +27,9 @@ type: hub
 | **11** | Per-component ablations | ✅ Done — **only two layers do anything** → [[Phase 11 — Only Two Layers Do Anything]] |
 | **12** | [[InjecAgent]] — external attacks | ✅ Done — detection **96.7% → ~18%** → [[Phase 12 — Detection Is 18% on Someone Else's Attacks]] |
 | **13** | The severity function | 🟡 Diagnosed + **held out**, not landed — in-sample 90.0%, holdout **43.3%** → [[The Lexicon Generalises About Half]] |
-| **14** | Manuscript + reproducibility artifact | 🔵 Blocked on the journal decision |
+| **14a** | Repeat measurements — noise floor + stratum power | 🟢 **In flight (12 Aug)** — backlog 2b, `evaluation/noise_floor.py` |
+| **15** | **Multi-turn sessions** — is the adaptive layer measurable at all? | 🔲 **Pre-registered (12 Aug)** → [[Phase 15 — Multi-Turn Sessions (Pre-Registration)]] |
+| **14** | Manuscript + reproducibility artifact | 🔲 Drafting from week 1; 🔵 journal decision still open |
 
 ## The shape of the roadmap
 
@@ -43,8 +45,16 @@ tell us whether the thing worked."* → [[Instruments Fail More Than Mechanisms]
 
 Phase 7's repair is ✅ done, and so are 10, 11 and 12. **Phase 13 is measured but
 not landed**: two scorer flags ship off, and landing either owes Rules §2's gen-2
-campaign re-measurement → [[Backlog]] item 1. Phase 14 (manuscript) is 🔵 blocked
-on the journal decision, which sets how much it must produce.
+campaign re-measurement → [[Backlog]] item 1.
+
+**Updated 12 Aug 2026 — the deadline moved to 14 September**, which changes what
+is affordable. Under the old one-week deadline the plan was to write up the
+evidence in hand and put the adaptive layer's no-op in §Limitations. With ~4.5
+weeks, [[Phase 15 — Multi-Turn Sessions (Pre-Registration)]] is reachable, and it
+is the one experiment that can turn *"the adaptive layer does nothing"* from an
+untested assumption into a measured result — in either direction. Phase 14a's
+repeats run first because they harden the two most attackable numbers and cost
+compute only.
 
 The one methodological rule carried out of Phase 13: **any further lexicon revision
 needs a new held-out corpus reserved before the revision is written.** Both external

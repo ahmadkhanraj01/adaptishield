@@ -62,6 +62,26 @@ recordings of the same cohort cost *k* probe runs but zero scorer runs, and the
 spread across them is the noise floor measured directly rather than inferred from
 two runs.
 
+**Being done now (12 Aug 2026).** `evaluation/noise_floor.py` +
+`probe_corpus --run N`; Phase 14a(i), backlog item 2b. Two things it is built to
+avoid:
+
+- **Pooling the runs.** *k* recordings of 60 documents are not 60*k*
+  observations. Pooling divides the interval by √k and manufactures precision the
+  measurement does not have, so the per-run Wilson interval (uncertainty about
+  the document draw) and the run-to-run spread (the instrument's own variation)
+  are reported side by side and never combined.
+- **A floor of exactly zero.** `probe_corpus`'s checkpoint was keyed by cohort
+  alone, so a repeat would have resumed from the first recording, made no model
+  calls, and written a byte-identical file. Keyed by run now — but it is worth
+  recording that the instrument for measuring this defect nearly had the same
+  shape as the defect. → [[Instruments Fail More Than Mechanisms]], again.
+
+The per-case matrix is the part that will decide what this means. A spread of ±2
+is compatible with two documents flipping every run — [[Known Bounded False
+Positive]]'s architectural boundary — or twenty flipping occasionally, which
+would be an instrument defect. Only the breakdown separates them.
+
 ## Related
 
 - [[FPR]], [[Wilson Score Interval]]
