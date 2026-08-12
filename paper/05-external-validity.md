@@ -63,10 +63,33 @@ Taken together with §3, this bounds the contribution precisely: **the causal
 sub-layer is the only component that detects anything, and what it detects is
 attacks shaped like the ones it was built against.**
 
-## Known weakness in this section
+## How stable is the collapse?
 
-The per-stratum estimates are **single-repeat at n = 30**. This is the paper's
-flagship negative result and currently its least-powered number. Repeats are in
-progress and the final figures will carry repeat-level variation. *(Pending —
-this sentence must be replaced with the measured spread or the weakness stated
-explicitly; it must not survive as-is.)*
+The stratified figures above were originally single-run, which for the paper's
+flagship result is the least defensible position to hold. We therefore recorded
+the cohort **three independent times** and re-scored each through the shipped
+detection rules.
+
+*Source: `results/noise_floor/injecagent.json`, k = 3.*
+
+| stratum | run 0 | run 1 | run 2 | spread | unstable cases |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| target-match fires | 96.7% | 96.7% | 96.7% | **0** | **0 / 30** |
+| target-match cannot | 13.3% | 10.0% | 10.0% | 1 case | 1 / 30 |
+
+**The gap between the strata is ~86 points; the run-to-run variation is at most
+one case, or 3.3 points.** The collapse is more than an order of magnitude larger
+than the measurement's own variability, and exactly one document in the whole
+60-case corpus is classified differently between runs.
+
+Two details worth stating. The target-match stratum is *perfectly* stable —
+every one of its 30 documents receives the same verdict in all three runs — which
+is what one expects when detection rides on a near-deterministic string match
+rather than on a judgement. And two of the three recordings reproduce the live
+benchmark's 10.0% exactly.
+
+**Limit on this check.** These are recordings re-scored offline, so they bound
+the *recording* instrument's variability rather than a full live run's. The two
+differ by about one case per stratum, which is the same magnitude as the spread
+being reported. We claim only what that supports: the stratified collapse is not
+an artifact of a single run.

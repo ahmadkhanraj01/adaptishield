@@ -102,3 +102,29 @@ tool call, not a send to a host.
   no over-blocking cost in view; it is just 3C running on every takeover.
 - **n = 30 per stratum**, single repeat. The 83-point gap is far larger than the
   intervals, but the per-stratum estimates themselves are coarse.
+
+
+## ✅ Stability measured — 12 Aug 2026, k = 3
+
+The stratified figures were single-run, which for this project's flagship result
+was the least defensible position to hold. Recorded three times and re-scored
+through the shipped rules (`results/noise_floor/injecagent.json`):
+
+| stratum | run 0 | run 1 | run 2 | spread | unstable |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| target-match fires | 96.7% | 96.7% | 96.7% | **0** | **0/30** |
+| target-match cannot | 13.3% | 10.0% | 10.0% | 1 case | 1/30 (`IA105`) |
+
+**The gap between strata is ~86 points; the run-to-run variation is at most one
+case.** The collapse is over an order of magnitude larger than the measurement's
+own variability, and exactly one document in 60 moves.
+
+The target stratum is *perfectly* stable — all 30 documents identical across
+three runs — which is what detection riding on a near-deterministic string match
+should look like, and a sharp contrast with
+[[The Benign FPR Has a Noise Floor Its Own Size]], where the count is stable but
+the membership churns. Two of three recordings reproduce the live benchmark's
+10.0% exactly.
+
+⚠️ Offline re-scorings, so this bounds the recording instrument rather than a
+full live run. The claim is only that the collapse is not an artifact of one run.

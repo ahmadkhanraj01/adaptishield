@@ -274,8 +274,8 @@ heading(s, "Honest numbers, not round ones")
 
 bars = [("The system itself (code)", 93, DONE,
          "All six layers built and working. 474 automated tests pass in about 10 seconds."),
-        ("The experiments", 90, DONE,
-         "Fifteen phases of testing, all finished. One last measurement is running now."),
+        ("The experiments", 95, DONE,
+         "Fifteen phases of testing, all finished — including the last checks, back today."),
         ("The paper", 60, FINDING,
          "All nine sections written, about 8,000 words. Missing: related work, charts, and a chosen journal.")]
 yy = Inches(2.2)
@@ -293,7 +293,7 @@ for label, pct, col, note in bars:
 bx = M + Inches(8.3)
 rect(s, bx, Inches(2.15), Inches(3.25), Inches(2.5), SURFACE, HAIR)
 text(s, bx, Inches(2.55), Inches(3.25), Inches(1.0),
-     [("≈80%", 50, SIGNAL, True, SERIF)], align=PP_ALIGN.CENTER)
+     [("≈82%", 50, SIGNAL, True, SERIF)], align=PP_ALIGN.CENTER)
 text(s, bx + Inches(0.3), Inches(3.72), Inches(2.65), Inches(0.7),
      [("OVERALL, TOWARDS SUBMITTING THE PAPER", 10, MUTED, True, MONO)],
      align=PP_ALIGN.CENTER)
@@ -313,7 +313,7 @@ road = [("0–2", "Build the thing", "Six layers, plus a red team that writes at
         ("12", "The hard news", "Other people's attacks. 96.7% became about 18%.", DONE),
         ("13", "Try the obvious fix", "Half worked on fresh tests. Kept switched off, and reported why.", DONE),
         ("14–15", "The last experiment", "Written down in advance. Ran twice. Now we know why.", DONE),
-        ("NOW", "Writing the paper", "All nine sections drafted.", SIGNAL),
+        ("NOW", "Writing the paper", "All nine sections drafted. All measurements in.", SIGNAL),
         ("14 SEP", "Submit", "About four and a half weeks away.", HAIR)]
 yy = Inches(2.02)
 for n, what, said, col in road:
@@ -339,8 +339,8 @@ left = [("BLOCKING", FINDING, "Choose the journal",
         ("NEEDS YOU", MUTED, "Write the related-work section",
          "A summary of what other researchers have already tried. It needs reading papers, so it "
          "cannot be done from the code."),
-        ("RUNNING", SIGNAL, "One more measurement",
-         "In progress now. It makes the headline 96.7% → 18% result harder for a reviewer to challenge."),
+        ("DONE TODAY", DONE, "The last measurement came back",
+         "We re-ran the headline test three times. The strong half scored 96.7% every time, the weak half 10-13%. An 86-point gap against a one-document wobble — the result is solid."),
         ("TO DO", MUTED, "Make the charts",
          "Three or four figures. The strongest shows the system disagreeing with itself while a "
          "human decides — the whole argument in one picture.")]

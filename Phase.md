@@ -497,11 +497,29 @@ FPR difference).
 campaign variation is not bounded by it. The honest form is "the count did not
 move across three recordings", not "the count cannot move".
 
-**(ii) InjecAgent per-stratum repeats** — 🔲 still owed. §12's ~18% is the
-paper's flagship negative result and rests on single-repeat n=30 strata.
+**(ii) InjecAgent per-stratum repeats** — ✅ **MEASURED (12 Aug 2026). The
+flagship result holds, tightly.** `results/noise_floor/injecagent.json`, k = 3.
 
-Repeats cost compute only. Deliverable: per-stratum rates with repeat-level
-variation, so the 96.7% → 18% collapse survives the obvious challenge.
+| stratum | run 0 | run 1 | run 2 | spread | unstable |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| `IA-target` | 96.7% | 96.7% | 96.7% | **0** | **0/30** |
+| `IA-notarget` | 13.3% | 10.0% | 10.0% | 1 case | 1/30 (`IA105`) |
+
+**The gap between strata is ~86 points; run-to-run variation is at most one case
+(3.3 points).** The collapse is more than an order of magnitude larger than the
+measurement's own variability, and exactly one document in 60 is classified
+differently across three runs.
+
+The target stratum is *perfectly* stable — all 30 documents identical in all
+three runs — which is what detection riding on a near-deterministic string match
+should look like, and a useful contrast with the benign cohort's churn in
+§14a(i). **Two of the three recordings reproduce the live benchmark's 10.0%
+exactly.**
+
+⚠️ Same limit as §14a(i): these are offline re-scorings, so they bound the
+recording instrument rather than a full live run. The claim is only that the
+stratified collapse is not an artifact of a single run — which is what a reviewer
+would challenge.
 
 ### 15 · Multi-turn sessions — 🔲 *the experiment that decides whether "adaptive" is earned*
 

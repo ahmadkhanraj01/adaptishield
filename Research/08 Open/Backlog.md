@@ -131,8 +131,10 @@ off for the lexicon.
 item was built to confirm — it had compared two instruments, not two runs →
 [[The Benign FPR Has a Noise Floor Its Own Size]].
 
-Still owed: the InjecAgent per-stratum repeats, where §12's flagship ~18% rests
-on single-repeat n=30.
+✅ **InjecAgent per-stratum repeats also done.** k=3: the target stratum is
+96.7% in all three runs with **zero** unstable documents; the no-target stratum
+is 13.3%/10.0%/10.0% with one. An ~86-point gap against a 1-case spread →
+[[Phase 12 — Detection Is 18% on Someone Else's Attacks]]. **Item 2b is closed.**
 
 *Original framing:*
 
