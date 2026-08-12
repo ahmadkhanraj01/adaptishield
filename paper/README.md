@@ -16,9 +16,21 @@ changes the argument — so nothing here is typeset for a template yet.
 | 4 | [External baselines](04-external-baselines.md) | frozen | ✅ drafted |
 | 5 | [External validity](05-external-validity.md) | frozen | ✅ drafted |
 | 6 | [Detector generalization](06-severity-generalization.md) | frozen | ✅ drafted |
-| 7 | The adaptive layer | **pending Phase 15** | 🔲 |
+| 7 | [The adaptive layer](08-adaptive-layer.md) | frozen | ✅ drafted |
 | 8 | [Negative results as contribution](07-negative-results.md) | frozen | ✅ drafted |
 | 9 | Limitations | — | 🔲 |
+
+## The single claim the paper now turns on
+
+Phase 15 resolved §7 and, in doing so, gave the whole paper one spine:
+
+> **The causal contrast carries discriminative signal when the injected content
+> contains a liftable target, and close to none otherwise.**
+
+Everything else follows from it — detection collapsing on externally-authored
+attacks (§5), a harm taxonomy generalizing about half (§6), and an adaptive layer
+whose parameters act on a quantity measured at zero in 80–97% of turns (§7).
+Write §1 and §2 to set that claim up, not the architecture.
 
 ## The one rule these drafts follow
 

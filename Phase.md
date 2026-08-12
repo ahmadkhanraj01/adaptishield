@@ -624,15 +624,57 @@ The benign guard passing 0/2 is real and worth keeping: `mt-benign-onboarding`
 turn 2 *did* produce (1,1,1) from checklist language, so the diagnostic band was
 reachable on benign content, and it still did not accumulate into a trend.
 
-🔵 **DECISION OWED — is a repaired cohort a second attempt or corpus-fitting?**
-The Phase 7 precedent is withdraw-repair-rerun: that result was withdrawn because
-the allowlist made every arm equal *by construction*, which is exactly
-`mt-ticket-escalation`'s failure. The argument for a repair is that the targets
-were **pre-registered before the run**, so moving content toward a pre-declared
-target is fixing an instrument, not fitting to an outcome. The argument against
-is that we have now seen the trajectories, and a reviewer cannot verify which of
-the two we did. **Do not re-run without settling this explicitly and recording
-the decision.**
+### 15b · Second run — ✅ *the phase is closed, and the answer is structural*
+
+Repaired under a second pre-registration that states its own weakness (written
+after seeing run 1's trajectories). Targets unchanged; only content that failed
+to elicit them changed. `results/phase15/multiturn_r2.json`.
+
+**PRIMARY NOT MET AGAIN — 0/3.** Guard clean at 0/2. And the two runs together
+say why, in a way neither says alone:
+
+| quantity | across both runs |
+| :--- | ---: |
+| turns with a causal verdict | 30 |
+| `orig == masked` | **24 / 30 (80%)** |
+| **ACE = 0** | **24 / 30 (80%)** |
+| **IE = 0** | **29 / 30 (97%)** |
+
+🔴 **The drift rule's input signal is near-zero, so no cohort can reach it.**
+`risk = 0.5 × (max(−ace_slope, 0) + max(ie_slope, 0))`. With ACE and IE zero
+almost everywhere, both slopes are zero and `risk` is zero — *for any threshold,
+on any content, however the conversation escalates*. The two runs did not fail to
+find the right conversation; they found that **the masked and unmasked probes
+agree with each other on realistic content**.
+→ `The Causal Contrast Is Zero on Realistic Content`.
+
+**Only 6 of 30 turns produced `ACE ≠ 0`, and four are an email address being
+lifted in one regime and not the other.** The causal contrast carries signal when
+there is a liftable target and goes quiet otherwise — the same fact §12 measured
+from the detection side (93.3% vs 10.0%), now shown to govern the temporal rule
+as well.
+
+**The repair worked exactly where it was diagnosed.**
+`mt-ticket-escalation-t1` moved `(0,2,2) → (1,0,0)` once the addresses came out,
+confirming run 1's diagnosis. Steering `orig` by rephrasing the user's task did
+**not** take — which is the finding above seen close up: `orig` tracks `masked`
+regardless of what the user asked for.
+
+**Reproducibility was better than expected.** `mt-doc-review` produced identical
+trajectories in both runs, `(0,0,0) (0,0,0) (0,1,1)`. The run-to-run variation
+§14a measured is concentrated on borderline *benign* documents, not general.
+
+⛔ **STOP RULE HONOURED — there is no run 3.** 15b's pre-registration fixed this
+in advance: a third attempt would be indistinguishable from tuning until it
+fires, and the two nulls now have a mechanism behind them rather than a
+suspicion.
+
+**What this means for the paper.** The honest claim is stronger than the one §15
+set out to make, and it is negative: *two of the adaptive layer's five dimensions
+act on a signal that is zero 80–97% of the time*, so they are not merely
+unidentifiable on our corpus — there is close to nothing there to identify. That
+subsumes the earlier "no gap the knob can close" and gives §7 of the manuscript
+its spine.
 
 ### 14 · Manuscript + reproducibility artifact — 🔲 *drafting from week 1*
 

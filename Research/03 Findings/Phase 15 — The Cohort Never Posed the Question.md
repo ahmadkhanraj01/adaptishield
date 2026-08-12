@@ -1,14 +1,14 @@
 ---
 tags: [adaptishield, finding, phase15]
 type: finding
-status: first-run
+status: closed
 date: 2026-08-12
 ---
 
 # Phase 15 — The Cohort Never Posed the Question
 
 **Primary criterion NOT met: 0 of 3 malicious sessions produced a drift-only
-catch** [0.0%, 56.2%]. `results/phase15/multiturn.json`.
+catch** [0.0%, 56.2%]. `results/phase15/multiturn_r1.json`.
 
 **And that is not the finding.** Not one of the three sessions reached its
 pre-registered target trajectory, so none of them asked the question the phase
@@ -61,6 +61,17 @@ Is a repaired cohort a **second attempt** or **corpus-fitting**?
 🔴 **Do not re-run without settling this and recording the decision.** If it is
 repaired, the repair must be a *new* pre-registration with its own commit, and
 the first run reported alongside it rather than replaced.
+
+## ✅ Resolved by run 2 — and the answer was not the cohort
+
+The repair worked where it was diagnosed (`mt-ticket-escalation-t1` moved
+`(0,2,2) -> (1,0,0)` once the addresses came out), and the primary criterion was
+**still not met, 0/3**. Both runs together show why: `orig == masked` on **24 of
+30** turns, so the drift rule's input signal is near-zero and no cohort could
+have reached it → [[The Causal Contrast Is Zero on Realistic Content]].
+
+⛔ Stop rule honoured, per [[Phase 15b — Repaired Cohort (Pre-Registration)]].
+No run 3.
 
 Related: [[6g — Temporal Drift Scoping]], [[The Adaptive Layer Proposes a No-Op]],
 [[Instruments Fail More Than Mechanisms]].
