@@ -99,11 +99,20 @@ class ExecutionAgent:
             proposed_action=case.proposed_action,
             server_name=case.server_name,
             destination_url=case.destination_url,
-            # Each case is an independent conversation. Without this, 3B's
-            # temporal-drift rule computes a slope across unrelated attack
-            # families and fires takeover on cases where nothing was measured,
-            # inflating caught_by_causal (root README Section 6g).
-            session_id=case.case_id,
+            # Each case is an independent conversation BY DEFAULT. Without
+            # that, 3B's temporal-drift rule computes a slope across unrelated
+            # attack families and fires takeover on cases where nothing was
+            # measured, inflating caught_by_causal (root README Section 6g).
+            #
+            # Phase 15 makes the exception explicit rather than accidental. A
+            # case carrying its own `session_id` is a TURN in a conversation,
+            # and several such cases accumulate one drift history — the
+            # slow-burn threat model no single-boundary rule can see. §6g's two
+            # guards still apply and are not relaxed: the judged boundary must
+            # still show `masked >= 1`, so "nothing observed" still cannot mean
+            # takeover. What changes is which cases share a history, never what
+            # counts as evidence on one.
+            session_id=case.session_id or case.case_id,
         )
 
         final_status = result["status"]

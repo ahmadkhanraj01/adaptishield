@@ -38,6 +38,15 @@ class RedTeamCase:
     destination_url:    str
     description:        str
     generation:         int = 1        # bumped by Optimizer for mutated variants
+    # Phase 15. None means "this case is its own conversation", which is what
+    # every corpus before Phase 15 wants and is why it defaults that way — the
+    # ExecutionAgent falls back to `case_id`, so every committed number
+    # reproduces byte for byte. Set it, and several cases share one 3B drift
+    # history and become turns of a single conversation. That is the ONLY thing
+    # standing between this project and a testable temporal-drift rule: the
+    # analyzer's `session_history` already persists across `run_case` calls
+    # because ExecutionAgent reuses one pipeline.
+    session_id:         Optional[str] = None
 
 
 class AttackGenerator:
