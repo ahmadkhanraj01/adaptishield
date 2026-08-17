@@ -20,6 +20,10 @@ date: 2026-08-08
 | **[[ASR]]** (campaign) | 0% on address-carrying attacks; **non-zero by design** on [[Address-Free Attacks]] |
 | **Completion** | **~92%** |
 
+> **Where these sit against the field:** [[Published Numbers We Position Against]]
+> — InjecAgent, AgentDojo, spotlighting and nine detectors, each quoted verbatim.
+> None is a like-for-like comparison, and the note says why for each.
+
 ## Phase 7 benchmark — the comparative claim
 
 *216 cases, 18 vectors × 3 repeats × 4 arms, 8 Aug 2026 →

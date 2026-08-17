@@ -18,3 +18,9 @@ matplotlib
 pytest
 pytest-asyncio
 rich
+
+# paper build only — figures, decks and the manuscript. Not imported by the
+# pipeline or by the test suite.
+pillow
+python-docx
+python-pptx
