@@ -304,6 +304,10 @@ def build():
 
     fig_n = [0]
     width = [TEXT_WIDTH]
+    # Everything between the title and the abstract is the title block, and a
+    # title block is centred. Detected by position rather than by a marker, so
+    # the markdown stays plain.
+    in_title_block = [False]
     pending_table_caption = [False]
     missing = []
 
@@ -313,6 +317,7 @@ def build():
                      space_after=10)
             for run in p.runs:
                 run.font.bold = True
+            in_title_block[0] = True
 
         elif kind == "h2":
             if payload.startswith("Appendix"):
@@ -343,7 +348,17 @@ def build():
 
         elif kind == "p":
             text = payload
-            if text.startswith("**Table "):
+            if in_title_block[0]:
+                if text.startswith("**Abstract**"):
+                    in_title_block[0] = False
+                    para(doc, text, space_before=6)
+                else:
+                    para(doc, text, size=9.5 if text.startswith("¹") or
+                         text.startswith("Corresponding") or
+                         text.startswith("**[CONFIRM") else BODY_PT,
+                         align=WD_ALIGN_PARAGRAPH.CENTER, space_after=3,
+                         color=GREY if text.startswith("**[CONFIRM") else INK)
+            elif text.startswith("**Table "):
                 para(doc, text, size=8.5, align=WD_ALIGN_PARAGRAPH.LEFT,
                      space_after=8, color=GREY)
                 pending_table_caption[0] = False
