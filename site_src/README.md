@@ -12,7 +12,7 @@ and deploys to the `gh-pages` branch.
 python3 site_src/build.py && mkdocs serve      # preview at localhost:8000
 ```
 
-One-time repo setting: **Settings → Pages → Source: `gh-pages` branch, `/ (root)`.**
+Repo setting: **Settings → Pages → Source: GitHub Actions.** The workflow uploads `site/` as the Pages artifact; no `gh-pages` branch is needed.
 
 Planned sessions: 2 — vault import (architecture, literature, findings, log with
 wikilinks resolved); 3 — per-phase results pages generated from JSON, with a
