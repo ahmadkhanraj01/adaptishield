@@ -101,11 +101,24 @@ work defendable, and survives unchanged if a second model moves the numbers.
    "one model, one scorer" is the objection that lands first and hardest. **If the
    collapse does not replicate, that is a sharper result, not a lost one** — it
    localises the finding to model scale.
-2. **Build `results/campaign/` with a manifest.** The campaign detection headline
-   (116/120 = 96.7%) is the one number a reviewer cannot reproduce from the
-   repository. Note the external FPR beside it *is* committed — it lives in
-   `results/noise_floor/agentdojo_benign.json` (2/60, stable across 3 runs), which
-   makes `results/README.md`'s "what's pending" line half stale.
+2. ✅ **`results/campaign/` built — 12 Sep 2026.** `python3 -m
+   evaluation.campaign_report` writes `campaign.json` + `manifest.json`, and the
+   headline reproduces exactly: detection **116/120 = 96.7% [91.7%, 98.7%]**,
+   ASR 4/120, and the two benign cohorts kept apart at 4/8 and 2/60. All 188
+   episodes carry `per_case` in the artifact, so every rate recomputes from the
+   committed file without logs, models or a GPU —
+   `tests/test_campaign_report.py` (10 tests) pins that, plus the address-free
+   shape of all four misses and the refusal to pool the cohorts.
+
+   ⚠️ **Two honest limits, both in the manifest.** It is a *replay*
+   (`replay.fully_replayed: true`) over the 26 July checkpoints, which live in
+   gitignored `logs/` — a fresh clone needs a ~1.5 h re-run to rebuild the
+   inputs, the same departure `refusal_audit/` records. And the original run left
+   **no manifest**: the campaign runner predates `build_manifest`, so model tags,
+   temperature and `k_samples` are recorded as `null` rather than backfilled from
+   today's config. Only `ie_threshold = 0.5` is asserted, because it appears in
+   116 recorded verdict strings. A reviewer asking *what exactly ran in July* gets
+   a partial answer — but a documented one rather than an invented one.
 3. **Related-work prose, and one verification.** §10 and manuscript §II supply the
    quantitative half. What is owed is the narrative pass placing the three defence
    families, plus reading AgentDojo's own table for the number in §5 below.

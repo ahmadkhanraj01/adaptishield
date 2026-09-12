@@ -29,6 +29,8 @@ Copying a result here is the act of saying *this one is the number of record*.
 | `phase11_loo/manifest.json` | same run | `replay.fully_replayed: false` — only `full` was cached |
 | `phase12/benchmark.json` | `python3 -m evaluation.benchmark --corpus injecagent --arms undefended,static_only,full` | InjecAgent direct-harm, **reported per stratum and never pooled**. Detection 93.3% where 3B's target-match fires, 10.0% where it cannot |
 | `phase12/manifest.json` | same run | Plus `corpus.injecagent` — source, licence, citation, what was excluded, the 51/459 population, and the 60 `sampled_indices` drawn |
+| `campaign/campaign.json` | `python3 -m evaluation.campaign_report` | **The in-corpus headline.** Layer-attributed detection 116/120 = 96.7% [91.7%, 98.7%] with per-family and per-pass breakdowns, end-to-end ASR beside it, and the two benign cohorts **kept apart** — `fpr_ours` 4/8 (a diagnostic at n=8) and `fpr_external` 2/60 (the rate). Carries `per_case` for all 188 episodes, so every rate recomputes from the file alone |
+| `campaign/manifest.json` | same command | `replay.fully_replayed: true` — the outcomes are the 26 July campaign's cached per-case results and nothing was re-executed. Records what the original run **did not** leave behind: `original_manifest: null`, the run config reconstructed only as far as its own verdicts evidence it (`ie_threshold = 0.5`, model tags null), and the SHA-256 of every checkpoint consumed |
 | `probe_corpus/injecagent.json`<br>`probe_corpus/agentdojo_benign.json` | `python3 -m evaluation.probe_corpus --cohort all` | **What the probe said**, per case: all four regimes, both samples, and the sanitised mediator the sanitized regimes were scored against. Its manifest pins the model tag, temperature, `k_samples` and a content hash of every probe prompt — a corpus recorded under an edited prompt is **refused**, not warned about |
 | `severity/rescore_holdout.json` | `python3 -m evaluation.rescore --cohort agentdojo_attacks --json ...` | **The holdout.** AgentDojo's attack side, imported after the lexicon was frozen at `46cfbfb` and committed at `4d48efd` before the result was known. Address-free **30.0% → 43.3%**, 4/0, p = 0.125 — against 90.0% in-sample, intervals non-overlapping. 🔴 **This is the figure of record**, not `rescore.json`'s |
 | `probe_corpus/agentdojo_attacks.json` | `python3 -m evaluation.probe_corpus --cohort agentdojo_attacks` | Recorded probe output for the holdout, same manifest discipline as the others |
@@ -95,6 +97,17 @@ which needs neither logs nor a model.
 
 - **Phase 13's reproducibility artifact is this tree** plus the deterministic test
   suite. Every phase now has a subdirectory.
-- The campaign's own numbers (detection 116/120, FPR 3.3% at n=60) are still only in
-  `logs/` + the docs. They should get a `results/campaign/` entry with a manifest,
-  for the same reason Phase 7 has one.
+- ✅ **The campaign's own numbers now have one** — `campaign/`, added 12 Sep 2026.
+  Detection 116/120 and the external FPR 2/60 both reproduce from the committed
+  artifact, and `tests/test_campaign_report.py` pins the headline, the
+  address-free shape of all four misses, and the refusal to pool the two benign
+  cohorts.
+
+  ⚠️ **It is a replay over gitignored inputs, and that is a real limitation.**
+  The per-case outcomes come from `logs/campaign_checkpoint/`, so a fresh clone
+  cannot rebuild them without re-running the campaign (~1.5 h, local GPU) — the
+  same departure `refusal_audit/` records. It is mitigated rather than cured by
+  committing `per_case` into the artifact: every rate in `summary` is recomputable
+  from the tracked file alone, which is the half Rules §7 actually cares about.
+  The original run left **no manifest** (the campaign runner predates
+  `build_manifest`); the absence is recorded, not reconstructed.
