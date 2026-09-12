@@ -2,7 +2,9 @@
 
 **What was achieved, why it is different, and why it is a defendable journal paper.**
 
-*Prepared 13 August 2026 · target submission 14 September 2026 · every figure below is regenerable from a committed command (`results/` + the deterministic test suite).*
+*Prepared 13 August 2026 · **updated 12 September 2026** · every figure below is regenerable from a committed command (`results/` + the deterministic test suite).*
+
+> **What changed since the August brief.** All three items on the hardening list are closed. The in-corpus headline is now a committed artifact; the single-model exposure has been tested and the finding replicates on a second model; the related-work pass is done and one published number we had been holding back turned out to be wrong. **The only thing still blocking submission is the journal decision in §7** — and the 14 September target is now two days away, so it needs either confirming or moving.
 
 ---
 
@@ -14,7 +16,7 @@ We built a six-layer defence against **prompt injection** — the attack where a
 
 ## 2. What was built
 
-A complete, working pipeline (≈93% built, **474 automated tests, ~10 s, no model/network/GPU required**):
+A complete, working pipeline (≈93% built, **502 automated tests, ~8 s, no model/network/GPU required**):
 
 | Layer | Function |
 | :--- | :--- |
@@ -41,6 +43,7 @@ Every number carries its source, and cohorts are never pooled where the populati
 | 5 | The obvious fix (widen the harm vocabulary) **generalises about half** | in-sample 90.0% → holdout **43.3%**, intervals non-overlapping | Phase 13 |
 | 6 | **The adaptive layer's contrast is zero on 80% of realistic turns** — why self-tuning has nothing to learn (2 pre-registered runs) | `orig == masked` on 24/30 turns | Phase 15 |
 | 7 | An overnight follow-up measured *why*: the blunt scorer destroys signal, but a continuous replacement saturates on a small model | 35/45 forced choices saturated | logprob probe |
+| 8 | **The collapse is not a property of our model.** Repeated on a second probe model of a different lineage — the gap comes out *wider* | 96.7%/13.3% → **100.0%/10.0%**; 58 of 60 cases agree | Phase 16 |
 
 **The whole paper reduces to one defendable claim:** *the causal contrast carries discriminative signal when the injected content names a liftable target (an address or link), and close to none otherwise.* Findings 3, 5 and 6 are all consequences of that one property.
 
@@ -54,7 +57,7 @@ This is the part worth emphasising to reviewers, because it is what makes the wo
 - **The negative results are the contribution, not an embarrassment.** We found a precise, general boundary line for a whole class of defence. That tells the next research team where to dig, which a "97% accuracy" paper does not.
 - **Every experiment that could fool us was pre-registered.** The generalisation test froze its rules and committed the holdout corpus *before* the result was known; the adaptive experiment committed its success criteria and cohort before running, and honoured its own stop rule after two attempts.
 - **Instruments are treated as first-class.** Three findings were caught by measurement tools we built to check something else, and we report the *withdrawn* versions alongside the corrected ones — a benchmark whose first result was invalid by construction, a baseline whose sign its own scorer had reversed, an ablation that called a working component inert. This is the methodological spine of the paper.
-- **It is fully reproducible.** The `results/` tree, run manifests, and a 474-test deterministic suite are the artifact. No number in the paper exists without a committed command that regenerates it.
+- **It is fully reproducible.** The `results/` tree, run manifests, and a 502-test deterministic suite are the artifact. No number in the paper exists without a committed command that regenerates it.
 
 ---
 
@@ -68,7 +71,7 @@ A viva or a reviewer will push on these, and each has a prepared, evidence-backe
 | *"Is the 96.7% → 18% drop just noise?"* | No — measured 3× per stratum; ~86-point gap against a ≤1-case run-to-run spread. |
 | *"Did you tune your way to the generalisation number?"* | No — the lexicon was frozen and the holdout committed before the result was seen (verifiable from commit history). |
 | *"The system is called *Adaptive* but you say it doesn't adapt."* | The adaptive mechanism works on a constructed gap and generalises; we measured that no such gap arises naturally, and (overnight) *why*. We recommend the paper title claim only what is proven — see §7. |
-| *"One model, one scorer — is this general?"* | Stated plainly as a limitation, with the one measured route that would test generality (a continuous scorer on a larger model). |
+| *"One model, one scorer — is this general?"* | **Now partly answered by measurement.** The stratification replicates on a second model (`llama3.2:3b`): a 90.0-point gap against the incumbent's 83.3, agreeing on 58 of 60 cases. What remains stated as a limitation: both models are 3–4B and locally hosted, one scorer sits behind every number, and the multi-turn result was not repeated. Two further candidates were disqualified on a compliance pre-flight, which is itself reported. |
 
 ---
 
@@ -76,11 +79,12 @@ A viva or a reviewer will push on these, and each has a prepared, evidence-backe
 
 | Piece | Status |
 | :--- | :--- |
-| System + 474-test artifact | ✅ complete |
-| All 15 experimental phases | ✅ complete, all numbers frozen |
-| Manuscript — all 9 sections drafted (~8,000 words) | ✅ complete in draft |
+| System + 502-test artifact | ✅ complete |
+| All 16 experimental phases | ✅ complete, all numbers frozen |
+| Manuscript — 13 numbered sections (~9,800 words), 12 tables, 6 figures | ✅ complete in draft |
 | Figures — 4 core, generated from results, embedded in text | ✅ complete |
-| Related-work section | ⏳ needs a literature pass |
+| Related-work section | ✅ done — six missing references traced, and §2 now places the three defence families by what each takes as evidence |
+| Author block — ORCIDs, membership grades, author order, funding | ⏳ **needs your input** (author order is yours to set) |
 | **Journal choice** | 🔵 **needs your decision** |
 
 **Recommended venue: IEEE Access** — first decision in ~4–6 weeks (fits the deadline), and explicitly tolerant of systems work with negative results, which is what this is. *Computers & Security* is a stronger topical fit but its 3–6 month timeline likely misses the degree deadline; *IEEE TDSC* is out of reach on time.
@@ -89,7 +93,7 @@ A viva or a reviewer will push on these, and each has a prepared, evidence-backe
 
 ## 7. Two decisions I would like your view on
 
-1. **Journal choice** (above) — this is the only item genuinely blocking the write-up, as it sets page limits, the artifact-availability requirement, and author order (with Aleena Khan and Dr. Laeeq Ahmed).
+1. **Journal choice, and the date** (above) — the only item genuinely blocking submission. It sets page limits, the artifact-availability requirement, and author order (with Aleena Khan and Dr. Laeeq Ahmed). **The 14 September target is two days away.** Everything measurable is finished; what is not finished is this decision and the author block that depends on it. I would rather move the date deliberately than submit against it by default — but if IEEE Access is confirmed, the remaining work is a day.
 
 2. **Paper title.** Keep *AdaptiShield* as the system's name, but I would argue the paper's *title* should claim what the evidence supports — the operating envelope and limits of a causal injection defence — rather than lead with "adaptive", which the paper itself reports as a measured no-op. Over-claiming is punished harder by reviewers than an honest negative result.
 
