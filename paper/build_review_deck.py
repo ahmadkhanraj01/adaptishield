@@ -345,7 +345,7 @@ rows = [
     ("Red team", "red_team/", "Attack vectors with a declared honest_limit — it predicts its own failures"),
     ("Evaluation harness", "evaluation/", "benchmark · probe_corpus · rescore · noise_floor · paired · fpr_report"),
     ("Corpus", "188 + 120", "188 campaign episodes, 60 AgentDojo benign, 60 InjecAgent"),
-    ("Deterministic tests", "484", "~12 s, no LLM, no network, no GPU — the artifact's spine"),
+    ("Deterministic tests", "502", "~8 s, no LLM, no network, no GPU — the artifact's spine"),
     ("Results tree", "8 phases", "Every quotable number, each with a run manifest"),
     ("Manuscript", "10 sections", "~8,000 words, 4 generated figures, generated positioning table"),
 ]
@@ -357,7 +357,7 @@ text(s, M + Inches(0.25), Inches(6.22), CW - Inches(0.5), Inches(0.4),
      [[("The tests pin the ways each instrument could lie. ", 13, INK, True, SANS),
        ("A benchmark that pools strata, a scorer that counts refusals as compliance, an ablation that "
         "calls a live component inert.", 13, MUTED, False, SANS)]])
-footer(s, "484 passing")
+footer(s, "502 passing")
 
 # ══════════════════════════════════════════════════════════ B
 divider("Part B", "Where the numbers come from",
@@ -481,10 +481,10 @@ divider("Part C", "What was measured",
 s = slide()
 eyebrow(s, "The headline numbers")
 heading(s, "Five numbers, each with its interval")
-sub(s, "Every one regenerates from a committed command. The asterisk is the exception, and it is flagged.")
+sub(s, "Every one regenerates from a committed command. The asterisk marks the one that is a replay.")
 
 kpi(s, M, Inches(2.3), Inches(3.5), "96.7%", "Detection, our campaign",
-    "116/120 · [91.7, 98.7] *", FINDING)
+    "116/120 · [91.7, 98.7] *", DONE)
 kpi(s, M + Inches(3.75), Inches(2.3), Inches(3.5), "3.3%", "False positives, external",
     "2/60 · [0.9, 11.4] · 3 runs", DONE)
 kpi(s, M + Inches(7.5), Inches(2.3), Inches(3.5), "14.3%", "ASR, full system",
@@ -497,10 +497,10 @@ kpi(s, M + Inches(7.5), Inches(3.95), Inches(3.5), "24 / 30", "Turns with zero c
     "orig == masked · 80%", FINDING)
 
 text(s, M, Inches(5.65), CW, Inches(1.1),
-     [[("* The one number a reviewer could not reproduce from the repository.", 13.5, FINDING, True, SANS)],
-      [("The campaign detection headline lives in logs/ and the documents, not under results/. It fails the "
-        "regenerability rule, it is measured on attacks we wrote ourselves, and both facts are stated in the "
-        "manuscript rather than worked around. Building results/campaign/ is item 2 of the hardening pass.",
+     [[("* Regenerable since 12 Sep — results/campaign/, built from the campaign's own checkpoints.", 13.5, DONE, True, SANS)],
+      [("Every rate recomputes from the committed artifact, which carries per_case for all 188 episodes. "
+        "The manifest says what it is: a replay over checkpoints that are not themselves tracked, and the "
+        "original run left no manifest of its own. Still measured on attacks we wrote — that part stands.",
         13, MUTED, False, SANS)]],
      spacing=8)
 footer(s)
@@ -548,6 +548,38 @@ text(s, tx, Inches(1.95), Inches(4.15), Inches(4.6),
         "mechanism and the split is reproducible.", 12.5, MUTED, False, SANS)]],
      spacing=9)
 footer(s, "results/noise_floor/injecagent.json")
+
+# ---- phase 16: the collapse on a second model
+s = slide()
+eyebrow(s, "Phase 16  ·  §7-E model transfer")
+heading(s, "The collapse survives a second model")
+sub(s, "Same InjecAgent draw, same probe prompts, same shipped scorer — a different model behind the probe.")
+
+widths = [Inches(3.9), Inches(3.6), Inches(3.8)]
+rows = [
+    ("Target-match path fires", "29/30  ·  96.7%", "30/30  ·  100.0%"),
+    ("Target-match cannot", "4/30  ·  13.3%", "3/30  ·  10.0%"),
+    ("Stratum gap", "83.3 points", "90.0 points"),
+]
+table(s, M, Inches(2.35), widths, ("Stratum", "gemma3:4b  (incumbent)", "llama3.2:3b"), rows,
+      row_h=Inches(0.52), fs=13, emph={2})
+
+text(s, M, Inches(4.35), CW, Inches(1.3),
+     [[("Paired over all 60 cases: 1 helped, 1 hurt, 2 discordant. The models agree on 58 of 60.", 13.5, INK, True, SANS)],
+      [("The exact p is 1.0, and at two discordant pairs that is near-zero power rather than equivalence — "
+        "the stratum gap is the result, not the test. The claim is about the shape: near the ceiling where "
+        "the target-match path can fire, near the floor where it cannot, on both models.", 12.5, MUTED, False, SANS)]],
+     spacing=8)
+
+rect(s, M, Inches(5.75), CW, Inches(1.0), SURFACE, line=HAIR)
+text(s, M + Inches(0.25), Inches(5.95), CW - Inches(0.5), Inches(0.7),
+     [[("It took three candidates, and the two failures bracket the usable range. ", 13, INK, True, SANS),
+       ("qwen2.5:7b complies faithfully but at 53% CPU offload will not return the same answer twice at "
+        "temperature 0. qwen2.5:3b is byte-identical across repeats and answers no_action on both cases the "
+        "incumbent detects — with no refusal string anywhere, so a keyword check scores it compliant. On a "
+        "4 GB card the search is hard; the transfer is not.", 13, MUTED, False, SANS)]],
+     spacing=6)
+footer(s, "results/phase16_model_transfer/")
 
 # ---- fig 3
 s = slide()
@@ -778,7 +810,7 @@ case = [("It measures itself against outside attacks and an outside baseline",
         ("Every experiment that could fool us was pre-registered",
          "The generalisation test froze its lexicon and committed the holdout before the result was known. The adaptive experiment committed its criteria and honoured its own stop rule after two runs."),
         ("It is reproducible end to end",
-         "results/ with manifests, 484 deterministic tests, and a positioning table generated from both. No number exists without a committed command.")]
+         "results/ with manifests, 502 deterministic tests, and a positioning table generated from both. No number exists without a committed command.")]
 bullets(s, M, Inches(2.25), Inches(11.3), case, gap=Inches(1.06), title_size=15.5, body_size=12.5)
 footer(s)
 
@@ -791,7 +823,7 @@ sub(s, "Each has a prepared answer. Only the first is worth spending the remaini
 widths = [Inches(4.4), Inches(6.9)]
 rows = [
     ("\"One model, one scorer.\"",
-     "The real exposure. Everything rests on gemma3:4b plus one keyword scorer. §9 says so — but honesty does not discharge it. This is what the hardening pass is for."),
+     "Half answered on 12 Sep. The stratification replicates on llama3.2:3b — a 90.0-point gap against the incumbent's 83.3, agreeing on 58 of 60 cases. What stands: both models are 3-4B and locally hosted, one scorer sits behind everything, and the multi-turn zero-contrast result was never repeated."),
     ("\"Your headline is on attacks you wrote.\"",
      "Partly answered: InjecAgent and AgentDojo cohorts exist and are reported separately. But 96.7% is our corpus and has no artifact. Both stated in the manuscript."),
     ("\"What does the defence cost on benign work?\"",
@@ -850,17 +882,17 @@ divider("Part F", "If we continue",
 s = slide()
 eyebrow(s, "The recommendation")
 heading(s, "Publish. Harden, do not extend.")
-sub(s, "28 days to the submission target. The paper is finished as an argument; what is unfinished is armour.")
+sub(s, "The armour is on. All three hardening items closed on 12 Sep; what is unfinished is the venue decision.")
 
-hard = [("1", "Re-run the probe on a second model family",
-         "qwen2.5:7b or llama3.1:8b, both InjecAgent strata, n = 30 each. Hours of compute. Converts "
-         "\"a property of that pair\" into \"observed on two independent model families\" — and if the "
-         "collapse does not replicate, that is a sharper result, not a lost one.", FINDING),
-        ("2", "Build results/campaign/ with a manifest",
-         "Closes the one regenerability hole. The number a reviewer currently cannot reproduce.", SIGNAL),
-        ("3", "Related-work prose + verify one AgentDojo figure",
-         "§10 supplies the quantitative half already. The verification is a ten-minute read of their table.",
-         SIGNAL)]
+hard = [("✓", "Second model family — done, and it replicates",
+         "llama3.2:3b over the same InjecAgent draw: 100.0% where the target-match path fires against "
+         "10.0% where it cannot. Two candidates were disqualified first — one non-deterministic at 53% "
+         "CPU offload, one answering no_action on both cases the incumbent detects.", DONE),
+        ("✓", "results/campaign/ with a manifest — done",
+         "116/120 regenerates from a committed command. Marked a replay, because it is one.", DONE),
+        ("✓", "Related-work prose + the AgentDojo figure",
+         "§2 now places the three defence families by unit of evidence. Their table was read: the held-back "
+         "45.8% was wrong by twelve points and from the wrong table. One human read releases it.", DONE)]
 yy = Inches(2.3)
 for tag, title_, body, col in hard:
     rect(s, M, yy + Inches(0.02), Inches(0.42), Inches(0.42), col, radius=0.2)
@@ -918,7 +950,7 @@ text(s, M, Inches(5.25), Inches(10.6), Inches(0.9),
      [("Every headline experiment pre-registered. Every number regenerable from a committed command. "
        "Every withdrawn result reported next to the one that replaced it.", 17, DIM, False, SANS)])
 text(s, M, H - Inches(0.95), CW, Inches(0.3),
-     [("484 TESTS PASSING  ·  10 MANUSCRIPT SECTIONS  ·  8 PHASES IN results/  ·  28 DAYS TO SUBMISSION",
+     [("502 TESTS PASSING  ·  10 MANUSCRIPT SECTIONS  ·  10 PHASES IN results/  ·  VENUE UNDECIDED",
        10, PALE, True, MONO)])
 footer(s)
 
