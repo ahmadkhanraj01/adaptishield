@@ -43,12 +43,13 @@ def _load(rel):
 # ── figures ──────────────────────────────────────────────────────────────
 def figures():
     """Regenerate from results/ when the toolchain is present, then copy."""
-    try:
+    # Opt-in: matplotlib re-stamps the PDFs on every run and dirties the tree.
+    # The committed figures ARE generated from results/ — make_figures.py is
+    # the only thing that writes them — so copying them keeps the guarantee.
+    if os.environ.get("SITE_REGEN_FIGURES"):
         subprocess.run(["python3", "paper/make_figures.py"], cwd=REPO,
                        check=True, capture_output=True, timeout=300)
         print("[site] figures regenerated from results/")
-    except Exception as e:  # matplotlib may be absent in CI; committed PNGs are used
-        print(f"[site] using committed figures ({type(e).__name__})")
     dst = os.path.join(DOCS, "assets", "figures")
     os.makedirs(dst, exist_ok=True)
     for name in os.listdir(os.path.join(REPO, "paper", "figures")):
@@ -205,12 +206,115 @@ def architecture():
         fh.write(page)
 
 
+STATUS = [  # (marker, css class, label) — status is icon + label, never colour alone
+    ("⛔", "withdrawn", "withdrawn"),
+    ("🔴", "open", "open defect"),
+    ("🔲", "next", "planned"),
+    ("🟡", "partial", "partial"),
+    ("🔵", "blocked", "blocked"),
+    ("✅", "done", "done"),
+]
+
+
+def _status(cell):
+    for marker, cls, label in STATUS:
+        if marker in cell:
+            return marker, cls, label
+    return "·", "unknown", "unknown"
+
+
+def _phase_rows(md):
+    """Rows of Phase.md's Snapshot table: (id, scope, state-cell)."""
+    rows = []
+    for line in md.split("\n"):
+        m = re.match(r"^\|\s*\**([0-9]+[a-z]?)\**\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*$", line)
+        if m:
+            rows.append(m.groups())
+    return rows
+
+
+def _strip_md(s):
+    return re.sub(r"[*_`]|\(§[^)]*\)", "", s).strip()
+
+
 def progress():
     src = _repo_links(open(os.path.join(REPO, "Phase.md")).read())
+    rows = _phase_rows(src)
+
+    # Anchor every "### N · …" section so the board can deep-link into it.
+    def anchor(m):
+        return f'<a id="phase-{m.group(1).lower()}"></a>\n{m.group(0)}'
+    src = re.sub(r"^### ([0-9]+[a-z]?) · .+$", anchor, src, flags=re.M)
+    section_ids = set(re.findall(r'id="phase-([0-9a-z]+)"', src))
+
+    counts = {}
+    cards = []
+    for pid, scope, state in rows:
+        marker, cls, label = _status(state)
+        counts[label] = counts.get(label, 0) + 1
+        short = _strip_md(state)
+        short = (short[:90] + "…") if len(short) > 90 else short
+        href = f"#phase-{pid.lower()}" if pid.lower() in section_ids else "#snapshot"
+        cards.append(
+            f'<a class="ph {cls}" href="{href}">'
+            f'<span class="id">{pid}</span>'
+            f'<span class="st">{marker} {label}</span>'
+            f'<span class="sc">{_strip_md(scope)}</span>'
+            f'<span class="dt">{short}</span></a>')
+
+    stats = "".join(
+        f'<div class="stat"><b>{counts.get(l, 0)}</b><span>{m} {l}</span></div>'
+        for m, _, l in STATUS if counts.get(l))
+
+    toc = "\n".join(
+        f"- [{_strip_md(h)}](#phase-{i.lower()})"
+        for i, h in re.findall(r"^### ([0-9]+[a-z]?) · (.+?)\s+—", src, flags=re.M))
+
+    head = f"""{GEN_MARK}# Progress
+
+*Generated from `Phase.md`'s Snapshot table and section headings at build time.
+Status is shown as icon + label: ✅ done · 🟡 partial · 🔲 planned · 🔴 open
+defect · 🔵 blocked · ⛔ withdrawn. Click a card to jump to that phase's section.*
+
+<div class="stats">{stats}</div>
+
+## Phase board
+
+<div class="board">
+{chr(10).join(cards)}
+</div>
+
+## Sections
+
+{toc}
+
+---
+
+*Below is `Phase.md` from the repository, rendered as-is.*
+
+<style>
+.stats{{display:flex;gap:.75rem;flex-wrap:wrap;margin:.5rem 0 1rem}}
+.stat{{border:1px solid var(--md-default-fg-color--lightest);border-radius:8px;padding:.5rem .9rem;min-width:7rem}}
+.stat b{{display:block;font-size:1.4rem;line-height:1.1}}
+.stat span{{font-size:.75rem;opacity:.75}}
+.board{{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.6rem;margin:1rem 0}}
+.ph{{display:flex;flex-direction:column;gap:.15rem;padding:.6rem .7rem;border-radius:8px;
+     border:1px solid var(--md-default-fg-color--lightest);border-left-width:5px;
+     color:var(--md-default-fg-color) !important;text-decoration:none !important;font-size:.78rem}}
+.ph:hover{{background:var(--md-default-fg-color--lightest)}}
+.ph .id{{font-family:var(--md-code-font-family);font-weight:700;font-size:.95rem}}
+.ph .st{{font-weight:600}}
+.ph .sc{{opacity:.9}}
+.ph .dt{{opacity:.6;font-size:.7rem}}
+.ph.done{{border-left-color:#2e7d5b}} .ph.partial{{border-left-color:#c98a00}}
+.ph.next{{border-left-color:#7a7a7a}} .ph.open{{border-left-color:#c0392b}}
+.ph.blocked{{border-left-color:#2f6fb5}} .ph.withdrawn{{border-left-color:#555;opacity:.7}}
+</style>
+
+"""
     with open(os.path.join(DOCS, "progress.md"), "w") as fh:
-        fh.write(GEN_MARK + "# Progress\n\n*`Phase.md` from the repository, "
-                 "rendered as-is. Status markers: ✅ done · 🟡 partial · 🔴 open · "
-                 "⛔ withdrawn.*\n\n" + src)
+        fh.write(head + src)
+    print(f"[site] progress: {len(rows)} phases on the board, {len(section_ids)} deep links")
 
 
 def write_config(manuscript_nav):
