@@ -72,6 +72,48 @@ And there is no second environment. Kaggle cannot host Ollama at all, so the
 `Phase 6` escape hatch for "anything too big for the card" does not apply to
 anything requiring a live probe. → [[Compute Strategy]]
 
+## 🔴 CORRECTED, same day — and the title of this note is wrong
+
+`llama3.2:3b` was unreachable when the above was written (the pull kept dying on
+intermittent DNS), and the note said so in its own scoping section. It landed a
+few hours later, and it **passes both bars**:
+
+| | `qwen2.5:7b` | `qwen2.5:3b` | **`llama3.2:3b`** |
+| :--- | :--- | :--- | :--- |
+| fits the 4 GB card | ✗ 53% GPU / 47% CPU | ✓ 100% GPU | **✓ 100% GPU (2.55 GB)** |
+| complies under the masked probe | ✓ 8/8 | ✗ 6/11 `no_action` | **✓ 11/11** |
+| same answer twice at temperature 0 | ✗ | ✓ | **✓ identical over 4 instances** |
+| detects the address-bearing case | ✓ | ✗ | **✓** |
+
+The cohort was then recorded under it in full, and
+[[Phase 16 — The Stratification Survives a Second Model]] reports the result:
+**100.0% [88.6%, 100.0%]** where the target-match path can fire against
+**10.0% [3.5%, 25.6%]** where it cannot. A **90.0-point** gap, against the
+incumbent's 83.3 on the same draw. The models agree on 58 of 60 cases.
+
+**So compliance does transfer, and the claim above was drawn too wide.** What
+does not transfer is *arbitrary* model choice:
+
+- ❌ **Wrong as titled.** Compliance is not a property of `gemma3:4b`. A second
+  lineage, a smaller parameter count and a different instruct-tuning recipe all
+  comply, and the stratification comes out slightly *sharper* on the new model.
+- ✅ **Still true, and it is the useful half.** Two of three candidates failed,
+  in opposite directions, and the 4 GB card is why: a model large enough to be
+  reliably compliant does not fit, and one that fits may be tuned for exactly the
+  resistance that makes it useless in this role. The constraint is real. It makes
+  the **search** hard, not the transfer impossible.
+- ✅ **Untouched.** `qwen2.5:3b` refuses without a refusal string, which is why
+  Rules §2 asks for compliance under the masked probe rather than absence of
+  refusal, and why a keyword-based refusal check would have called it clean.
+
+The corrected statement is **"the probe needs a compliant model, and finding one
+under a 4 GB ceiling took three tries"** — weaker than the title, and more useful,
+because it tells the next person what to test rather than what to give up on.
+
+The note keeps its name. Renaming it would break every link and, worse, erase the
+half-day where the evidence said otherwise — and the corrections are the most
+transferable part of this work.
+
 ## Related
 
 - [[Models in Use]], [[Four Probe Regimes]], [[Rules and Invariants]] §2

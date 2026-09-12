@@ -101,12 +101,16 @@ first-class** — several of them are the contribution.
   benchmark vectors could not power the comparison (ASR 1/7) and the campaign
   corpus was used instead
 
-- ⚠️ [[The Probe's Compliance Does Not Transfer]] — the masked probe's compliance is
-  a property of **`gemma3:4b`**, not of the probe. Both alternatives on this machine
-  fail, in opposite ways: `qwen2.5:7b` complies faithfully but is **non-deterministic**
-  at 53% CPU offload, `qwen2.5:3b` is perfectly deterministic at 100% GPU but returns
-  `no_action` on **both** cases gemma detects. The 4 GB card forces the choice, and
-  the refusal carries no refusal string
+- ⚠️ [[The Probe's Compliance Does Not Transfer]] — **title corrected the same day.**
+  Two of three candidates fail, in opposite ways: `qwen2.5:7b` complies but is
+  **non-deterministic** at 53% CPU offload, `qwen2.5:3b` is deterministic at 100% GPU
+  but returns `no_action` on **both** cases gemma detects, with no refusal string
+  anywhere. The third, `llama3.2:3b`, passes both bars — so the 4 GB ceiling makes the
+  **search** hard rather than the transfer impossible. Kept under its wrong title, marked
+- ✅ [[Phase 16 — The Stratification Survives a Second Model]] — **100.0% vs 10.0%** on
+  `llama3.2:3b` against the incumbent's 96.7% vs 13.3% on the same draw: a **90.0-point**
+  gap against 83.3, agreeing on 58 of 60 cases. The collapse is a property of the
+  **mechanism**, not of one model — which is the objection §XII conceded first
 
 ## Process findings — about the evidence, not the defense
 

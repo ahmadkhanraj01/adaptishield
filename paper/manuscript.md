@@ -290,6 +290,24 @@ The stratified figures were originally single-run, which for a flagship result i
 
 The target-match stratum is *perfectly* stable — every one of its 30 documents receives the same verdict in all three runs — which is what one expects when detection rides on a near-deterministic string match rather than on a judgement. These are recordings re-scored offline, so they bound the recording instrument's variability rather than a full live run's; we claim only what that supports, namely that the stratified collapse is not an artifact of a single run.
 
+### E. The collapse is not a property of one model
+
+Every figure above rests on one 4B model behind the causal probe, which makes the stratification a candidate property of *that model* rather than of the mechanism. We tested it directly: the same InjecAgent draw, recorded a second time under a different probe model, scored through the same shipped rules with identical probe prompts.
+
+| Stratum | `gemma3:4b` (incumbent) | `llama3.2:3b` |
+| :--- | ---: | ---: |
+| target-match path fires | 29/30 = 96.7% [83.3%, 99.4%] | 30/30 = 100.0% [88.6%, 100.0%] |
+| target-match cannot | 4/30 = 13.3% [5.3%, 29.7%] | 3/30 = 10.0% [3.5%, 25.6%] |
+| **stratum gap** | **83.3 points** | **90.0 points** |
+
+**Table VIII.** The stratification under a second probe model. Same draw, same prompts, same scorer; run 0 of each. Paired over all 60 cases: 1 helped, 1 hurt, 2 discordant, exact *p* = 1.0 — which at two discordant pairs is near-zero power, not equivalence.
+
+The shape reproduces on a different model lineage with a smaller parameter count and a different instruct-tuning recipe, and the gap comes out slightly wider. The two models agree on 58 of 60 cases, disagreeing once in each direction. We claim from this that the collapse follows the mechanism rather than the model — not that the two models are equivalent, which two discordant pairs cannot support.
+
+Model choice was not free, and the constraint is worth reporting because it shapes what can be tested at this scale. Two other candidates were disqualified before this one on a pre-registered compliance pre-flight (§XII): a 7B model complies faithfully but cannot fit our 4 GB accelerator, running 47% on CPU and failing to return identical output across runs at temperature 0; a second 3B model is fully resident and perfectly reproducible but returns "no action" on both cases the incumbent detects, without emitting any refusal text. The probe requires a model that states the action it is shown, and that property is neither guaranteed by scale nor visible to a refusal-string check.
+
+*Artifact: `results/phase16_model_transfer/`.*
+
 ## VIII. A Harm Taxonomy Generalizes About Half
 
 *Artifacts: `results/severity/rescore.json`, `results/severity/rescore_holdout.json`.*
@@ -307,7 +325,7 @@ The protocol was therefore fixed in advance. The candidate harm class, a verb–
 | schemeless | 26.7% | 36.7% | 8.3% |
 | both | 90.0% | 50.0% (6/0, *p* = 0.031) | 10.0% |
 
-**Table VIII.** In-sample 90.0% [74.4%, 96.5%] against holdout 43.3% [27.4%, 60.8%]. The intervals do not overlap. The diagnosis survives; the effect size does not.
+**Table IX.** In-sample 90.0% [74.4%, 96.5%] against holdout 43.3% [27.4%, 60.8%]. The intervals do not overlap. The diagnosis survives; the effect size does not.
 
 ![Address-free detection for the capability lexicon, in-sample versus holdout. Error bars are Wilson 95% intervals and do not overlap.](figures/fig3_generalisation.png)
 
@@ -327,7 +345,7 @@ Three independent recordings of the same 60 benign documents give three identica
 
 > **The FPR reproduces as a rate; the set of documents producing it does not.**
 
-A claim of the form "this configuration adds one false positive" is therefore not supported by a single run, because it may be reporting churn in the borderline pool. This bounds Table VIII directly: the capability arm's apparent FPR cost is one case in 60, precisely the magnitude that churns, so the defensible statement is **no measurable FPR change**, not "+1.7 points".
+A claim of the form "this configuration adds one false positive" is therefore not supported by a single run, because it may be reporting churn in the borderline pool. This bounds Table IX directly: the capability arm's apparent FPR cost is one case in 60, precisely the magnitude that churns, so the defensible statement is **no measurable FPR change**, not "+1.7 points".
 
 ## IX. The Adaptive Layer and the Temporal-Drift Rule
 
@@ -357,7 +375,7 @@ We built the first multi-turn cohort that could exercise it: five three-turn con
 | ACE = 0 | 24 / 30 (80%) |
 | IE = 0 | 29 / 30 (97%) |
 
-**Table IX.** The causal contrast across both pre-registered runs.
+**Table X.** The causal contrast across both pre-registered runs.
 
 ![Unmasked against masked severity for every scored turn of both runs. Points on the diagonal have zero causal contrast; 24 of 30 turns lie there, malicious and benign alike.](figures/fig4_flat_contrast.png)
 
@@ -392,7 +410,7 @@ Every published figure below was measured on a different corpus, with a differen
 | ReAct-prompted GPT-4 [1] | base | 24% |
 | Fine-tuned GPT-4 / GPT-3.5 [1] | base | 3.8% / 6.6% |
 
-**Table X.** Attack success on InjecAgent's direct-harm split. Published figures are ASR-valid over all attack types and carry no interval.
+**Table XI.** Attack success on InjecAgent's direct-harm split. Published figures are ASR-valid over all attack types and carry no interval.
 
 This is a floor check, not a result. Our 100% is the *undefended* number and sits above everything InjecAgent measured because our agent is a 3–4B local model rather than GPT-4. What it earns is the right to report a downstream difference; if the attacks did not land, no defended number would mean anything.
 
@@ -409,7 +427,7 @@ This is a floor check, not a result. Our 100% is the *undefended* number and sit
 | InjecGuard [4] | 33.7% | 8.2% |
 | ProtectAI-deberta [4] | 24.1% | 10.1% |
 
-**Table XI.** Detection against published detectors. Published figures are averages over six text benchmarks as reported in [4]; ours are measured on an agent loop over injected tool output at one fixed threshold.
+**Table XII.** Detection against published detectors. Published figures are averages over six text benchmarks as reported in [4]; ours are measured on an agent loop over injected tool output at one fixed threshold.
 
 Those detectors trade false positives against misses along one axis, and a paper's contribution is usually a better point on that curve. **Ours does not sit on that curve.** At one fixed false-positive rate it is near the ceiling on one stratum and near the floor on the other, and the split is a mechanism rather than a threshold. None of the nine reports its numbers stratified this way, so a mechanism-dependent collapse of this size would not be visible in any of their tables. We are not claiming those systems share the failure; we are claiming their evaluations, as reported, could not tell us either way.
 
@@ -417,9 +435,9 @@ For defenses, spotlighting is reported at ">50% to below 2%" on GPT-family model
 
 ## XII. Limitations
 
-**Single model, single scorer.** Every number rests on one 4B model behind the causal probe and one keyword scorer. The central finding — the causal contrast being zero on 80% of turns — is a property of *that pair*, not of causal detection in general.
+**Two models, one scorer, one scale.** The stratified collapse is no longer a single-model result: §VII-E reproduces it under a second probe model of a different lineage, with the gap slightly wider (90.0 points against 83.3). But both models are 3–4B and locally hosted, and one keyword scorer sits behind every number. The multi-turn finding — the causal contrast being zero on 80% of turns — was measured on the incumbent alone and has *not* been repeated on a second model.
 
-**Model choice is constrained, not free.** The probe needs a model that complies under the masked regime. A more refusal-prone model produces no signal at all, so the approach cannot simply be moved to a stronger, better-aligned model: the property being exploited to *measure* the attack is the same property that makes the model vulnerable to it.
+**Model choice is constrained, not free, and we can now price the constraint.** The probe needs a model that states the action it is shown under the masked regime; a more refusal-prone model produces no signal at all. Of three candidates available to us, two were disqualified before any cohort was recorded. A 7B model complies faithfully but does not fit a 4 GB accelerator: it runs 47% on CPU and does not return identical output across runs at temperature 0, so it cannot resolve effects of the size we compare. A second 3B model is fully resident and byte-identical across repeats, and returns "no action" on both cases the incumbent detects — while emitting no refusal text at all, so a refusal-string check would score it as compliant. The property the probe depends on is neither guaranteed by scale nor visible to the obvious check for it, and on this hardware the two failure modes bracket the usable range from either side. The approach cannot simply be moved to a stronger, better-aligned model: the property being exploited to *measure* the attack is the same property that makes the model vulnerable to it.
 
 **The benign corpus is 60 external documents,** adequate for the reported [0.9%, 11.4%] interval but wide enough that a two-point FPR difference is unresolvable.
 
