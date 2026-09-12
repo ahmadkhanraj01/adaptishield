@@ -109,6 +109,13 @@ first-class** — several of them are the contribution.
   process. Fixed by `evaluation/paired.py` + per-case outcomes in the tracked
   artifact, and by a manifest that admits when a run was **replayed**
 
+- ✅ [[AgentDojo's Benign Pool Is Exhausted at 60]] — the 60 benign documents are a
+  **census, not a sample**: the complete in-domain benign content of AgentDojo
+  v0.1.35, re-verified item-for-item against the shipped package. Reaching n=110
+  needs off-domain text that would pull the [[FPR]] down for reasons unrelated to
+  the defense. **Not expanded**, and the limitation relocates to *a second external
+  corpus is needed, not more of this one*
+
 ## ⛔ Withdrawn
 
 - [[Phase 7 Benchmark Withdrawn]] — a headline result that measured its own

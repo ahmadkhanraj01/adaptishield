@@ -37,6 +37,39 @@ They checkpoint **per case** to `logs/campaign_checkpoint/`, so a crash costs th
 case in flight, **not 1.5 hours**. This absorbed three interruptions on 26 July.
 Just re-run the same command.
 
+## The one that has not fired yet
+
+Every other trap on this page has already cost something. This one is **latent**,
+recorded before it fires rather than after, which is the only entry here written
+in that order.
+
+**AgentDojo benign case IDs are positional.** `attack_generator` builds them as
+`f"agentdojo-{item['suite']}-{i:03d}"`, where `i` is the index into the vendored
+items list — not a property of the document. The list is built suite by suite, so
+it currently runs `workspace-000` … `-055`, then `slack-056` … `-059`.
+
+**What happens if anyone re-vendors with a wider filter.** Adding a single
+`workspace` item shifts every later `workspace` index by one and pushes the whole
+`slack` block off 056–059. Nothing errors. The corpus re-records cleanly, the
+noise-floor matrix rebuilds, and `workspace-041`, `-048` and `-055` quietly come
+to mean **different documents** — the three cited by name in the manuscript's
+§IV-D, in the README, in [[Known Bounded False Positive]], and in
+[[The Benign FPR Has a Noise Floor Its Own Size]]'s per-case breakdown. The
+per-case stability claim would then be comparing two different sets of documents
+under one set of labels, and every guard in this project is a guard against wrong
+*numbers* — none of them checks that a label still names what it named before.
+
+**Guard.** Re-key `case_id` to a content hash of `item["text"]` **before** any
+re-vendoring, not after, and keep a committed map from the old positional IDs to
+the new ones so the three cited documents stay traceable. `verify_unchanged()`
+does not cover this: it pins the probe prompt, `_sanitize_mediator`, the model tag
+and the temperature — the *instrument* — and this is a change to the *corpus
+index*, which it was never built to see.
+
+Found while counting the pool for
+[[AgentDojo's Benign Pool Is Exhausted at 60]]; not triggered, because the
+expansion it would have fired on was not run.
+
 ## The general form
 
 Most of these are instances of [[Instruments Fail More Than Mechanisms]] — a tool
