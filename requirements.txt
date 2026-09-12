@@ -24,3 +24,7 @@ rich
 pillow
 python-docx
 python-pptx
+
+# site build only
+mkdocs
+mkdocs-material
