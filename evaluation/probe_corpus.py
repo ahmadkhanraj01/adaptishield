@@ -207,23 +207,50 @@ def record_case(analyzer, case) -> CaseRecord:
     return record
 
 
-def _slug(cohort: str, run: Optional[int]) -> str:
+# The model the whole project is calibrated around (Rules §2). A recording made
+# with this tag keeps the original bare filenames; anything else is a DIFFERENT
+# INSTRUMENT and gets its own, which is the point of `_model_suffix`.
+DEFAULT_3B_MODEL = "gemma3:4b"
+
+
+def _model_suffix(model: Optional[str]) -> str:
+    """
+    Filename fragment identifying a non-default probe model, or "" for the default.
+
+    🔴 WHY THIS IS NOT OPTIONAL. `_out_path` was keyed by cohort and run alone, so
+    recording the same cohort under a second model would have overwritten the
+    committed gemma3:4b corpus in place — and `verify_unchanged` could not have
+    saved it, because that check runs when a corpus is *read*, long after the
+    file it was meant to protect had been replaced. A model transfer is not a
+    repeat of the same measurement; it is a different instrument, and the two
+    must be able to sit side by side or they cannot be compared at all.
+    """
+    if not model or model == DEFAULT_3B_MODEL:
+        return ""
+    return "." + model.replace(":", "-").replace("/", "-").replace(".", "_")
+
+
+def _slug(cohort: str, run: Optional[int], model: Optional[str] = None) -> str:
     """
     Filename stem for one recording.
 
-    Run 0 (and `None`) keeps the original bare `<cohort>` stem so every existing
-    consumer — `rescore`, the tests, the committed results — reads exactly the
-    file it read before. Repeats are additive; nothing is renamed.
+    Run 0 (and `None`) on the default model keeps the original bare `<cohort>`
+    stem so every existing consumer — `rescore`, the tests, the committed
+    results — reads exactly the file it read before. Repeats and alternative
+    models are additive; nothing is renamed.
     """
-    return cohort if not run else f"{cohort}.run{run}"
+    stem = cohort if not run else f"{cohort}.run{run}"
+    return stem + _model_suffix(model)
 
 
-def _out_path(cohort: str, run: Optional[int] = None) -> str:
-    return os.path.join(OUT_DIR, f"{_slug(cohort, run)}.json")
+def _out_path(cohort: str, run: Optional[int] = None,
+              model: Optional[str] = None) -> str:
+    return os.path.join(OUT_DIR, f"{_slug(cohort, run, model)}.json")
 
 
-def _cp_path(cohort: str, run: Optional[int] = None) -> str:
-    return os.path.join(CHECKPOINT_DIR, f"{_slug(cohort, run)}.jsonl")
+def _cp_path(cohort: str, run: Optional[int] = None,
+             model: Optional[str] = None) -> str:
+    return os.path.join(CHECKPOINT_DIR, f"{_slug(cohort, run, model)}.jsonl")
 
 
 def available_runs(cohort: str) -> List[Optional[int]]:
@@ -246,7 +273,7 @@ def available_runs(cohort: str) -> List[Optional[int]]:
 
 def record(cohort: str, limit: Optional[int] = None,
            analyzer=None, resume: bool = True,
-           run: Optional[int] = None) -> dict:
+           run: Optional[int] = None, model: Optional[str] = None) -> dict:
     """
     Record a cohort, checkpointing per case.
 
@@ -269,13 +296,17 @@ def record(cohort: str, limit: Optional[int] = None,
     """
     from layer2.security_sublayer.causal_analyzer import CausalAnalyzer
 
-    analyzer = analyzer or CausalAnalyzer()
+    analyzer = analyzer or CausalAnalyzer(
+        **({"model_name": model} if model else {}))
+    # Whatever the caller passed, the FILENAME follows the analyzer's own tag, so
+    # a recording can never be filed under a model it was not made with.
+    model = analyzer.llm.model
     cases = _cases(cohort)
     if limit:
         cases = cases[:limit]
 
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
-    cp_path = _cp_path(cohort, run)
+    cp_path = _cp_path(cohort, run, model)
 
     done: Dict[str, dict] = {}
     if resume and os.path.exists(cp_path):
@@ -302,7 +333,7 @@ def record(cohort: str, limit: Optional[int] = None,
     }
 
     os.makedirs(OUT_DIR, exist_ok=True)
-    out_path = _out_path(cohort, run)
+    out_path = _out_path(cohort, run, model)
     with open(out_path, "w") as handle:
         json.dump(payload, handle, indent=1)
     print(f"[probe_corpus] wrote {len(payload['cases'])} case(s) -> {out_path}")
@@ -348,6 +379,11 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=None,
                         help="record only the first N cases (smoke test)")
     parser.add_argument("--no-resume", action="store_true")
+    parser.add_argument("--model", default=None,
+                        help="probe model tag (default: gemma3:4b, the "
+                             "calibrated one). A non-default tag records to its "
+                             "own file — it is a different instrument, not a "
+                             "repeat, and noise_floor will refuse to pool them")
     parser.add_argument("--run", type=int, default=None,
                         help="repeat id. Omit (or 0) for the original "
                              "recording; 1, 2, ... are independent repeats kept "
@@ -358,7 +394,7 @@ def main() -> int:
     cohorts = COHORTS if args.cohort == "all" else (args.cohort,)
     for cohort in cohorts:
         record(cohort, limit=args.limit, resume=not args.no_resume,
-               run=args.run)
+               run=args.run, model=args.model)
     return 0
 
 

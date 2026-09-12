@@ -94,7 +94,18 @@ work defendable, and survives unchanged if a second model moves the numbers.
 
 ## 4. The hardening pass — three items, in ROI order
 
-1. 🔴 **Re-run the probe on a second model family.** `qwen2.5:7b` or
+1. ✅ **DONE (12 Sep 2026) — and the stratification replicates.** `llama3.2:3b`
+   over the same InjecAgent draw: **100.0% [88.6%, 100.0%]** where the
+   target-match path can fire against **10.0% [3.5%, 25.6%]** where it cannot, a
+   **90.0-point** gap beside the incumbent's 83.3. Same prompts, same scorer,
+   1 helped / 1 hurt / 2 discordant over 60 paired cases. `results/phase16_model_transfer/`,
+   `tests/test_model_transfer.py`. Two candidates were disqualified first —
+   `qwen2.5:7b` is non-deterministic at 53% CPU offload, `qwen2.5:3b` answers
+   `no_action` on both cases the incumbent detects — so the finding is that the
+   4 GB card makes the *search* hard, not that transfer fails. §XII's
+   single-model bullet and §VII both need updating.
+
+   *Original framing:* 🔴 **Re-run the probe on a second model family.** `qwen2.5:7b` or
    `llama3.1:8b`, both InjecAgent strata, n = 30 each; write to
    `results/phase16_model_transfer/` so it slots into §5 as a repeat rather than a
    new claim. Hours of compute. This is the single highest-value item, because
