@@ -1,9 +1,9 @@
 # tests — Automated Test Suite
 
-**Status:** ✅ **452 tests passing**, ~9 s, no LLM / no network / no GPU
+**Status:** ✅ **502 tests passing**, ~8 s, no LLM / no network / no GPU
 
 ```bash
-python3 -m pytest tests/ -q          # 452 passed in ~9s
+python3 -m pytest tests/ -q          # 502 passed in ~8s
 python3 -m pytest tests/test_layer5.py -v
 ```
 

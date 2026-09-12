@@ -172,7 +172,7 @@ tuned until it shows one. Full evidence for every row:
 | Per-component ablation (Phase 11) | ✅ **Measured (8 Aug)** — ladder + leave-one-out agree: **only 3B and 3C move anything**. See §1.4 |
 | External attack corpus (Phase 12) | ✅ **Measured (9 Aug)** — InjecAgent direct-harm: detection **~18%** projected. The severity function, sized. See §1.5 |
 | Refusal audit (`evaluation/refusal_audit.py`) | ✅ **Measured (8 Aug)** — refusal-shaped output does **not** inflate 3B's regime severities: **0/209**, control passing. An instrument check, not a result. See §1.3 |
-| pytest suite (`tests/`) | ✅ **452 deterministic tests**, ~9 s, no LLM / network / GPU |
+| pytest suite (`tests/`) | ✅ **502 deterministic tests**, ~8 s, no LLM / network / GPU |
 
 **Rough completion: ~93% build, ~70% evidence.**
 
@@ -857,7 +857,7 @@ Three rules travel with every number in this README:
 │   ├── benchmark_checkpoint/*.jsonl    ✅ per-arm resume state — DELETE after any change
 │   ├── benchmark/                      ✅ Phase 7 raw run.log + json (copied to results/)
 │   └── layer5/                         ✅ audit.html + decisions.jsonl
-└── tests/                              ✅ 452 deterministic tests, ~9s, no LLM/network/GPU
+└── tests/                              ✅ 502 deterministic tests, ~8s, no LLM/network/GPU
     ├── test_takeover_rules.py          ✅  9  3B takeover paths + IE resolution
     ├── test_probe_diagnostic.py        ✅ 11  root-cause tool + classifier ordering
     ├── test_adaptive_threat_model.py   ✅ 14  3D reward + proposal + step sizing
@@ -915,7 +915,7 @@ Three rules travel with every number in this README:
 | **Eight-vector benchmark** | `evaluation/vectors.py`, `evaluation/benchmark.py` | ✅ **Repaired & re-run (§1.1).** The first result was invalid — the egress allowlist stopped 6/8 vectors in every arm, making the arms equal by construction. Fixed by correcting the destination model; a test now fails if any malicious vector but V3 points at an exfil host |
 | External baseline | `baselines/spotlighting.py` | ✅ **Measured (§1.2)** — datamarking has no measurable effect (McNemar p = 1.00). Kept outside the layer tree; a test fails if any layer imports it |
 | Refusal audit | `evaluation/refusal_audit.py` | ✅ **Measured (§1.3)** — 0/209, positive control passing. An instrument check, not a result |
-| Unit tests | `tests/` | ✅ **452 passing**, ~9 s, no LLM / network / GPU |
+| Unit tests | `tests/` | ✅ **502 passing**, ~8 s, no LLM / network / GPU |
 
 ---
 
@@ -1040,7 +1040,7 @@ Rejected: `llama3.2:3b` (poor security reasoning), any 7B+ GPU model (exceeds 4 
 ### Deterministic — no LLM, no network, no GPU
 
 ```bash
-python3 -m pytest tests/ -q                       # 452 tests, ~9s
+python3 -m pytest tests/ -q                       # 502 tests, ~8s
 python3 -m evaluation.mechanism_validation        # causal regimes + takeover rules, <1s
 python3 -m layer2.security_sublayer.adaptive_threat_model   # 3D reward + proposal demo
 python3 -m evaluation.vectors                     # Phase 7 vector coverage map

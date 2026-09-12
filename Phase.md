@@ -97,7 +97,7 @@ attempts already cost 8 detections).
 | 6d | Joint GRPO action space + propose-and-verify | ✅ **Done (§6n)** — 5 dims / 720 actions; the one gain it found was a **corpus artifact**, and its own policy proposed a reward-*decreasing* change 3× |
 | 7 | Eight-vector benchmark (static vs full vs +3D) | ✅ **Done (2026-08-08)** — first result withdrawn, repaired, re-run over 216 cases. **ASR `static_only` 71.4% → `full` 14.3%**, 18/21 stops attributed to 3B, `static_only` produces **zero** detection stops, and Layer 4 adds **nothing incremental** |
 | 8 | Layer 5 — dashboard / console / override | ✅ **Done** — 4 components, stdlib only. Gate recomputes evidence rather than trusting the proposal; found that every proposal's `blocked_patterns` are **inert** |
-| 9 | Grow the pytest suite | 🟡 Ongoing (**452 tests**, ~9 s, no LLM / network / GPU) |
+| 9 | Grow the pytest suite | 🟡 Ongoing (**502 tests**, ~8 s, no LLM / network / GPU) |
 | 10 | **External baselines** (undefended + spotlighting/data-marking) | ✅ **Done (2026-08-08).** Undefended floor ASR 100%. Spotlighting: steered **34.8% → 33.3%**, McNemar **p = 1.00** — **no measurable effect**. The raw figure said *17 points worse* until a scorer negation defect was fixed |
 | 10b | **Refusal audit** — does refusal-shaped output inflate 3B's regime severities? | ✅ **Done (2026-08-08).** **0 of 209**, positive control passing → the regime scorer is left unchanged. The exposure is **live on the shipped keyword path** and has never fired. An instrument check, not a result |
 | 11 | **Per-component ablations** (ladder + leave-one-out) | ✅ **Done (2026-08-08).** **Only two layers do anything.** 3B: 18/0, exact **p = 0.000**. 3C: 18/0 on WCR, **p = 0.000**. L3, 3A and **both** halves of Layer 4: **0/0 with zero discordant pairs** |
@@ -698,7 +698,7 @@ its spine.
 
 Structure follows the evidence, and leads with the ablation + baseline tables
 rather than the architecture diagram. The `results/` tree, the run manifests and
-the deterministic test suite (452 tests, no LLM, ~9 s) are the artifact. Layer 5's
+the deterministic test suite (502 tests, no LLM, ~8 s) are the artifact. Layer 5's
 self-contained HTML report is a strong figure: it shows the machine disagreeing
 with itself and a human adjudicating, which is the paper's thesis in one image.
 
@@ -722,7 +722,7 @@ with itself and a human adjudicating, which is the paper's thesis in one image.
 ### Carried forward (unchanged in scope)
 
 - **8 · Layer 5** ✅ done — audit dashboard, policy inspection console, manual override.
-- **9 · Tests** 🟡 ongoing — **452 deterministic**, ~9 s. The 3 validated pipeline
+- **9 · Tests** 🟡 ongoing — **502 deterministic**, ~8 s. The 3 validated pipeline
   episodes are natural regression cases.
 
 ---
