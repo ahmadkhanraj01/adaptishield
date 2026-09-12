@@ -1,0 +1,1349 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Causal prompt-injection detection depends on a liftable target">
+      
+      
+      
+        <link rel="canonical" href="https://ahmadkhanraj01.github.io/adaptishield/architecture/">
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../manuscript/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Architecture - AdaptiShield</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#architecture" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="AdaptiShield" class="md-header__button md-logo" aria-label="AdaptiShield" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            AdaptiShield
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Architecture
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="indigo"  aria-label="Dark"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Dark" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="indigo"  aria-label="Light"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Light" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ahmadkhanraj01/adaptishield" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ahmadkhanraj01/adaptishield
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../manuscript/" class="md-tabs__link">
+          
+  
+  
+  Manuscript
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../progress/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Progress
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="AdaptiShield" class="md-nav__button md-logo" aria-label="AdaptiShield" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    AdaptiShield
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ahmadkhanraj01/adaptishield" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ahmadkhanraj01/adaptishield
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manuscript
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Manuscript
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manuscript/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Front matter & abstract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manuscript/01-i-introduction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    I. Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manuscript/02-ii-related-work/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    II. Related Work
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manuscript/03-iii-threat-model-and-system-architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    III. Threat Model and System Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manuscript/04-iv-experimental-methodology/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IV. Experimental Methodology
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manuscript/05-v-per-component-ablation-only-two-components-do-anything/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    V. Per-Component Ablation: Only Two Components Do Anything
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manuscript/06-vi-comparison-against-a-published-prompt-level-defense/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VI. Comparison Against a Published Prompt-Level Defense
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manuscript/07-vii-external-validity-detection-falls-from-96-7-to-18/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VII. External Validity: Detection Falls From 96.7% to ≈18%
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manuscript/08-viii-a-harm-taxonomy-generalizes-about-half/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VIII. A Harm Taxonomy Generalizes About Half
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manuscript/09-ix-the-adaptive-layer-and-the-temporal-drift-rule/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IX. The Adaptive Layer and the Temporal-Drift Rule
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manuscript/10-x-negative-results-and-the-case-for-a-human-gate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    X. Negative Results and the Case for a Human Gate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manuscript/11-xi-positioning-against-published-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XI. Positioning Against Published Results
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manuscript/12-xii-limitations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XII. Limitations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manuscript/13-xiii-conclusion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XIII. Conclusion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manuscript/14-data-and-code-availability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data and Code Availability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manuscript/15-references/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    References
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manuscript/16-appendix-a-implementation-diagram/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix A: Implementation Diagram
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../progress/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Progress
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<!-- generated by site_src/build.py — do not edit; edit the source it names -->
+<h1 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h1>
+<p><img alt="Fig. 0 — the pipeline" src="../assets/figures/fig0_architecture.png" /></p>
+<p><em>Print schematic from the paper. Components in colour are the two that move a measured outcome (§V).</em></p>
+<p><img alt="Implementation architecture" src="../assets/figures/implementation_architecture.png" /></p>
+<hr />
+<p><em>The section below is <code>Architecture.md</code> from the repository, rendered as-is.</em></p>
+<h1 id="adaptishield-architecture">AdaptiShield — Architecture<a class="headerlink" href="#adaptishield-architecture" title="Permanent link">&para;</a></h1>
+<p><strong>What this file is:</strong> the structural map of the system — the layers, the
+components, which file owns each, and how a request flows through them. For
+<em>why</em> it is built this way see <a href="https://github.com/ahmadkhanraj01/adaptishield/blob/main/Design.md">Design.md</a>; for the invariants that
+must not be broken see <a href="https://github.com/ahmadkhanraj01/adaptishield/blob/main/Rules.md">Rules.md</a>; for status and roadmap see
+<a href="https://github.com/ahmadkhanraj01/adaptishield/blob/main/Phase.md">Phase.md</a>. The root <a href="https://github.com/ahmadkhanraj01/adaptishield/blob/main/README.md">README.md</a> remains the single
+source of truth for current build state.</p>
+<p><em>Last aligned: 2026-08-09 (after Phase 13 — the severity function and the
+offline re-scoring path).</em></p>
+<hr />
+<h2 id="1-the-defensive-stack">1. The defensive stack<a class="headerlink" href="#1-the-defensive-stack" title="Permanent link">&para;</a></h2>
+<p>A request from an MCP-orchestrated LLM agent passes top-to-bottom through
+layered, independent defenses. Each layer can stop or transform the request;
+no layer trusts the verdict of another.</p>
+<div class="highlight"><pre><span></span><code>Layer 5  Human-in-the-loop &amp; Observability          [pending]
+Layer 4  Sandbox &amp; Isolation  (permission · egress · docker · telemetry)   [built]
+Layer 3  MCP Tool Execution Plane + Tool Response Screener                  [built]
+Layer 2  LLM Agent Control Plane
+         └─ Security &amp; Adaptive Sub-layer   3A → 3B → 3C → 3D              [built; 3D v1]
+Layer 1  Input &amp; Supply-chain Screening (parser · context · provenance)    [built]
+Layer 0  MCP Transport &amp; Server Trust (rug-pull detection · allowlist)     [built]
+</code></pre></div>
+<p>Red Team Module runs <em>against</em> this stack (dry-run) to measure ASR/FPR/WCR.</p>
+<hr />
+<h2 id="2-components-and-their-files">2. Components and their files<a class="headerlink" href="#2-components-and-their-files" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Layer</th>
+<th style="text-align: left;">Component</th>
+<th style="text-align: left;">File</th>
+<th style="text-align: left;">Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">Server Trust Registry</td>
+<td style="text-align: left;"><code>layer0/server_trust_registry.py</code></td>
+<td style="text-align: left;">Allowlist + rug-pull detection</td>
+</tr>
+<tr>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">Provenance / Context</td>
+<td style="text-align: left;"><code>layer1/provenance.py</code></td>
+<td style="text-align: left;">Tags trusted vs mediator (untrusted) content; partitions context</td>
+</tr>
+<tr>
+<td style="text-align: left;">2·3A</td>
+<td style="text-align: left;">Policy Engine</td>
+<td style="text-align: left;"><code>layer2/security_sublayer/policy_engine.py</code></td>
+<td style="text-align: left;">Static rules: <code>approve_direct</code> / <code>send_to_causal</code> / <code>block</code>; owns <code>blocked_patterns</code>, <code>high_impact_tools</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">2·3B</td>
+<td style="text-align: left;">Causal Analyzer</td>
+<td style="text-align: left;"><code>layer2/security_sublayer/causal_analyzer.py</code></td>
+<td style="text-align: left;">Four-regime causal probe; emits ACE/IE/DE + takeover verdict</td>
+</tr>
+<tr>
+<td style="text-align: left;">2·3C</td>
+<td style="text-align: left;">Context Sanitizer</td>
+<td style="text-align: left;"><code>layer2/security_sublayer/context_sanitizer.py</code></td>
+<td style="text-align: left;">Strips injected instructions; derives a safe continuation</td>
+</tr>
+<tr>
+<td style="text-align: left;">2·3D</td>
+<td style="text-align: left;">Adaptive Threat Model</td>
+<td style="text-align: left;"><code>layer2/security_sublayer/adaptive_threat_model.py</code></td>
+<td style="text-align: left;">Reward → bounded, human-gated update proposal (v1 heuristic; GRPO pending)</td>
+</tr>
+<tr>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">Tool Response Screener</td>
+<td style="text-align: left;"><code>layer3/tool_response_screener.py</code></td>
+<td style="text-align: left;">LLM + keyword flag on tool output</td>
+</tr>
+<tr>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">Permission Control</td>
+<td style="text-align: left;"><code>layer4/permission_control.py</code></td>
+<td style="text-align: left;">In-scope tool check</td>
+</tr>
+<tr>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">Network Egress Filter</td>
+<td style="text-align: left;"><code>layer4/network_egress_filter.py</code></td>
+<td style="text-align: left;">Destination allowlist</td>
+</tr>
+<tr>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">Docker Sandbox</td>
+<td style="text-align: left;"><code>layer4/sandbox.py</code></td>
+<td style="text-align: left;">Gated, isolated command execution</td>
+</tr>
+<tr>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">Telemetry Stream</td>
+<td style="text-align: left;"><code>layer4/telemetry_stream.py</code></td>
+<td style="text-align: left;">Writes JSONL Episode Records</td>
+</tr>
+<tr>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Shared parsing</td>
+<td style="text-align: left;"><code>utils/parsing.py</code></td>
+<td style="text-align: left;">Tolerant <code>NEXT:</code> action extractor</td>
+</tr>
+<tr>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">Full pipeline</td>
+<td style="text-align: left;"><code>adaptishield_pipeline.py</code></td>
+<td style="text-align: left;">Wires L1→L3→3A→3B→3C→L4→telemetry</td>
+</tr>
+</tbody>
+</table>
+<p>Red team: <code>red_team/{attack_library, attack_generator, execution_agent, evaluator, optimizer, run_campaign}.py</code>
+Evaluation: <code>evaluation/{adaptive_loop_experiment, holdout_generalization_test, mechanism_validation, score_action_ablation}.py</code>
+Measurement: <code>evaluation/{benchmark, paired, fpr_report, refusal_audit}.py</code>
+External corpora: <code>evaluation/{injecagent, agentdojo_attacks}.py</code> ← <code>red_team/{vendor_agentdojo, vendor_injecagent, vendor_agentdojo_attacks}.py</code>
+Offline re-scoring: <code>evaluation/{probe_corpus, rescore}.py</code> + <code>utils/hashing.py</code>
+Tests: <code>tests/{test_takeover_rules, test_adaptive_threat_model}.py</code></p>
+<hr />
+<h2 id="3-request-flow-full-pipeline">3. Request flow (full pipeline)<a class="headerlink" href="#3-request-flow-full-pipeline" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>process_request(user_input, mediator_content, tool_name, command, session_id)
+  │
+  ├─ L1  provenance tagging (trusted vs mediator partition, per session_id)
+  ├─ L3  Tool Response Screener  → flagged? (LLM OR keyword backstop)
+  ├─ 3A  Policy Engine           → approve_direct | send_to_causal | block
+  │        └─ if high-impact / flagged → send_to_causal
+  ├─ 3B  Causal Analyzer.evaluate_boundary(...)  → Takeover? (per-session history)
+  │        └─ if Takeover → 3C
+  ├─ 3C  Context Sanitizer       → safe_continuation (injection stripped)
+  ├─ L4  permission → egress → sandbox   (each gates independently of 3A/3B/3C)
+  └─ Telemetry  → logs/episode_records/episodes.jsonl  (Episode Record)
+</code></pre></div>
+<p>Final statuses: <code>approved_direct</code>, <code>approved_causal</code>, <code>safe_continuation</code>, <code>blocked</code>.</p>
+<hr />
+<h2 id="4-inside-3b-the-causal-probe">4. Inside 3B — the causal probe<a class="headerlink" href="#4-inside-3b-the-causal-probe" title="Permanent link">&para;</a></h2>
+<p>3B measures <strong>compliance with mediator-supplied instructions</strong> across four
+regimes, each sampled <code>k_samples</code> times (default 2), scored <code>{0,1,2}</code> by
+<code>_score_action</code>:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Regime</th>
+<th style="text-align: left;">Sees</th>
+<th style="text-align: left;">Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>orig</code></td>
+<td style="text-align: left;">user goal + mediator</td>
+<td style="text-align: left;">baseline behavior</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>masked</code></td>
+<td style="text-align: left;">mediator only, no task</td>
+<td style="text-align: left;">pure compliance tendency</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>masked_sanitized</code></td>
+<td style="text-align: left;">sanitized mediator only</td>
+<td style="text-align: left;">compliance after 3C</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>orig_sanitized</code></td>
+<td style="text-align: left;">user goal + sanitized mediator</td>
+<td style="text-align: left;">task behavior after 3C</td>
+</tr>
+</tbody>
+</table>
+<p>Contrasts: <code>ACE = orig − masked</code>, <code>IE = masked − masked_sanitized</code>,
+<code>DE = orig_sanitized − masked_sanitized</code>.</p>
+<p><strong>What <code>_score_action</code> counts as harm</strong> (severity 2), in order:</p>
+<ol>
+<li><strong>Target match</strong> — the action names an email/URL lifted from the mediator.
+   The sharpest signal 3B has, and the only path to 2 for an injection with no
+   high-impact keyword. <code>schemeless_targets</code> (<strong>default off</strong>) additionally sees
+   bare hosts like <code>www.evil.com</code>; measured, and left off because it costs more
+   false positives than it buys — §1.7.</li>
+<li><strong>Capability misuse</strong> — a state-changing verb <em>and</em> a controlled resource from
+   the same class, with the mediator required to corroborate the resource.
+   <code>capability_scoring</code>, <strong>default off</strong>. Added because <code>_HIGH_KW</code> is a
+   data-movement vocabulary that cannot see <em>unlock a door</em> or <em>move money</em>.</li>
+<li><strong>Data-movement keywords</strong> — <code>_HIGH_KW</code>, grounded by <code>_mediator_corroborates</code>
+   so an action the content never suggested cannot escalate (§6o).</li>
+</ol>
+<p>Both flags default <strong>off</strong>, so every committed number reproduces; they exist as
+measured arms, not as pending work.</p>
+<p><strong>Takeover fires if any of:</strong>
+1. <strong>IE rule</strong> — <code>IE ≥ ie_threshold</code> AND <code>masked ≥ 1</code> AND separation is
+   <em>consistent</em> across samples (<code>min(masked) &gt; max(masked_san)</code>).
+2. <strong>Standalone rule</strong> — <code>masked ≥ masked_takeover_threshold</code> (2.0), independent of IE.
+3. <strong>Drift rule</strong> — falling ACE / rising IE slope over a per-session window,
+   gated on <code>masked ≥ 1</code>.</p>
+<p>IE resolution is <code>1/k_samples</code> (0.5 at k=2); 3D sizes its threshold step to it.
+See <a href="https://github.com/ahmadkhanraj01/adaptishield/blob/main/Design.md">Design.md</a> §"Takeover rule stack" for why three rules.</p>
+<p>The three rules live in <code>_decide_takeover</code>, extracted from <code>evaluate_boundary</code> so
+the offline re-scorer computes verdicts with the <strong>shipped</strong> rule rather than a
+copy of it — see §4b.</p>
+<hr />
+<h2 id="4b-the-offline-re-scoring-path">4b. The offline re-scoring path<a class="headerlink" href="#4b-the-offline-re-scoring-path" title="Permanent link">&para;</a></h2>
+<p>A scorer candidate used to cost a 1.5-hour campaign to evaluate. It no longer
+does, because <code>_run_regime_once</code> asks the model for an action and <em>then</em> scores
+it, and <strong>the probe never consults the scorer</strong>. A recorded transcript is
+therefore a sufficient statistic for any change confined to <code>_score_action</code>.</p>
+<div class="highlight"><pre><span></span><code>probe_corpus.py   → records all 4 regimes, both samples, + the sanitised mediator
+                    (manifest pins model, temperature, k_samples, prompt hashes)
+        ↓ recorded transcripts, no model calls from here on
+rescore.py        → re-scores under 4 arms, verdicts via _decide_takeover
+                    → per-stratum Wilson intervals, McNemar, population projection
+</code></pre></div>
+<p>Three guards, because a new instrument earns the scepticism the old ones did:
+staleness is <strong>refused</strong> (a prompt edit changes <code>utils/hashing.py</code>'s fingerprint),
+verdicts come from the shipped rule, and the LLM client is replaced with a stub
+that raises so "no model calls" is enforced rather than asserted.</p>
+<p>⚠️ Valid <strong>only</strong> for scorer changes. A change to a probe prompt, the sanitizer,
+the model tag or the temperature invalidates the corpus, which must be re-recorded.</p>
+<hr />
+<h2 id="5-component-3d-the-adaptive-loop">5. Component 3D — the adaptive loop<a class="headerlink" href="#5-component-3d-the-adaptive-loop" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>labeled episodes ──▶ compute_reward ──▶ evaluate_batch ──▶ propose_update ──▶ [human] ──▶ apply_update
+ (red-team ExecutionResults          (GRPO reward,          (bounded: ie_threshold          (approved=True
+  or labeled telemetry replay)        WCR-aware)             step, patterns, tools)          required)
+</code></pre></div>
+<ul>
+<li>Reward: <code>+1.0</code> malicious→safe_continuation, <code>+0.7</code> malicious→blocked (WCR lost),
+  <code>+0.8</code> benign→approved, <code>−1.0</code> missed attack, <code>−0.5</code> false positive.</li>
+<li>Tunes <strong>only</strong> static knobs (3A patterns/tools, 3B <code>ie_threshold</code>) — never LLM weights.</li>
+<li><code>threshold_step</code> = <code>CausalAnalyzer.ie_resolution</code> (so a move can change a verdict).</li>
+<li>v1 is a CPU heuristic; GRPO/torch training (Kaggle) will replace <code>propose_update()</code> internals behind the same contract.</li>
+</ul>
+<hr />
+<h2 id="6-models">6. Models<a class="headerlink" href="#6-models" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Model</th>
+<th style="text-align: left;">VRAM</th>
+<th style="text-align: left;">Used by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>gemma3:4b</code></td>
+<td style="text-align: left;">~3.5 GB</td>
+<td style="text-align: left;">3B Causal Analyzer (complies under masked probe → measurable signal)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>qwen2.5:3b</code></td>
+<td style="text-align: left;">~2 GB</td>
+<td style="text-align: left;">3C sanitizer, L3 screener, planner</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>gemma2:9b</code></td>
+<td style="text-align: left;">CPU</td>
+<td style="text-align: left;">Fallback for 3B at scale</td>
+</tr>
+</tbody>
+</table>
+<p>GPU-heavy work (GRPO, 7B+) → Kaggle P100. The pipeline itself runs locally on a 4 GB card.</p>
+<hr />
+<h2 id="7-telemetry-logs-all-gitignored">7. Telemetry &amp; logs (all gitignored)<a class="headerlink" href="#7-telemetry-logs-all-gitignored" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>logs/episode_records/episodes.jsonl</code> — one Episode Record per request
+  (includes <code>screen_result.matched_markers</code>, 500-char <code>mediator_snippet</code>,
+  <code>sandbox_result</code>, <code>causal_verdict</code>). <strong>Mediator text here is untrusted.</strong></li>
+<li><code>logs/red_team_runs/campaign_*.json</code> — ASR/FPR/WCR per campaign.</li>
+<li><code>logs/adaptive_loop/*.json</code> — before/after + holdout reports.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "content.code.copy", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
