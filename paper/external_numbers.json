@@ -61,10 +61,11 @@
         {
           "system": "No defense, important-instructions attack",
           "metric": "targeted attack success rate",
-          "value_pct": 45.8,
-          "setting": "GPT-4o",
-          "verified": "unverified",
-          "quote": "REACHED US SECOND-HAND as the Table 2 'Baseline' cell; not read from the paper's own text. Do not put this number in the manuscript until the table is checked."
+          "value_pct": 57.69,
+          "setting": "GPT-4o, 95% CI \u00b13.9",
+          "verified": "located-pending-human-read",
+          "quote": "Table 5, row 'No defense': benign utility 69.0% (+/-3.6), utility w. attack 50.01% (+/-3.9), targeted ASR 57.69% (+/-3.9). CORRECTION: the previous value of 45.8% was wrong and came from the wrong table -- 45.8% is Table 2's attacker-knowledge ablation baseline ('generic references'), not the undefended headline. Read from arxiv.org/html/2406.13352v3 on 2026-09-12 via an automated fetch, NOT by a human reading the PDF, so it stays held back: this repo's rule is that a number reaching a document through an intermediary is the failure mode, and an automated transcription is an intermediary. To release: open Table 5, confirm 57.69% (+/-3.9), set verified to 'verbatim', delete test_the_agentdojo_baseline_is_currently_held_back.",
+          "source_table": "Table 5 \u2014 'Targeted and untargeted attack success rates for different defenses with GPT-4o. Detailed results for Figure 9. 95% confidence intervals between parentheses.'"
         }
       ]
     },
@@ -91,15 +92,78 @@
       "corpus": "OPI, Dolly, MMLU, BoolQ (short context) and Musique, NarrativeQA (long context); FPR on clean splits, FNR on injected splits",
       "_note": "Averages are the papers own final column in Tables 1 and 2. Detection rate = 100 - FNR.",
       "rows": [
-        {"system": "PIShield",          "metric": "FPR (avg) / FNR (avg)", "value_pct": 0.5,  "fnr_pct": 1.4,  "verified": "verbatim", "quote": "Table 1 average 0.005; Table 2 average 0.014"},
-        {"system": "PIGuard",           "metric": "FPR (avg) / FNR (avg)", "value_pct": 0.7,  "fnr_pct": 70.2, "verified": "verbatim", "quote": "Table 1 average 0.007; Table 2 average 0.702"},
-        {"system": "PromptArmor",       "metric": "FPR (avg) / FNR (avg)", "value_pct": 1.3,  "fnr_pct": 45.9, "verified": "verbatim", "quote": "Table 1 average 0.013; Table 2 average 0.459"},
-        {"system": "InjecGuard",        "metric": "FPR (avg) / FNR (avg)", "value_pct": 8.2,  "fnr_pct": 66.3, "verified": "verbatim", "quote": "Table 1 average 0.082; Table 2 average 0.663"},
-        {"system": "ProtectAI-deberta", "metric": "FPR (avg) / FNR (avg)", "value_pct": 10.1, "fnr_pct": 75.9, "verified": "verbatim", "quote": "Table 1 average 0.101; Table 2 average 0.759"},
-        {"system": "TaskTracker",       "metric": "FPR (avg) / FNR (avg)", "value_pct": 27.4, "fnr_pct": 31.7, "verified": "verbatim", "quote": "Table 1 average 0.274; Table 2 average 0.317"},
-        {"system": "AttentionTracker",  "metric": "FPR (avg) / FNR (avg)", "value_pct": 32.8, "fnr_pct": 55.3, "verified": "verbatim", "quote": "Table 1 average 0.328; Table 2 average 0.553"},
-        {"system": "DataSentinel",      "metric": "FPR (avg) / FNR (avg)", "value_pct": 33.6, "fnr_pct": 10.4, "verified": "verbatim", "quote": "Table 1 average 0.336; Table 2 average 0.104"},
-        {"system": "PromptGuard",       "metric": "FPR (avg) / FNR (avg)", "value_pct": 40.3, "fnr_pct": 8.7,  "verified": "verbatim", "quote": "Table 1 average 0.403; Table 2 average 0.087"}
+        {
+          "system": "PIShield",
+          "metric": "FPR (avg) / FNR (avg)",
+          "value_pct": 0.5,
+          "fnr_pct": 1.4,
+          "verified": "verbatim",
+          "quote": "Table 1 average 0.005; Table 2 average 0.014"
+        },
+        {
+          "system": "PIGuard",
+          "metric": "FPR (avg) / FNR (avg)",
+          "value_pct": 0.7,
+          "fnr_pct": 70.2,
+          "verified": "verbatim",
+          "quote": "Table 1 average 0.007; Table 2 average 0.702"
+        },
+        {
+          "system": "PromptArmor",
+          "metric": "FPR (avg) / FNR (avg)",
+          "value_pct": 1.3,
+          "fnr_pct": 45.9,
+          "verified": "verbatim",
+          "quote": "Table 1 average 0.013; Table 2 average 0.459"
+        },
+        {
+          "system": "InjecGuard",
+          "metric": "FPR (avg) / FNR (avg)",
+          "value_pct": 8.2,
+          "fnr_pct": 66.3,
+          "verified": "verbatim",
+          "quote": "Table 1 average 0.082; Table 2 average 0.663"
+        },
+        {
+          "system": "ProtectAI-deberta",
+          "metric": "FPR (avg) / FNR (avg)",
+          "value_pct": 10.1,
+          "fnr_pct": 75.9,
+          "verified": "verbatim",
+          "quote": "Table 1 average 0.101; Table 2 average 0.759"
+        },
+        {
+          "system": "TaskTracker",
+          "metric": "FPR (avg) / FNR (avg)",
+          "value_pct": 27.4,
+          "fnr_pct": 31.7,
+          "verified": "verbatim",
+          "quote": "Table 1 average 0.274; Table 2 average 0.317"
+        },
+        {
+          "system": "AttentionTracker",
+          "metric": "FPR (avg) / FNR (avg)",
+          "value_pct": 32.8,
+          "fnr_pct": 55.3,
+          "verified": "verbatim",
+          "quote": "Table 1 average 0.328; Table 2 average 0.553"
+        },
+        {
+          "system": "DataSentinel",
+          "metric": "FPR (avg) / FNR (avg)",
+          "value_pct": 33.6,
+          "fnr_pct": 10.4,
+          "verified": "verbatim",
+          "quote": "Table 1 average 0.336; Table 2 average 0.104"
+        },
+        {
+          "system": "PromptGuard",
+          "metric": "FPR (avg) / FNR (avg)",
+          "value_pct": 40.3,
+          "fnr_pct": 8.7,
+          "verified": "verbatim",
+          "quote": "Table 1 average 0.403; Table 2 average 0.087"
+        }
       ]
     }
   ]

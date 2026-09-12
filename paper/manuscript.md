@@ -68,7 +68,7 @@ Six of the results above are negative, and three surfaced from instrumentation b
 
 **What is missing, and what this paper supplies.** Across this literature, detection results are reported pooled. We found no paper that stratifies detection by whether the injected content names a target the action can lift — which is the split that governs our results and, we argue in §XI, would not be visible in any of the tables we surveyed.
 
-**[TO COMPLETE: the project's vault carries reviewed notes on AgentSentry, AutoMalTool, MCPSecBench, MCP-RiskCue, ETDI and a Model Context Protocol security survey, each of which motivates a specific layer of the architecture. Their full bibliographic entries are not yet transcribed and are marked in the reference list.]**
+**Protocol-surface work, which motivates the layers below the agent.** A fourth line of work targets the tool-integration surface itself rather than the prompt. A survey of more than thirty attack techniques across input manipulation, model compromise, system and privacy attacks, and protocol-level vulnerabilities [13] establishes the threat landscape our Layers 0 and 1 are drawn against; MCPSecBench [11] reports protocol-level attacks succeeding against every evaluated host platform, which is why Layer 0 exists at all. ETDI [12] specifies the signed, versioned tool definitions our server trust registry follows, and AutoMalTool [10] supplies the detection-oracle design for screening tool metadata at registration — a check our pipeline approximates rather than performs, because it consumes tool responses rather than server manifests (§XII). MCP-RiskCue [14] applies GRPO to risk inference over server logs, the same optimiser our adaptive layer uses on a different object. Closest to this work is AgentSentry [9], which also localises injection by counterfactual re-execution at tool-return boundaries and also purifies context for safe continuation; our contribution is not that mechanism but the finding that its discriminative power is governed by whether the injected span carries a liftable target, which requires the stratified reporting of §VII.
 
 ## III. Threat Model and System Architecture
 
@@ -463,15 +463,17 @@ All results are regenerable by committed commands over the released artifact. Ea
 
 [8] Q. McNemar, "Note on the sampling error of the difference between correlated proportions or percentages," *Psychometrika*, vol. 12, no. 2, pp. 153–157, 1947.
 
-[9] **[TO COMPLETE]** AgentSentry — methodological ancestor of the causal analyzer and context sanitizer. Full citation to be transcribed from the project literature notes.
+[9] T. Zhang, Y. Xu, J. Wang, K. Guo, X. Xu, B. Xiao, Q. Guan, J. Fan, J. Liu, Z. Liu, and H. Hu, "AgentSentry: Mitigating indirect prompt injection in LLM agents via temporal causal diagnostics and context purification," arXiv:2602.22724, 2026.
 
-[10] **[TO COMPLETE]** AutoMalTool — source of the detection oracle. Full citation to be transcribed.
+[10] P. He, C. Li, B. Zhao, T. Du, and S. Ji, "Automatic red teaming LLM-based agents with Model Context Protocol tools," arXiv:2509.21011, 2025.
 
-[11] **[TO COMPLETE]** MCPSecBench — protocol-level attack success against evaluated platforms; motivates Layer 0. Full citation to be transcribed.
+[11] Y. Yang, C. Gao, D. Wu, Y. Chen, Y. Li, and S. Wang, "MCPSecBench: A systematic security benchmark and playground for testing Model Context Protocols," arXiv:2508.13220, 2025.
 
-[12] **[TO COMPLETE]** ETDI — the trust framework Layer 0's server registry follows. Full citation to be transcribed.
+[12] M. Bhatt, V. S. Narajala, and I. Habler, "ETDI: Mitigating tool squatting and rug pull attacks in Model Context Protocol (MCP) by using OAuth-enhanced tool definitions and policy-based access control," arXiv:2506.01333, 2025.
 
-[13] **[TO COMPLETE]** MCP-RiskCue and the Model Context Protocol security survey — threat landscape for Layers 0 and 1. Full citations to be transcribed.
+[13] M. A. Ferrag, N. Tihanyi, D. Hamouda, L. Maglaras, A. Lakas, and M. Debbah, "From prompt injections to protocol exploits: Threats in LLM-powered AI agents workflows," *ICT Express*, 2025. arXiv:2506.23260.
+
+[14] J. Fu, Y. Zhang, and Y. Wang, "Can LLM infer risk information from MCP server system logs?," arXiv:2511.05867, 2025.
 
 ## Appendix A: Implementation Diagram
 

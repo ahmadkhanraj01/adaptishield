@@ -119,26 +119,48 @@ work defendable, and survives unchanged if a second model moves the numbers.
    today's config. Only `ie_threshold = 0.5` is asserted, because it appears in
    116 recorded verdict strings. A reviewer asking *what exactly ran in July* gets
    a partial answer — but a documented one rather than an invented one.
-3. **Related-work prose, and one verification.** §10 and manuscript §II supply the
-   quantitative half. What is owed is the narrative pass placing the three defence
-   families, plus reading AgentDojo's own table for the number in §5 below.
+3. 🟡 **Related-work prose — half done (12 Sep 2026), and the verification is
+   located.** §II gained a protocol-surface paragraph citing all six previously
+   uncited references and stating plainly where AgentSentry overlaps this work:
+   it also localises injection by counterfactual re-execution at tool-return
+   boundaries and also purifies context, so the contribution here is not the
+   mechanism but the liftable-target finding. **Still owed:** the narrative pass
+   placing the three *defence* families against each other. AgentDojo's table has
+   been read and the number corrected — see §5.
 
 Anything beyond those three is the next paper.
 
 ## 5. What is knowingly unfinished
 
-- 🟡 **AgentDojo's undefended important-instructions ASR (~45.8%)** reached us
-  second-hand from a summary of their Table 2. It is in `external_numbers.json`
-  marked `unverified`, the generator refuses to render it, and
-  `test_the_agentdojo_baseline_is_currently_held_back` will tell you when someone
-  verifies it. Ten-minute fix: read the table, replace the quote, set
-  `verified: "verbatim"`, delete that test.
+- 🟡 **AgentDojo's undefended important-instructions ASR — the 45.8% was wrong,
+  and from the wrong table (corrected 12 Sep 2026).** The paper's Table 5 gives
+  `No defense — targeted ASR 57.69% (±3.9)` for GPT-4o. 45.8% is Table 2's
+  *attacker-knowledge ablation* baseline, the "generic references" phrasing
+  variant — not the undefended headline at all. The guard held back exactly the
+  number it should have.
+
+  `external_numbers.json` now carries the corrected value, the table, its caption
+  and the full correction note, marked `located-pending-human-read` — **still not
+  `verbatim`**, because it was read via an automated fetch of
+  `arxiv.org/html/2406.13352v3` and an automated transcription is an intermediary,
+  which is the failure mode this rule exists for. The generator still refuses it
+  and the guard test still passes. **30-second fix:** open Table 5, confirm
+  57.69% (±3.9), set `verified: "verbatim"`, delete
+  `test_the_agentdojo_baseline_is_currently_held_back`.
+
+  Worth taking at the same time: the same table gives **Delimiting — 41.65%**,
+  AgentDojo's own spotlighting-family result and directly comparable to §VI's null.
 - 🟡 **The manuscript's author block is a placeholder.** It waits on the venue
   decision, which sets author order.
-- 🟡 **Five references are `[TO COMPLETE]`** — AgentSentry, AutoMalTool,
-  MCPSecBench, ETDI, MCP-RiskCue and the MCP security survey. The vault has
-  reviewed notes on each; it does not have their bibliographic details, and they
-  were not invented.
+- ✅ **The six references are complete (12 Sep 2026).** AgentSentry
+  (arXiv:2602.22724), AutoMalTool's paper — *Automatic Red Teaming LLM-based
+  Agents with MCP Tools* (arXiv:2509.21011), MCPSecBench (arXiv:2508.13220), ETDI
+  (arXiv:2506.01333), Ferrag et al. in *ICT Express* (arXiv:2506.23260) and
+  MCP-RiskCue's paper — *Can LLM Infer Risk Information From MCP Server System
+  Logs?* (arXiv:2511.05867). Two of the six were known to the vault only by system
+  name rather than title. The old `[13]` bundled two papers and is now split into
+  `[13]` and `[14]`, which was safe because none of `[9]`–`[14]` was cited in the
+  body — that was the real defect, and §II now cites all six.
 - 🟡 **Manuscript §II Related Work is thin on synthesis.** It covers what we
   measured against and states the stratification gap; the narrative placing the
   three families is the literature pass in item 3 above.
