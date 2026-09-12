@@ -47,6 +47,7 @@ The chronological spine. **Two volumes**, and the split is deliberate.
 | XXII | 9 Aug 2026, later still | *The holdout — ninety per cent becomes forty-three* (Volume II) |
 | XXIII | 9 Aug 2026, evening | *A real bug worth not fixing* (Volume II) |
 | XXIV | 12 Sep 2026 | [[Entry XXIV — The Corpus Was Already Complete]] |
+| XXV | 12 Sep 2026, later | [[Entry XXV — The Number That Could Not Be Checked]] |
 
 ## The arc, in one paragraph
 
