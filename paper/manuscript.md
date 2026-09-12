@@ -429,7 +429,7 @@ For defenses, spotlighting is reported at ">50% to below 2%" on GPT-family model
 
 **The second multi-turn cohort was written after seeing the first run's trajectories.** No target trajectory changed and the criteria were identical, but a reader cannot verify from outside that the content edits followed the pre-declared targets rather than the direction of the miss. Both runs are reported.
 
-**The campaign detection headline is measured on attacks we wrote,** and is the one figure in this paper not yet backed by a committed regenerable artifact.
+**The campaign detection headline is measured on attacks we wrote.** It is regenerable — `results/campaign/` carries the per-case outcomes for all 188 episodes and a run manifest — but that manifest records a *replay* over checkpoint files which are not themselves tracked, and the original run left no manifest of its own. A reader can recompute every rate from the committed artifact; a reader cannot rebuild the artifact's inputs without re-running the campaign.
 
 **System limits.** The detector cannot separate an authorised recipient from an attacker-controlled one — at the level the causal analyzer observes, a benign document naming a real address and an injection are the same object. The probe fabricates actions on directionless benign content, which is the largest single lever on FPR and remains open. Schemeless hosts are invisible by default (§VIII-C). The drift rule requires a wholly high-impact conversation, since session history accumulates only on boundaries routed to causal evaluation. Two components are evaluated by approximation, because the pipeline consumes tool responses rather than server manifests.
 
@@ -443,7 +443,7 @@ The approach is not refuted, but its operating envelope is far narrower than its
 
 ## Data and Code Availability
 
-All results are regenerable by committed commands over the released artifact. Each phase directory under `results/` contains the benchmark payload and a run manifest recording commit SHA, working-tree cleanliness, model tags, corpus version, inference-server GPU state and a seeding statement. A deterministic test suite of 484 tests runs in approximately 12 seconds with no model, no network and no GPU; it pins the failure modes of each measurement instrument rather than only the behaviour of the system. External corpora are vendored with source, licence and version recorded.
+All results are regenerable by committed commands over the released artifact. Each phase directory under `results/` contains the benchmark payload and a run manifest recording commit SHA, working-tree cleanliness, model tags, corpus version, inference-server GPU state and a seeding statement. A deterministic test suite of 494 tests runs in approximately 12 seconds with no model, no network and no GPU; it pins the failure modes of each measurement instrument rather than only the behaviour of the system. External corpora are vendored with source, licence and version recorded.
 
 ## References
 

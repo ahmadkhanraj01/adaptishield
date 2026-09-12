@@ -153,7 +153,7 @@ python3 paper/make_positioning_table.py      # rewrites §10's generated block
 python3 paper/build_manuscript_docx.py       # → AdaptiShield-Manuscript.docx
 python3 paper/build_review_deck.py           # → AdaptiShield-Full-Review.pptx
 python3 paper/build_deck.py                  # → AdaptiShield-Overview.pptx
-python3 -m pytest tests/ -q                  # 484 deterministic tests, ~10 s
+python3 -m pytest tests/ -q                  # 494 deterministic tests, ~10 s
 ```
 
 Three conventions worth not breaking:

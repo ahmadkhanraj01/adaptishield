@@ -101,6 +101,13 @@ first-class** — several of them are the contribution.
   benchmark vectors could not power the comparison (ASR 1/7) and the campaign
   corpus was used instead
 
+- ⚠️ [[The Probe's Compliance Does Not Transfer]] — the masked probe's compliance is
+  a property of **`gemma3:4b`**, not of the probe. Both alternatives on this machine
+  fail, in opposite ways: `qwen2.5:7b` complies faithfully but is **non-deterministic**
+  at 53% CPU offload, `qwen2.5:3b` is perfectly deterministic at 100% GPU but returns
+  `no_action` on **both** cases gemma detects. The 4 GB card forces the choice, and
+  the refusal carries no refusal string
+
 ## Process findings — about the evidence, not the defense
 
 - ✅ [[A Published p-Value With No Committed Source]] — Phase 10's `McNemar p = 1.00`
