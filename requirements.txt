@@ -12,7 +12,7 @@ sqlalchemy
 psycopg2-binary
 prometheus-client
 cryptography
-numpy
+numpy==1.26.4
 pandas
 matplotlib
 pytest
