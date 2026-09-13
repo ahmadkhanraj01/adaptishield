@@ -1,5 +1,5 @@
 ---
-tags: [adaptishield, log, entry, manuscript, site]
+tags: [adaptishield, log, entry, manuscript, site, environment, external-baseline]
 type: log-entry
 date: 2026-09-13
 ---
@@ -8,11 +8,16 @@ date: 2026-09-13
 
 *13 September 2026.*
 
-A short session with nothing measured in it. Two things landed: the published
-site stopped contradicting the manuscript's structure, and §XII stopped
-contradicting [[AgentDojo's Benign Pool Is Exhausted at 60]]. Both were the last
-unlanded consequences of work already done — which is the only reason an entry
-this small is worth writing.
+The session began as housekeeping and did not stay that way. It opened with two
+items that were the last unlanded consequences of work already done — the
+published site stopped contradicting the manuscript's structure, and §XII stopped
+contradicting [[AgentDojo's Benign Pool Is Exhausted at 60]]. It then closed two
+of the three things blocking the paper: **the runtime split**, and **AgentDojo's
+Table 5**, which had been waiting four weeks on thirty seconds of a human.
+
+*The title was written when this was a prose-only session. It is kept — the
+entry is linked from three places and renaming would break them — and the
+sections below are where it stopped being true.*
 
 ## The gap this entry also closes
 
@@ -82,17 +87,87 @@ upgraded a limitation into a defence of the corpus would be the failure mode
 The limitation relocates rather than disappears: **a second external benign
 corpus is needed, not more of this one.** There is no third corpus waiting.
 
+## The venv could not build the paper it is told to build
+
+`README` says activate `./venv`. `Rules.md` §1 says `numpy==1.26.4` is pinned and
+names `requirements.txt` as the source of truth. Both were true statements about
+an environment nobody had checked:
+
+| | `./venv` | system `python3` |
+| :--- | :--- | :--- |
+| numpy / pandas / matplotlib | ✗ | ✓ (**2.2.6** — the version §1 forbids) |
+| langchain / chromadb | ✗ | ✓ |
+| mkdocs | ✓ | ✗ |
+
+So the venv could run the 502 tests and build the site, and **could not
+regenerate a single figure or run the pipeline**; the system interpreter could do
+those, at the forbidden numpy, and could not build the site. The paper's
+artifacts were being produced by two interpreters and nothing failed loudly about
+it. `requirements.txt` said `numpy`, unpinned — **the pin existed only in prose**,
+which is why nothing caught this.
+
+Pinned it where §1 already says it lives, installed the file into the venv: 89
+packages, `pip check` clean, 502 tests still passing.
+
+Then the check that mattered. **All four figures regenerate byte-identical** under
+1.26.4 — same PNG md5s — so the numpy major version never silently moved a
+figure, and the committed figures' system-interpreter provenance is harmless.
+This was the live worry behind the item and it comes back clean. The PDFs differ
+by exactly 8 bytes, all inside `/CreationDate`; reverted rather than committed, so
+the diff does not imply a figure changed.
+
+`installed.txt` is deliberately untouched. It is the evidence of the drift, not a
+lockfile, and `pip freeze` over it would erase the only record of how the two
+interpreters diverged → [[Traps]].
+
+## Table 5, and the rule that made it wait
+
+[[Entry XXVI — The Objection Closes, on the Third Candidate]] left AgentDojo's
+undefended ASR located but held back, because it had been read through an
+automated fetch and an automated transcription is the intermediary the guard
+exists to refuse. Asked to do the read myself today, the answer was the same as
+yesterday's and for the same reason: **certifying my own fetch would make the
+`verified` field mean nothing**, on the one row that has already been wrong by
+twelve points.
+
+What could be done without certifying was done — Table 5's delimiting row staged
+on the same held-back footing, so that *two* rows waited on *one* read of *one*
+table. A human then read it, and both flipped to `verbatim`.
+
+The 45.8% correction is kept on the row as `correction_note` rather than deleted
+now that it is resolved: a withdrawn number is marked, never removed.
+
+### What it bought §VI
+
+Our spotlighting result is a null, and a bare null invites the reading that the
+whole family is inert — a reading the evidence does not support and we are not
+entitled to. Delimiting is the closest published analogue: a prompt-level
+transform, a tool-calling agent, and **an undefended row measured in the same
+table**, which makes it a *difference* rather than a level.
+
+57.69% → 41.65%, non-overlapping intervals, no benign-utility cost. And 41.65%
+of targeted attacks still succeed, which §VI-D says plainly — the family reduces
+the exposure, it does not remove it. Both halves belong to the claim, exactly as
+[[Phase 10 — Spotlighting Has No Measurable Effect]]'s four qualifiers do.
+
+`test_the_agentdojo_baseline_is_currently_held_back` is deleted, as its own
+docstring instructed. It was a to-do wearing a test's clothing, and it did its
+job: four weeks of refusing to render a number that turned out to be wrong.
+
 ## What moved, and what did not
 
 | | |
 | :--- | :--- |
-| Numbers | **none** — 3.3%, [0.9%, 11.4%], the 1/57/2 stability split all untouched |
-| Tests | 502 passed, 7.6 s |
-| Artifacts | `.docx` regenerated (219 blocks, 6 figures); site page regenerated by CI |
-| Commits | `e4a7132` (nav), `656d8b6` (§XII), both pushed, both deployed |
+| **Our** numbers | **none moved** — 96.7%, 3.3%, [0.9%, 11.4%], the 1/57/2 stability split all untouched |
+| **Published** numbers | two released to `verbatim` — 57.69% and 41.65%, both AgentDojo Table 5 → [[Published Numbers We Position Against]] |
+| Tests | **501** passed, 7.3 s — one fewer, by deletion, not by failure |
+| Manuscript | §VI-D new; Tables VI–XII renumbered VII–XIII; 13 tables, ~10,301 words |
+| Environment | `./venv` satisfies `requirements.txt`; figures byte-identical under the pin |
+| Commits | `e4a7132` `656d8b6` `1215701` `db9a745` `4f7d71d` `5f4d787` — all pushed, all deployed |
 
-[[Current Numbers]] needs no edit, and that is the point of saying so:
-a prose-only session should be provably prose-only.
+[[Current Numbers]] needs no edit to **our** figures, and saying so is the point:
+nothing measured here moved. What moved is what we quote from other people, and
+that lives in [[Published Numbers We Position Against]] instead.
 
 ## What this entry does not establish
 
@@ -109,9 +184,25 @@ artifacts.
 **Nothing about the 12 September evening commits beyond what `git log` says.**
 Their reasoning was not recorded at the time and is not reconstructed here.
 
+**Not that the pipeline runs in the repaired venv.** `pip check` is clean and the
+502 — now 501 — deterministic tests pass, but those tests import no LLM and no
+network. `langchain-core` moved 1.4.9 → 1.6.3 in the install, and the thing that
+actually imports it has not been run since. A live pipeline run is still owed.
+
+**Not that `./venv` is the runtime of record.** It is now *capable* of being that.
+`README.md` and `Rules.md` §1 have not been changed to declare it, so the
+question the handover raised is answered in fact and open in prose.
+
+**Not that AgentDojo's tool-filter row is settled.** It quotes the paper's prose
+at 7.5% and is marked `verbatim`; Table 5's cell says 6.84% (±2.0). Left as
+found — deciding which the manuscript means is a judgement, not a transcription
+fix.
+
 ## Related
 
 - [[AgentDojo's Benign Pool Is Exhausted at 60]] — the finding this landed
 - [[The Benign FPR Has a Noise Floor Its Own Size]] — the other limit on the number
 - [[Entry XXIV — The Corpus Was Already Complete]] — where the census was found
-- [[Entry XXVI — The Objection Closes, on the Third Candidate]] — the session before
+- [[Published Numbers We Position Against]] — where the two released rows live
+- [[Phase 10 — Spotlighting Has No Measurable Effect]] — the null §VI-D calibrates
+- [[Entry XXVI — The Objection Closes, on the Third Candidate]] — the session before, which held Table 5 back

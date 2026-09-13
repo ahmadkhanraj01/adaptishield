@@ -41,9 +41,29 @@ difference and nothing more.
   **We measure 34.8% → 33.3%, McNemar p = 1.00** on our harness
   → [[Phase 10 — Spotlighting Has No Measurable Effect]]. Almost certainly a gap in
   setting, not a contradiction, and §4 carries the per-family decomposition.
-- 🟡 **AgentDojo's undefended important-instructions ASR is NOT yet verified.**
-  It reached us second-hand (~45.8%). Held back by the generator until someone
-  reads that table directly.
+- ✅ **AgentDojo's undefended baseline and delimiting arm, both released
+  13 Sep 2026** after a human read Table 5 in the primary source. From one table,
+  one model (GPT-4o), with the paper's own 95% intervals:
+
+  | Table 5 row | Benign utility | Utility w. attack | Targeted [[ASR]] |
+  | :--- | ---: | ---: | ---: |
+  | No defense | 69.0% (±3.6) | 50.01% (±3.9) | **57.69%** (±3.9) |
+  | Delimiting | 72.66% (±3.5) | 55.64% (±3.9) | **41.65%** (±3.9) |
+
+  **Delimiting removes 16.04 points, intervals non-overlapping, at no cost in
+  benign utility** — and still leaves 41.65% of targeted attacks succeeding. It is
+  the only published prompt-level result here carrying its own undefended row, so
+  it is a *difference* rather than a level, which is why §VI-D uses it against our
+  own null rather than the spotlighting quote above.
+  ⛔ **The 45.8% this supersedes was wrong twice over**: twelve points off, and
+  taken from Table 2's attacker-knowledge ablation rather than the undefended
+  headline. It sat in `external_numbers.json` from August to 12 September →
+  [[A Published p-Value With No Committed Source]] is the same failure with a
+  different number.
+- 🟡 **Unreconciled**: the tool-filter row above quotes the paper's prose at 7.5%,
+  while Table 5's tool-filter cell reads 6.84% (±2.0). Both may be correct — prose
+  and table need not aggregate identically — but nobody has settled which the
+  manuscript means.
 
 ## Detectors — the FPR/FNR landscape
 

@@ -70,6 +70,31 @@ Found while counting the pool for
 [[AgentDojo's Benign Pool Is Exhausted at 60]]; not triggered, because the
 expansion it would have fired on was not run.
 
+## A pin that lives only in prose pins nothing
+
+*13 Sep 2026 → [[Entry XXVII — The Prose Catches Up With the Finding]]*
+
+`Rules.md` §1 says `numpy==1.26.4` **and** names `requirements.txt` as the source
+of truth. `requirements.txt` said `numpy`. Two documents agreeing that a pin
+exists, and no file anywhere that applies it — so the environment the README tells
+you to activate had no numpy at all, while the interpreter actually producing the
+figures had **2.2.6**, the version §1 forbids on 3.10.12.
+
+Nothing failed. The 502 tests import no numpy, so they passed in the venv; the
+figures were generated from the other interpreter, so they existed and looked
+right. The split was only visible by asking each interpreter what it could import.
+
+**Guard.** A rule that names a version belongs in the file that installs it, in
+the same edit — §8's "change one, change the other" applies to `requirements.txt`
+as much as to the two rule documents. And when an environment claim is repaired,
+regenerate the artifacts and diff them: all four figures came back byte-identical
+under the pin, which is the only thing that could retire the question of whether
+the wrong numpy had ever moved one.
+
+⛔ **`installed.txt` is evidence, not a lockfile.** It records the *drift*. Running
+`pip freeze > installed.txt` to "fix" it destroys the only record of how the two
+interpreters diverged.
+
 ## The general form
 
 Most of these are instances of [[Instruments Fail More Than Mechanisms]] — a tool
