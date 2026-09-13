@@ -1,8 +1,9 @@
 # AdaptiShield — Session Handover
 
 **Written:** 13 September 2026, end of session
-**Last commit:** `fb36b6c` on `origin/main` — eleven commits today, all pushed,
-all deployed, all linear
+**Last commit before this one:** `e099104` on `origin/main` — thirteen commits
+today with this one, all pushed, all deployed, all linear
+*(a handover cannot name its own SHA; check `git log --oneline -1` for the tip)*
 **Read this first, then [README.md](README.md) §0 for what the research is.**
 
 The previous handover (12 September) is superseded. Its durable decisions are
@@ -71,6 +72,8 @@ Opened as housekeeping; closed two of the three blockers.
 | 8 | `4398fe3` | ✅ **Pipeline verified under `langchain-core` 1.6.3** — nothing broken. The demo had been hiding Test 2's verdict and doubling Test 3's; fixed. See §4. |
 | 9 | `cf5ae66` | 🟡 **`The Model of Record Is 40% Resident`** — the finding, the vault entry, and the handover's model table corrected. |
 | 10 | `fb36b6c` | ✅ **Site audited against `results/`.** Every generated number traces correctly; one hand-written label did not carry its scope. See §7. |
+| 11 | `e099104` | The audit lands in the vault, with the trap that generalises. |
+| 12 | *this commit* | ✅ **`./venv` declared the runtime of record** in all three documents. The README's package list is flagged as a historical snapshot — it says `langchain==0.3.7`; the venv has 1.4.0. |
 
 ## 4. Findings worth carrying
 
@@ -140,7 +143,7 @@ Opened as housekeeping; closed two of the three blockers.
 | 🔵 | **Venue** — parked | the user + supervisor. `paper/supervisor-brief.md` and the 34-slide deck are ready to send |
 | 🟡 | **Author block `CONFIRM` bracket** — ORCIDs, IEEE grades, author order, funding | the supervisor |
 | 🟡 | **Residency is unpinned.** `gemma3:4b` is 40% resident and a cold first call differs from warm ones. No manifest records residency; no recording warms the model first | a decision, then a small change to the run procedure |
-| 🟡 | **Declare the runtime of record.** `./venv` now satisfies `requirements.txt` and is *capable* of being it; `README.md` and `Rules.md` §1 do not say so. Answered in fact, open in prose | a one-line decision + the §8 twin edit |
+| — | ~~Declare the runtime of record~~ — ✅ **done 13 Sep.** `./venv` is the runtime of record in `Rules.md` §1, its vault twin, and `README.md` §8. System `python3` is explicitly not it | — |
 | 🟡 | **Tool-filter row unreconciled** — our `verbatim` row quotes the paper's prose at 7.5%; Table 5's cell reads 6.84% (±2.0). Both may be right | a judgement about which the manuscript means |
 | — | ~~Read the published site against `results/`~~ — ✅ done 13 Sep. 10 tiles, 80 percentages, 13 captions, 6 assets, 6 links all trace. One labelling defect found and fixed | — |
 | 🟡 | §XI's positioning table now renders five AgentDojo rows; check it still reads as calibration rather than a scoreboard | a prose read |
@@ -198,4 +201,4 @@ candidate), `qwen2.5:7b` (does not fit — 53% resident, non-deterministic).
 
 ---
 
-*Handover written 13 September 2026. HEAD is `fb36b6c`, pushed. Nothing local.*
+*Handover written 13 September 2026, on top of `e099104`. Nothing local.*

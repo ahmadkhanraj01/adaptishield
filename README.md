@@ -984,7 +984,18 @@ handover document.
 
 ## 8. Package Versions
 
-> `numpy==1.26.4` is a hard pin (numpy 2.x breaks on Python 3.10.12).
+> 🔴 **`./venv` is the runtime of record.** Everything runs under it — pipeline,
+> tests, figures, paper build, site build — and it satisfies `requirements.txt`
+> in full. System `python3` is not the runtime: it carries numpy 2.2.6, which the
+> pin below forbids. Activate the venv first, every time.
+>
+> `numpy==1.26.4` is a hard pin (numpy 2.x breaks on Python 3.10.12), and it is
+> written literally in `requirements.txt` — a pin asserted only in prose pins
+> nothing, which is how this repo ran for a month with no numpy in the venv at all.
+>
+> ⚠️ **The list below is a historical snapshot, not the installed set.** It reads
+> `langchain==0.3.7`; the venv has 1.4.0. `requirements.txt` is authoritative;
+> `installed.txt` records drift and must never be overwritten with `pip freeze`.
 
 ```text
 fastapi==0.115.5        uvicorn==0.32.1         langchain==0.3.7

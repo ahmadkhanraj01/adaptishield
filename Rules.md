@@ -21,8 +21,17 @@ see [Design.md](Design.md); for structure see [Architecture.md](Architecture.md)
 
 ## 1. Environment
 
+- 🔴 **`./venv` is the runtime of record.** Every command in this repo — the
+  pipeline, the tests, the figures, the paper build, the site build — runs under
+  it, and it satisfies `requirements.txt` in full (verified 13 Sep 2026). System
+  `python3` is **not** the runtime: it carries numpy 2.2.6, which this section
+  forbids. If something only works outside the venv, that is a bug in the venv,
+  not a licence to switch interpreter.
 - 🔴 **`numpy==1.26.4` is pinned.** numpy 2.x breaks on Python 3.10.12.
-  `requirements.txt` is the source of truth (`installed.txt` shows drift).
+  `requirements.txt` is the source of truth and **states the pin literally** — a
+  version named here but not written there pins nothing. `installed.txt` records
+  the historical drift and is **evidence, not a lockfile**: never
+  `pip freeze > installed.txt`.
 - 🔴 **Python 3.10.12**, Ubuntu 24.04, **4 GB VRAM is a hard ceiling** for local
   GPU inference. Anything needing torch or a 7B+ model goes to **Kaggle P100**.
 - 🟡 The pipeline runs locally; Kaggle is for training/evaluation only (it

@@ -14,7 +14,13 @@ before.
 
 ## Environment
 
-- 🔴 **`numpy==1.26.4` is pinned** — numpy 2.x breaks on Python 3.10.12
+- 🔴 **`./venv` is the runtime of record** — pipeline, tests, figures, paper and
+  site all run under it, and it satisfies `requirements.txt` in full (13 Sep 2026).
+  System `python3` carries numpy 2.2.6 and is not the runtime
+- 🔴 **`numpy==1.26.4` is pinned** — numpy 2.x breaks on Python 3.10.12, and the
+  pin must be written in `requirements.txt`, not only asserted here →
+  [[Traps]] (*a pin that lives only in prose pins nothing*). ⛔ `installed.txt` is
+  evidence of drift, never a lockfile
 - 🔴 Python 3.10.12, Ubuntu 24.04, **4 GB VRAM is a hard ceiling**. Anything
   needing torch or a 7B+ model goes off-machine → [[Machine and Environment]]
 - 🟡 The pipeline runs locally; Kaggle is training/eval only — it cannot host a
