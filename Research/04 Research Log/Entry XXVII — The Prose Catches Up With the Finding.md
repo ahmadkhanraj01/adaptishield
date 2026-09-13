@@ -189,6 +189,41 @@ compared warm repeats, and a corpus whose first case runs cold has that case
 drawn from somewhere the contract cannot see. The contract pins prompt,
 sanitiser, model tag and temperature — never residency.
 
+## The site audit, and the defect a generator cannot prevent
+
+The site's docstring makes a strong claim — *nothing here is a second copy of
+anything* — written against the review deck, which was hand-coded and drifted
+into contradicting the repo in five places while rendering perfectly. Nobody had
+ever tested the claim. Four pages fetched live and checked against their sources,
+mechanically rather than by eye:
+
+| Checked | Result |
+| :--- | :--- |
+| 10 home-page tile values against `results/*.json` | ✅ rates, Wilson bounds, gaps, miss IDs all exact |
+| 8 external rows against `external_numbers.json` | ✅ present; the 9 detector FPR rows correctly excluded |
+| 80 distinct percentages in `manuscript.md` | ✅ all 80 on the page |
+| 16 headings, 13 table captions | ✅ present, numbering intact |
+| `Phase.md` → progress; `Architecture.md` → architecture | ✅ complete |
+| 6 figure assets, 6 repo links | ✅ all resolve |
+
+**The rule held.** Everything a program typed traced back correctly. The one
+defect was in the half a human wrote.
+
+The two InjecAgent tiles read *96.7% vs 13.3%* and *100.0% vs 10.0%* with nothing
+saying they were **run 0**. They come from `phase16_model_transfer`, whose own
+manifest says in as many words that it is one recording per model and that no
+run-to-run spread may be quoted from it. But the manuscript's headline for the
+incumbent's no-target stratum is **10.0%** — the *median of three* recordings from
+`results/noise_floor/`, a different artifact. Both numbers are right. A reader
+holding the site beside the paper saw 13.3% against 10.0% for what looked like one
+quantity, and nothing on the page said otherwise.
+
+That is the form worth carrying. Generating a number from a tracked artifact
+guarantees it is *correct*; it does nothing to guarantee it is *scoped*, and the
+scope lives in a label some human wrote once. [[Traps]] has it now. The tiles
+carry `run 0`, with an admonition saying why and noting that the two-model
+comparison is only valid run-0-against-run-0.
+
 ## What moved, and what did not
 
 | | |
@@ -198,7 +233,7 @@ sanitiser, model tag and temperature — never residency.
 | Tests | **501** passed, 7.3 s — one fewer, by deletion, not by failure |
 | Manuscript | §VI-D new; Tables VI–XII renumbered VII–XIII; 13 tables, ~10,301 words |
 | Environment | `./venv` satisfies `requirements.txt`; figures byte-identical under the pin; pipeline verified end-to-end under `langchain-core` 1.6.3 |
-| Commits | ten, `e4a7132` through this entry — all pushed, all deployed |
+| Commits | eleven, `e4a7132` through `fb36b6c` — all pushed, all deployed |
 
 [[Current Numbers]] needs no edit to **our** figures, and saying so is the point:
 nothing measured here moved. What moved is what we quote from other people, and
@@ -210,11 +245,12 @@ that lives in [[Published Numbers We Position Against]] instead.
 describes it correctly. The interval is still wide, a two-point difference is
 still unresolvable, and the second external corpus does not exist.
 
-**Not that the site is verified against the repo.** The deploy is green and the
-nav matches the build, which is a structural check, not a factual one. The review
-deck drifted into contradicting `results/` in five places while rendering
-perfectly — see [[Traps]]. Nobody has read the published pages against the
-artifacts.
+**The site *is* now checked against the repo** — see the audit above, which
+closes the item this section opened with when the entry was written. Scoped:
+it compares published pages against `results/` and the markdown sources as they
+stand **today**. It is not a standing guarantee, nothing re-runs it, and the
+defect it found was in a hand-written label rather than in any generated value —
+so the next one will be too.
 
 **Nothing about the 12 September evening commits beyond what `git log` says.**
 Their reasoning was not recorded at the time and is not reconstructed here.

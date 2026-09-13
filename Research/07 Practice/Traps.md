@@ -95,6 +95,34 @@ the wrong numpy had ever moved one.
 `pip freeze > installed.txt` to "fix" it destroys the only record of how the two
 interpreters diverged.
 
+## Generating a number guarantees it is correct, not that it is scoped
+
+*13 Sep 2026 → [[Entry XXVII — The Prose Catches Up With the Finding]]*
+
+The site generates every number from a tracked artifact, which is the guard
+against the review deck's failure — a hand-typed number drifting from the repo.
+It worked: 10 tiles, 80 manuscript percentages, 48 progress figures, all exact.
+
+It cannot guard the **label**. Two tiles read *96.7% vs 13.3%* from
+`phase16_model_transfer`, which is one recording per model — its manifest says so
+and says no spread may be quoted from it. The paper's headline for the same
+stratum is **10.0%**, the median of three recordings in a *different* artifact.
+Both correct; nothing on the page said which was which, so the site appeared to
+contradict the paper.
+
+**Guard.** When an artifact's manifest constrains how its numbers may be quoted —
+*one recording*, *run 0 only*, *strata must not be pooled*, *this is a replay* —
+that constraint is part of the number and has to travel with it into every
+rendering. A value pulled from JSON arrives without its caveat; the caveat is in
+prose a human wrote once, in a file nobody re-reads. Prefer putting the scope in
+the artifact's own field so the generator can render it, rather than in a label
+beside the call site.
+
+⚠️ **The corollary for audits.** Checking that every displayed number matches its
+source will pass while this defect is present. The check that catches it is
+holding two renderings of the *same quantity* side by side and asking whether a
+reader could tell them apart.
+
 ## The general form
 
 Most of these are instances of [[Instruments Fail More Than Mechanisms]] — a tool

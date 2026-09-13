@@ -1,8 +1,8 @@
 # AdaptiShield — Session Handover
 
 **Written:** 13 September 2026, end of session
-**Last commit:** `4398fe3` on `origin/main` — nine commits today, all pushed, all
-deployed, all linear
+**Last commit:** `fb36b6c` on `origin/main` — eleven commits today, all pushed,
+all deployed, all linear
 **Read this first, then [README.md](README.md) §0 for what the research is.**
 
 The previous handover (12 September) is superseded. Its durable decisions are
@@ -69,6 +69,8 @@ Opened as housekeeping; closed two of the three blockers.
 | 6 | `5f4d787` | ✅ **Table 5 read by a human. Both rows `verbatim`.** Held-back test deleted (501). **§VI-D is new**; Tables VI–XII renumbered VII–XIII. |
 | 7 | `39d76ae` | **This handover, rewritten**, and the home page gains the published attack-success figures — generated from `external_numbers.json`, `verbatim` as the gate, detector FPR rows deliberately excluded. |
 | 8 | `4398fe3` | ✅ **Pipeline verified under `langchain-core` 1.6.3** — nothing broken. The demo had been hiding Test 2's verdict and doubling Test 3's; fixed. See §4. |
+| 9 | `cf5ae66` | 🟡 **`The Model of Record Is 40% Resident`** — the finding, the vault entry, and the handover's model table corrected. |
+| 10 | `fb36b6c` | ✅ **Site audited against `results/`.** Every generated number traces correctly; one hand-written label did not carry its scope. See §7. |
 
 ## 4. Findings worth carrying
 
@@ -140,7 +142,7 @@ Opened as housekeeping; closed two of the three blockers.
 | 🟡 | **Residency is unpinned.** `gemma3:4b` is 40% resident and a cold first call differs from warm ones. No manifest records residency; no recording warms the model first | a decision, then a small change to the run procedure |
 | 🟡 | **Declare the runtime of record.** `./venv` now satisfies `requirements.txt` and is *capable* of being it; `README.md` and `Rules.md` §1 do not say so. Answered in fact, open in prose | a one-line decision + the §8 twin edit |
 | 🟡 | **Tool-filter row unreconciled** — our `verbatim` row quotes the paper's prose at 7.5%; Table 5's cell reads 6.84% (±2.0). Both may be right | a judgement about which the manuscript means |
-| 🟡 | **Nobody has read the published site against `results/`** — the deck drifted into contradicting the repo in five places while rendering perfectly | an hour |
+| — | ~~Read the published site against `results/`~~ — ✅ done 13 Sep. 10 tiles, 80 percentages, 13 captions, 6 assets, 6 links all trace. One labelling defect found and fixed | — |
 | 🟡 | §XI's positioning table now renders five AgentDojo rows; check it still reads as calibration rather than a scoreboard | a prose read |
 
 ## 7. Traps found today (`Research/07 Practice/Traps.md`)
@@ -151,6 +153,12 @@ Opened as housekeeping; closed two of the three blockers.
 - **Inserting a table renumbers the paper.** Tables VI–XII became VII–XIII for
   §VI-D. Only one reference lives in prose (§VIII's bound on the holdout table);
   the rest are captions. Grep `Table [IVX]` before and after, every time.
+- **Generating a number guarantees it is correct, not that it is scoped.** The
+  site pulls every figure from a tracked artifact, and that caught nothing wrong —
+  but two tiles rendered `phase16_model_transfer`'s **run 0** numbers with no
+  "run 0" on them, beside a paper whose headline for the same stratum is the
+  *median of three* from a different artifact. When a manifest constrains how its
+  numbers may be quoted, that constraint is part of the number.
 - **Regenerated artifacts churn on timestamps.** The four figure PDFs differ by
   exactly 8 bytes inside `/CreationDate`, and the `.docx` is byte-unstable too.
   Revert them rather than commit a diff that implies a figure changed.
@@ -190,4 +198,4 @@ candidate), `qwen2.5:7b` (does not fit — 53% resident, non-deterministic).
 
 ---
 
-*Handover written 13 September 2026. HEAD is `4398fe3`, pushed. Nothing local.*
+*Handover written 13 September 2026. HEAD is `fb36b6c`, pushed. Nothing local.*
