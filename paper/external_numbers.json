@@ -62,10 +62,19 @@
           "system": "No defense, important-instructions attack",
           "metric": "targeted attack success rate",
           "value_pct": 57.69,
-          "setting": "GPT-4o, 95% CI \u00b13.9",
+          "setting": "GPT-4o, 95% CI ±3.9",
           "verified": "located-pending-human-read",
           "quote": "Table 5, row 'No defense': benign utility 69.0% (+/-3.6), utility w. attack 50.01% (+/-3.9), targeted ASR 57.69% (+/-3.9). CORRECTION: the previous value of 45.8% was wrong and came from the wrong table -- 45.8% is Table 2's attacker-knowledge ablation baseline ('generic references'), not the undefended headline. Read from arxiv.org/html/2406.13352v3 on 2026-09-12 via an automated fetch, NOT by a human reading the PDF, so it stays held back: this repo's rule is that a number reaching a document through an intermediary is the failure mode, and an automated transcription is an intermediary. To release: open Table 5, confirm 57.69% (+/-3.9), set verified to 'verbatim', delete test_the_agentdojo_baseline_is_currently_held_back.",
-          "source_table": "Table 5 \u2014 'Targeted and untargeted attack success rates for different defenses with GPT-4o. Detailed results for Figure 9. 95% confidence intervals between parentheses.'"
+          "source_table": "Table 5 — 'Targeted and untargeted attack success rates for different defenses with GPT-4o. Detailed results for Figure 9. 95% confidence intervals between parentheses.'"
+        },
+        {
+          "system": "Delimiting defense (prompt-level)",
+          "metric": "targeted attack success rate",
+          "value_pct": 41.65,
+          "setting": "GPT-4o, 95% CI ±3.9",
+          "verified": "located-pending-human-read",
+          "quote": "Table 5, row 'Delimiting': benign utility 72.66% (+/-3.5), utility w. attack 55.64% (+/-3.9), targeted ASR 41.65% (+/-3.9). Against the same table's 'No defense' 57.69%, delimiting removes 16.04 points of targeted ASR. Located 2026-09-13 from arxiv.org/html/2406.13352v3 via an automated fetch, NOT by a human reading the PDF, so it is held back on the same footing as the no-defense row. To release: open Table 5, confirm 41.65% (+/-3.9), set verified to 'verbatim'.",
+          "source_table": "Table 5 — 'Targeted and untargeted attack success rates for different defenses with GPT-4o. Detailed results for Figure 9. 95% confidence intervals between parentheses.'"
         }
       ]
     },
