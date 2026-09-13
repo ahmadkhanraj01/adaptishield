@@ -157,8 +157,14 @@ def numbers():
     return {
         "detection": (f"{det['hits']}/{det['n']} = {pct(det['rate'])}", ci(det), "results/campaign/"),
         "fpr": (f"{ext['hits']}/{ext['n']} = {pct(ext['rate'])}", ci(ext) + f" · stable over {nf['n_runs']} recordings", "results/noise_floor/"),
-        "strat_inc": (f"{pct(t_inc['IA-target']['rate'])} vs {pct(t_inc['IA-notarget']['rate'])}", f"{inc} · gap {100*tr['gap'][inc]:.1f} pts", "results/phase16_model_transfer/"),
-        "strat_cand": (f"{pct(t_cand['IA-target']['rate'])} vs {pct(t_cand['IA-notarget']['rate'])}", f"{cand} · gap {100*tr['gap'][cand]:.1f} pts", "results/phase16_model_transfer/"),
+        # ⚠ transfer.json is ONE recording per model — its own `repeats` field says
+        # so, and says no run-to-run spread may be quoted from it. The label has to
+        # carry that: the paper's headline for the incumbent's no-target stratum is
+        # 10.0%, the median of three recordings in results/noise_floor/, and a tile
+        # reading 13.3% without "run 0" on it looks like the paper contradicting
+        # the site.
+        "strat_inc": (f"{pct(t_inc['IA-target']['rate'])} vs {pct(t_inc['IA-notarget']['rate'])}", f"{inc} · run 0 · gap {100*tr['gap'][inc]:.1f} pts", "results/phase16_model_transfer/"),
+        "strat_cand": (f"{pct(t_cand['IA-target']['rate'])} vs {pct(t_cand['IA-notarget']['rate'])}", f"{cand} · run 0 · gap {100*tr['gap'][cand]:.1f} pts", "results/phase16_model_transfer/"),
         "misses": (", ".join(camp["misses"]), "every one address-free", "results/campaign/"),
     }
 
@@ -227,6 +233,15 @@ honestly where it stops working.
 built {time.strftime("%Y-%m-%d %H:%M %z")}. Nothing on this page is typed by hand.*
 
 The four misses on our own corpus: `{n["misses"][0]}` — {n["misses"][1]}.
+
+!!! info "Why the InjecAgent tiles say *run 0*"
+    Those two tiles come from `results/phase16_model_transfer/`, which is **one
+    recording per model** — the artifact's own manifest says no run-to-run spread
+    may be quoted from it. The manuscript's headline for the incumbent's no-target
+    stratum is **10.0%**, the *median of three* recordings in
+    `results/noise_floor/`. Both are correct for their own artifact; they are not
+    the same measurement, and the paired comparison between the two models is only
+    valid run-0-against-run-0.
 
 ## Against published results
 
