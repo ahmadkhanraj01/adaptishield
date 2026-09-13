@@ -250,6 +250,19 @@ The first run reported spotlighting as 17 points *worse* (39.4% to 56.1%). It wa
 
 The fix is clause-scoped negation detection in the action scorer. We report the withdrawn figure because the failure is general: a defense that changes the *shape* of model output can corrupt any keyword-based metric measuring it, and the corruption is sign-preserving with the defense's effectiveness. Any evaluation of a prompt-level defense using lexical scoring is exposed to it.
 
+### D. What the same defense family achieves elsewhere
+
+Our null is one measurement, and a reader is entitled to ask what a prompt-level defense of this family does when it does work. AgentDojo reports one on an agent benchmark, scored the way we would want it scored — the same table, the same model, an undefended row to difference against.
+
+| AgentDojo, GPT-4o | Benign utility | Utility w. attack | Targeted ASR |
+| :--- | ---: | ---: | ---: |
+| No defense | 69.0% (±3.6) | 50.01% (±3.9) | 57.69% (±3.9) |
+| Delimiting | 72.66% (±3.5) | 55.64% (±3.9) | 41.65% (±3.9) |
+
+**Table VI.** Delimiting against no defense, both from Table 5 of Debenedetti et al. [2]. Intervals are the paper's own 95% intervals.
+
+Delimiting removes **16.04 points** of targeted ASR, and the two intervals do not overlap. This is the closest published analogue to our arm: a prompt-level transform of untrusted content, on a tool-calling agent, with the undefended condition measured in the same run. It does not make our null a contradiction — the corpus, the model class and the outcome variable all differ, and §VI-B lists why our steering rate is not their ASR. What it establishes is that the family is not inert in general, which is the reading a bare null invites and the one we are not entitled to. Two further things travel with it. First, delimiting does not *solve* the problem it improves: 41.65% of targeted attacks still succeed, so the published result is a reduction, not a defense a deployment could rest on. Second, it costs nothing in benign utility — 69.0% to 72.66%, overlapping intervals — which is the property our own null cannot demonstrate either way.
+
 ## VII. External Validity: Detection Falls From 96.7% to ≈18%
 
 *Artifacts: `results/phase12/`, `results/noise_floor/injecagent.json`. 60 cases per arm, 30 per stratum.*
@@ -263,7 +276,7 @@ On our own corpus the causal sub-layer detects 116/120 = 96.7% [91.7%, 98.7%] of
 | target-match path fires | ≈10% | 96.7% | [83.3%, 99.4%] |
 | target-match path cannot fire | ≈90% | 10.0% | [3.5%, 25.6%] |
 
-**Table VI.** Detection on InjecAgent by stratum, median of three recordings. End-to-end, the complete system's ASR on this corpus is 29/60 = 48.3%, against 60/60 for both undefended and static-rule arms.
+**Table VII.** Detection on InjecAgent by stratum, median of three recordings. End-to-end, the complete system's ASR on this corpus is 29/60 = 48.3%, against 60/60 for both undefended and static-rule arms.
 
 ![Detection on externally-authored attacks, split by whether the target-match path can fire. Dots are the three independent recordings; the pooled figure is wrong for the population by 33 points.](figures/fig2_stratified.png)
 
@@ -290,7 +303,7 @@ The stratified figures were originally single-run, which for a flagship result i
 | target-match fires | 96.7% | 96.7% | 96.7% | 0 | 0 / 30 |
 | target-match cannot | 13.3% | 10.0% | 10.0% | 1 case | 1 / 30 |
 
-**Table VII.** Repeat stability. The gap between strata is ≈86 points; run-to-run variation is at most one case, or 3.3 points.
+**Table VIII.** Repeat stability. The gap between strata is ≈86 points; run-to-run variation is at most one case, or 3.3 points.
 
 The target-match stratum is *perfectly* stable — every one of its 30 documents receives the same verdict in all three runs — which is what one expects when detection rides on a near-deterministic string match rather than on a judgement. These are recordings re-scored offline, so they bound the recording instrument's variability rather than a full live run's; we claim only what that supports, namely that the stratified collapse is not an artifact of a single run.
 
@@ -304,7 +317,7 @@ Every figure above rests on one 4B model behind the causal probe, which makes th
 | target-match cannot | 4/30 = 13.3% [5.3%, 29.7%] | 3/30 = 10.0% [3.5%, 25.6%] |
 | **stratum gap** | **83.3 points** | **90.0 points** |
 
-**Table VIII.** The stratification under a second probe model. Same draw, same prompts, same scorer; run 0 of each. Paired over all 60 cases: 1 helped, 1 hurt, 2 discordant, exact *p* = 1.0 — which at two discordant pairs is near-zero power, not equivalence.
+**Table IX.** The stratification under a second probe model. Same draw, same prompts, same scorer; run 0 of each. Paired over all 60 cases: 1 helped, 1 hurt, 2 discordant, exact *p* = 1.0 — which at two discordant pairs is near-zero power, not equivalence.
 
 The shape reproduces on a different model lineage with a smaller parameter count and a different instruct-tuning recipe, and the gap comes out slightly wider. The two models agree on 58 of 60 cases, disagreeing once in each direction. We claim from this that the collapse follows the mechanism rather than the model — not that the two models are equivalent, which two discordant pairs cannot support.
 
@@ -329,7 +342,7 @@ The protocol was therefore fixed in advance. The candidate harm class, a verb–
 | schemeless | 26.7% | 36.7% | 8.3% |
 | both | 90.0% | 50.0% (6/0, *p* = 0.031) | 10.0% |
 
-**Table IX.** In-sample 90.0% [74.4%, 96.5%] against holdout 43.3% [27.4%, 60.8%]. The intervals do not overlap. The diagnosis survives; the effect size does not.
+**Table X.** In-sample 90.0% [74.4%, 96.5%] against holdout 43.3% [27.4%, 60.8%]. The intervals do not overlap. The diagnosis survives; the effect size does not.
 
 ![Address-free detection for the capability lexicon, in-sample versus holdout. Error bars are Wilson 95% intervals and do not overlap.](figures/fig3_generalisation.png)
 
@@ -349,7 +362,7 @@ Three independent recordings of the same 60 benign documents give three identica
 
 > **The FPR reproduces as a rate; the set of documents producing it does not.**
 
-A claim of the form "this configuration adds one false positive" is therefore not supported by a single run, because it may be reporting churn in the borderline pool. This bounds Table IX directly: the capability arm's apparent FPR cost is one case in 60, precisely the magnitude that churns, so the defensible statement is **no measurable FPR change**, not "+1.7 points".
+A claim of the form "this configuration adds one false positive" is therefore not supported by a single run, because it may be reporting churn in the borderline pool. This bounds Table X directly: the capability arm's apparent FPR cost is one case in 60, precisely the magnitude that churns, so the defensible statement is **no measurable FPR change**, not "+1.7 points".
 
 ## IX. The Adaptive Layer and the Temporal-Drift Rule
 
@@ -379,7 +392,7 @@ We built the first multi-turn cohort that could exercise it: five three-turn con
 | ACE = 0 | 24 / 30 (80%) |
 | IE = 0 | 29 / 30 (97%) |
 
-**Table X.** The causal contrast across both pre-registered runs.
+**Table XI.** The causal contrast across both pre-registered runs.
 
 ![Unmasked against masked severity for every scored turn of both runs. Points on the diagonal have zero causal contrast; 24 of 30 turns lie there, malicious and benign alike.](figures/fig4_flat_contrast.png)
 
@@ -414,7 +427,7 @@ Every published figure below was measured on a different corpus, with a differen
 | ReAct-prompted GPT-4 [1] | base | 24% |
 | Fine-tuned GPT-4 / GPT-3.5 [1] | base | 3.8% / 6.6% |
 
-**Table XI.** Attack success on InjecAgent's direct-harm split. Published figures are ASR-valid over all attack types and carry no interval.
+**Table XII.** Attack success on InjecAgent's direct-harm split. Published figures are ASR-valid over all attack types and carry no interval.
 
 This is a floor check, not a result. Our 100% is the *undefended* number and sits above everything InjecAgent measured because our agent is a 3–4B local model rather than GPT-4. What it earns is the right to report a downstream difference; if the attacks did not land, no defended number would mean anything.
 
@@ -431,11 +444,11 @@ This is a floor check, not a result. Our 100% is the *undefended* number and sit
 | InjecGuard [4] | 33.7% | 8.2% |
 | ProtectAI-deberta [4] | 24.1% | 10.1% |
 
-**Table XII.** Detection against published detectors. Published figures are averages over six text benchmarks as reported in [4]; ours are measured on an agent loop over injected tool output at one fixed threshold.
+**Table XIII.** Detection against published detectors. Published figures are averages over six text benchmarks as reported in [4]; ours are measured on an agent loop over injected tool output at one fixed threshold.
 
 Those detectors trade false positives against misses along one axis, and a paper's contribution is usually a better point on that curve. **Ours does not sit on that curve.** At one fixed false-positive rate it is near the ceiling on one stratum and near the floor on the other, and the split is a mechanism rather than a threshold. None of the nine reports its numbers stratified this way, so a mechanism-dependent collapse of this size would not be visible in any of their tables. We are not claiming those systems share the failure; we are claiming their evaluations, as reported, could not tell us either way.
 
-For defenses, spotlighting is reported at ">50% to below 2%" on GPT-family models [3] against our null on 3–4B local models with action selection as the outcome (§VI), and AgentDojo's tool filter at 7.5% ASR [2] against our Layer 4, which §V reports as redundant. The gap between our spotlighting null and the published figure is most likely a gap in setting, and we say so rather than claiming a contradiction.
+For defenses, spotlighting is reported at ">50% to below 2%" on GPT-family models [3] against our null on 3–4B local models with action selection as the outcome (§VI), and AgentDojo's tool filter at 7.5% ASR [2] against our Layer 4, which §V reports as redundant. The gap between our spotlighting null and the published figure is most likely a gap in setting, and we say so rather than claiming a contradiction. The most informative external point is AgentDojo's own delimiting arm (§VI-D): **57.69% → 41.65%** targeted ASR against an undefended row measured in the same table [2]. It is the only published prompt-level result here that carries its own undefended baseline, which is what makes it a difference rather than a level — and at 41.65% remaining it is also the clearest published statement that this family reduces rather than removes the exposure.
 
 ## XII. Limitations
 

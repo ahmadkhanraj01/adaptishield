@@ -81,6 +81,8 @@ Repeat spread: target 29–29/30 across 3 repeats, no-target 3–4/30 across 3 r
 | Other published defense | Result | Source |
 | :--- | :--- | :--- |
 | Tool filter defense (GPT-4o) | targeted attack success rate **7.5%** | [Debenedetti et al.](https://arxiv.org/abs/2406.13352) |
+| No defense, important-instructions attack (GPT-4o, 95% CI ±3.9) | targeted attack success rate **57.7%** | [Debenedetti et al.](https://arxiv.org/abs/2406.13352) |
+| Delimiting defense (prompt-level) (GPT-4o, 95% CI ±3.9) | targeted attack success rate **41.6%** | [Debenedetti et al.](https://arxiv.org/abs/2406.13352) |
 
 **We do not claim spotlighting does not work.** We claim it had no measurable effect *here* — 3–4B local models, our corpus, action selection as the outcome — and we report the paired test rather than two overlapping intervals. The gap between >50% → <2% and 34.8% → 33.3% is most likely a gap in setting, and §4 gives the decomposition that makes the null informative rather than empty.
 

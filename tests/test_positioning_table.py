@@ -59,16 +59,6 @@ def test_unverified_rows_are_dropped_not_rendered():
         assert system not in rendered
 
 
-def test_the_agentdojo_baseline_is_currently_held_back():
-    """Pins the live example: we have tool-filter verbatim, not the no-defense
-    baseline. If someone verifies it, this test says so — it is a to-do, not a
-    permanent assertion about that paper."""
-    _, dropped = mod.external()
-    assert any("agentdojo" in d for d in dropped), (
-        "AgentDojo's undefended ASR is now marked verified — read the primary "
-        "source, confirm the quote, then delete this test."
-    )
-
 
 def test_every_published_row_carries_a_quote():
     with open(EXTERNAL) as fh:
