@@ -1,7 +1,7 @@
 # AdaptiShield — Session Handover
 
 **Written:** 13 September 2026, end of session
-**Last commit:** `e81a3a6` on `origin/main` — seven commits today, all pushed, all
+**Last commit:** `4398fe3` on `origin/main` — nine commits today, all pushed, all
 deployed, all linear
 **Read this first, then [README.md](README.md) §0 for what the research is.**
 
@@ -67,6 +67,8 @@ Opened as housekeeping; closed two of the three blockers.
 | 4 | `db9a745` | 🔴 **The venv could not build the paper.** See §4 — the one with consequences beyond today. |
 | 5 | `4f7d71d` | **AgentDojo's Delimiting row staged** held-back, so two rows waited on one human read of one table. |
 | 6 | `5f4d787` | ✅ **Table 5 read by a human. Both rows `verbatim`.** Held-back test deleted (501). **§VI-D is new**; Tables VI–XII renumbered VII–XIII. |
+| 7 | `39d76ae` | **This handover, rewritten**, and the home page gains the published attack-success figures — generated from `external_numbers.json`, `verbatim` as the gate, detector FPR rows deliberately excluded. |
+| 8 | `4398fe3` | ✅ **Pipeline verified under `langchain-core` 1.6.3** — nothing broken. The demo had been hiding Test 2's verdict and doubling Test 3's; fixed. See §4. |
 
 ## 4. Findings worth carrying
 
@@ -84,6 +86,16 @@ Opened as housekeeping; closed two of the three blockers.
   uses it against our null. It also leaves 41.65% succeeding: the family reduces
   the exposure, it does not remove it. The superseded 45.8% is kept as
   `correction_note` (wrong by twelve points, and from Table 2).
+- 🟡 **`The Model of Record Is 40% Resident`.** `/api/ps` says `gemma3:4b` holds
+  1.71 GB of a 4.30 GB footprint in VRAM — **60% on CPU**, on a card with nothing
+  else on it, and worse offload than the `qwen2.5:7b` this project disqualified for
+  exactly that. Four runs of the pipeline: the **three warm runs are identical**,
+  the **cold one differs** in a scored severity (DE moves by a point). Verdicts
+  identical in all four, and no committed number is restated. But every previous
+  non-determinism result here compared *warm* repeats, and the corpus contract pins
+  prompt, sanitiser, model tag and temperature — **never residency**. Cheap fix
+  suggested in the note: record `size_vram / size` in the manifest, warm the model
+  before case 0. Neither is done.
 - **`AgentDojo's Benign Pool Is Exhausted at 60`** — a census. The limitation
   relocates to *a second external benign corpus is needed*. §XII now says so.
 - **`The Probe's Compliance Does Not Transfer`** — title corrected the same day,
@@ -125,7 +137,7 @@ Opened as housekeeping; closed two of the three blockers.
 | :--- | :--- | :--- |
 | 🔵 | **Venue** — parked | the user + supervisor. `paper/supervisor-brief.md` and the 34-slide deck are ready to send |
 | 🟡 | **Author block `CONFIRM` bracket** — ORCIDs, IEEE grades, author order, funding | the supervisor |
-| 🔴 | **The pipeline has not run since `langchain-core` moved** 1.4.9 → 1.6.3 in today's install. The 501 tests import no LLM and no network, so they cannot have caught a break | one live run |
+| 🟡 | **Residency is unpinned.** `gemma3:4b` is 40% resident and a cold first call differs from warm ones. No manifest records residency; no recording warms the model first | a decision, then a small change to the run procedure |
 | 🟡 | **Declare the runtime of record.** `./venv` now satisfies `requirements.txt` and is *capable* of being it; `README.md` and `Rules.md` §1 do not say so. Answered in fact, open in prose | a one-line decision + the §8 twin edit |
 | 🟡 | **Tool-filter row unreconciled** — our `verbatim` row quotes the paper's prose at 7.5%; Table 5's cell reads 6.84% (±2.0). Both may be right | a judgement about which the manuscript means |
 | 🟡 | **Nobody has read the published site against `results/`** — the deck drifted into contradicting the repo in five places while rendering perfectly | an hour |
@@ -165,13 +177,17 @@ python3 -m evaluation.campaign_report             # 116/120, 2/60, 4/8 — no mo
 python3 -m evaluation.model_transfer              # 96.7/13.3 vs 100.0/10.0 — no model calls
 python3 paper/make_positioning_table.py           # nothing held back any more
 python3 paper/make_figures.py                     # PNGs must come back byte-identical
-curl -s localhost:11434/api/ps                    # size_vram must be > 0 once a model is loaded
+python3 adaptishield_pipeline.py                  # 3 cases: approved_direct / safe_continuation / approved_causal
+curl -s localhost:11434/api/ps                    # size_vram/size is the residency — currently 40% for gemma3:4b
 ```
 
-**Models on this machine:** `gemma3:4b` (3B of record), `qwen2.5:3b` (3C/L3/planner —
-*not* usable as 3B), `llama3.2:3b` (Phase 16 candidate, 100% GPU-resident),
-`qwen2.5:7b` (does not fit — 53% CPU offload, non-deterministic).
+**Models on this machine:** `gemma3:4b` (3B of record — ⚠️ **40% GPU-resident**,
+measured 13 Sep, not the "fully resident" earlier handovers claimed),
+`qwen2.5:3b` (3C/L3/planner — *not* usable as 3B), `llama3.2:3b` (Phase 16
+candidate), `qwen2.5:7b` (does not fit — 53% resident, non-deterministic).
+**Residency is not recorded by any manifest.** Read it with
+`curl -s localhost:11434/api/ps` before trusting a repeat.
 
 ---
 
-*Handover written 13 September 2026. HEAD is `e81a3a6`, pushed. Nothing local.*
+*Handover written 13 September 2026. HEAD is `4398fe3`, pushed. Nothing local.*

@@ -154,6 +154,41 @@ the exposure, it does not remove it. Both halves belong to the claim, exactly as
 docstring instructed. It was a to-do wearing a test's clothing, and it did its
 job: four weeks of refusing to render a number that turned out to be wrong.
 
+## The post-install check, and what it found instead
+
+`langchain-core` moved 1.4.9 → 1.6.3 in the venv install, and the 501 tests
+import no LLM and no network, so they could not have caught a break. Ran
+`adaptishield_pipeline.py` — the check the handover prescribes — to close that.
+
+**Nothing was broken.** All three cases behave as their docstrings specify:
+`approved_direct` on the benign low-impact call, `safe_continuation` on the
+injected one (ACE=−1, IE=2, mediator purified, permission out-of-scope, egress
+blocked on `attacker-c2.evil.com`), `approved_causal` on the benign high-impact
+call. Layers 0–4 all fire; the LLM screener returns a real judgement.
+
+Two things came out of running it that were not what it was run for.
+
+**The demo was hiding its most important verdict.** Test 2 — the attack case —
+had no `>>> Result` line at all, and Test 3's was pasted twice. A reader running
+the documented health check saw the benign case appear to run twice and got no
+verdict for the attack. Behaviour was never wrong; only the reporting. Fixed.
+
+**And [[The Model of Record Is 40% Resident]].** `/api/ps` says `gemma3:4b` holds
+1.71 GB of a 4.30 GB footprint in VRAM — **60% on CPU**, on a card with nothing
+else on it. That is worse offload than the `qwen2.5:7b`
+[[The Probe's Compliance Does Not Transfer]] disqualified for offloading, and the
+handover's model table had been calling the incumbent GPU-resident.
+
+The temptation was to write that up as *the incumbent is non-deterministic too*.
+Checking first killed that: four runs, and the **three warm ones are identical on
+every field**. Only the cold run — the first call after load — differs, and it
+differs in `orig_sanitized`'s severity, moving DE by a point. Verdicts identical
+in all four. So the honest claim is much narrower than the one the observation
+first suggested, and it is a new one: every previous non-determinism result here
+compared warm repeats, and a corpus whose first case runs cold has that case
+drawn from somewhere the contract cannot see. The contract pins prompt,
+sanitiser, model tag and temperature — never residency.
+
 ## What moved, and what did not
 
 | | |
@@ -162,8 +197,8 @@ job: four weeks of refusing to render a number that turned out to be wrong.
 | **Published** numbers | two released to `verbatim` — 57.69% and 41.65%, both AgentDojo Table 5 → [[Published Numbers We Position Against]] |
 | Tests | **501** passed, 7.3 s — one fewer, by deletion, not by failure |
 | Manuscript | §VI-D new; Tables VI–XII renumbered VII–XIII; 13 tables, ~10,301 words |
-| Environment | `./venv` satisfies `requirements.txt`; figures byte-identical under the pin |
-| Commits | `e4a7132` `656d8b6` `1215701` `db9a745` `4f7d71d` `5f4d787` — all pushed, all deployed |
+| Environment | `./venv` satisfies `requirements.txt`; figures byte-identical under the pin; pipeline verified end-to-end under `langchain-core` 1.6.3 |
+| Commits | ten, `e4a7132` through this entry — all pushed, all deployed |
 
 [[Current Numbers]] needs no edit to **our** figures, and saying so is the point:
 nothing measured here moved. What moved is what we quote from other people, and
@@ -184,10 +219,10 @@ artifacts.
 **Nothing about the 12 September evening commits beyond what `git log` says.**
 Their reasoning was not recorded at the time and is not reconstructed here.
 
-**Not that the pipeline runs in the repaired venv.** `pip check` is clean and the
-502 — now 501 — deterministic tests pass, but those tests import no LLM and no
-network. `langchain-core` moved 1.4.9 → 1.6.3 in the install, and the thing that
-actually imports it has not been run since. A live pipeline run is still owed.
+**The pipeline now *has* run** under the repaired venv and the bumped
+`langchain-core` — three cases, all verdicts correct. That closes the item this
+section opened with when the entry was first written. What it does **not** cover
+is the campaign or benchmark paths, which are the ones that take hours.
 
 **Not that `./venv` is the runtime of record.** It is now *capable* of being that.
 `README.md` and `Rules.md` §1 have not been changed to declare it, so the
@@ -203,6 +238,7 @@ fix.
 - [[AgentDojo's Benign Pool Is Exhausted at 60]] — the finding this landed
 - [[The Benign FPR Has a Noise Floor Its Own Size]] — the other limit on the number
 - [[Entry XXIV — The Corpus Was Already Complete]] — where the census was found
+- [[The Model of Record Is 40% Resident]] — found by the post-install check
 - [[Published Numbers We Position Against]] — where the two released rows live
 - [[Phase 10 — Spotlighting Has No Measurable Effect]] — the null §VI-D calibrates
 - [[Entry XXVI — The Objection Closes, on the Third Candidate]] — the session before, which held Table 5 back

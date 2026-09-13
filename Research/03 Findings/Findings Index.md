@@ -127,6 +127,13 @@ first-class** — several of them are the contribution.
   the defense. **Not expanded**, and the limitation relocates to *a second external
   corpus is needed, not more of this one*
 
+- 🟡 [[The Model of Record Is 40% Resident]] — `gemma3:4b` runs **60% on CPU**,
+  worse offload than the `qwen2.5:7b` this project disqualified for exactly that.
+  Of four runs of the same cases, the three warm ones are identical and **the cold
+  one differs** in a scored severity. Verdicts unaffected and no committed number
+  restated — but every prior non-determinism result here compared warm repeats
+  only, and the corpus contract pins the instrument without ever pinning residency
+
 ## ⛔ Withdrawn
 
 - [[Phase 7 Benchmark Withdrawn]] — a headline result that measured its own
