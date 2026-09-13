@@ -163,9 +163,39 @@ def numbers():
     }
 
 
+def external():
+    """Published attack-success figures we position against — verbatim rows only.
+
+    Two gates, both deliberate. `verified` must be "verbatim", so a row that no
+    human has read out of its primary source cannot reach the site any more than
+    it can reach the manuscript. And only the attack-success family is shown:
+    PIShield's table is FPR/FNR, a different axis, and mixing the two under one
+    "Reported" column would put a detector's false-positive rate beside a
+    defence's ASR as though they were comparable.
+    """
+    with open(os.path.join(REPO, "paper", "external_numbers.json")) as fh:
+        data = json.load(fh)
+    out = []
+    for src in data["sources"]:
+        for row in src["rows"]:
+            metric = row.get("metric", "")
+            if row.get("verified") != "verbatim":
+                continue
+            if "attack success" not in metric and "ASR" not in metric:
+                continue
+            value = row.get("display") or f"{row['value_pct']}%"
+            out.append((row["system"], row.get("setting", "—"), metric, value,
+                        src["citation"].split(",")[0], src["url"]))
+    return out
+
+
 def home():
     n = numbers()
     head = _git("rev-parse", "--short", "HEAD")
+    ext = "\n".join(
+        ["| Published system | Setting | Metric | Rate |", "| :--- | :--- | :--- | ---: |"]
+        + [f"| {sys_} [{who}]({url}) | {setting} | {metric} | **{value}** |"
+           for sys_, setting, metric, value, who, url in external()])
     tiles = "\n".join(
         f'<div class="tile"><div class="big">{v[0]}</div><div class="lbl">{k}</div>'
         f'<div class="sub">{v[1]}</div><div class="src"><code>{v[2]}</code></div></div>'
@@ -197,6 +227,17 @@ honestly where it stops working.
 built {time.strftime("%Y-%m-%d %H:%M %z")}. Nothing on this page is typed by hand.*
 
 The four misses on our own corpus: `{n["misses"][0]}` — {n["misses"][1]}.
+
+## Against published results
+
+{ext}
+
+*Attack-success figures only, read from `paper/external_numbers.json`, which
+admits a row only once a human has read it in the primary source. The detector
+landscape is a different axis and lives in §XI. None of these is a like-for-like
+comparison with ours, and the manuscript says why for each — the pair worth
+reading together is AgentDojo's own **57.69% undefended → 41.65% delimited**,
+the only published prompt-level result here carrying its own baseline.*
 
 ## Where to go
 
