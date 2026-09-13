@@ -49,6 +49,7 @@ The chronological spine. **Two volumes**, and the split is deliberate.
 | XXIV | 12 Sep 2026 | [[Entry XXIV — The Corpus Was Already Complete]] |
 | XXV | 12 Sep 2026, later | [[Entry XXV — The Number That Could Not Be Checked]] |
 | XXVI | 12 Sep 2026, afternoon | [[Entry XXVI — The Objection Closes, on the Third Candidate]] |
+| XXVII | 13 Sep 2026 | [[Entry XXVII — The Prose Catches Up With the Finding]] |
 
 ## The arc, in one paragraph
 

@@ -13,6 +13,9 @@ disjoint episodes left to add. Every route to a larger *n* is a change to the
 sourcing policy, not a deeper draw, and each one buys interval width with
 provenance.
 
+✅ **Landed in the manuscript 13 Sep 2026** (`656d8b6`): §XII's benign-corpus
+bullet now says census rather than sample → [[Entry XXVII — The Prose Catches Up With the Finding]].
+
 ## What was checked
 
 The wheel for v0.1.35 was fetched fresh and the committed
