@@ -54,9 +54,10 @@
           "system": "Tool filter defense",
           "metric": "targeted attack success rate",
           "value_pct": 7.5,
-          "setting": "GPT-4o",
+          "setting": "GPT-4o — stated in the body text, not read off Table 5",
           "verified": "verbatim",
-          "quote": "Our simple tool filtering defense is particularly effective, lowering the attack success rate to 7.5%."
+          "quote": "Our simple tool filtering defense is particularly effective, lowering the attack success rate to 7.5%.",
+          "discrepancy_note": "The same paper's Table 5 gives the tool filter a targeted ASR of 6.84% (+/-2.0) for GPT-4o -- 0.66 points below the 7.5% its body text states for what appears to be the same defense, model and metric. That is larger than rounding. This row is NOT changed: the quote is verbatim and the value matches the quote, so the row is correct as a record of what the paper says in prose. Which figure the authors intend as canonical is not determinable from the text, and 6.84% has not been read by a human as a standalone claim -- the 13 Sep read confirmed the 'No defense' and 'Delimiting' rows. The manuscript now cites the prose figure and names the table figure beside it rather than silently choosing one. To resolve: a human reading both, then either re-scoping this row or adding a Table 5 row of its own."
         },
         {
           "system": "No defense, important-instructions attack",

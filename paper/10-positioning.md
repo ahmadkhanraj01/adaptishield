@@ -80,7 +80,7 @@ Repeat spread: target 29–29/30 across 3 repeats, no-target 3–4/30 across 3 r
 
 | Other published defense | Result | Source |
 | :--- | :--- | :--- |
-| Tool filter defense (GPT-4o) | targeted attack success rate **7.5%** | [Debenedetti et al.](https://arxiv.org/abs/2406.13352) |
+| Tool filter defense (GPT-4o — stated in the body text, not read off Table 5) | targeted attack success rate **7.5%** | [Debenedetti et al.](https://arxiv.org/abs/2406.13352) |
 | No defense, important-instructions attack (GPT-4o, 95% CI ±3.9) | targeted attack success rate **57.7%** | [Debenedetti et al.](https://arxiv.org/abs/2406.13352) |
 | Delimiting defense (prompt-level) (GPT-4o, 95% CI ±3.9) | targeted attack success rate **41.6%** | [Debenedetti et al.](https://arxiv.org/abs/2406.13352) |
 
