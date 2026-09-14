@@ -122,6 +122,14 @@ Opened as housekeeping; closed two of the three blockers.
 - **`installed.txt` is evidence, not a lockfile.** ⛔ Never `pip freeze > installed.txt`.
 - **External numbers live in `Published Numbers We Position Against`**, not
   `Current Numbers` — the latter is ours.
+- 🔵 **Kaggle stays in the implementation diagram** (decided 14 Sep, asked and
+  answered). It is **not** in the same category as the five unbuilt boxes removed
+  the same day: Phase 6's GRPO training executed there, the torch backend agreed
+  with pure-Python to **exactly zero**, and `evaluation/kaggle/` is committed code
+  with a dataset and a `proposed_update.json`. What was retired is the **GPU
+  premise** — P100 is sm_60 against a torch needing sm_70+, so training fell back
+  to CPU at 0.27 s for the whole workload — not the environment. The panel
+  documents a **negative result**, which this project reports rather than hides.
 - **Entry XXVII keeps its now-partial title**, dated in place rather than renamed.
 
 **Carried forward (still true):**
