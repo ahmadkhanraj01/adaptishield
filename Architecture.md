@@ -41,7 +41,7 @@ Red Team Module runs *against* this stack (dry-run) to measure ASR/FPR/WCR.
 | 2·3A | Policy Engine | `layer2/security_sublayer/policy_engine.py` | Static rules: `approve_direct` / `send_to_causal` / `block`; owns `blocked_patterns`, `high_impact_tools` |
 | 2·3B | Causal Analyzer | `layer2/security_sublayer/causal_analyzer.py` | Four-regime causal probe; emits ACE/IE/DE + takeover verdict |
 | 2·3C | Context Sanitizer | `layer2/security_sublayer/context_sanitizer.py` | Strips injected instructions; derives a safe continuation |
-| 2·3D | Adaptive Threat Model | `layer2/security_sublayer/adaptive_threat_model.py` | Reward → bounded, human-gated update proposal (v1 heuristic; GRPO pending) |
+| 2·3D | Adaptive Threat Model | `layer2/security_sublayer/adaptive_threat_model.py` | Reward → bounded, human-gated update proposal. **CPU heuristic, and it stays one** — GRPO was trained and changed nothing (§5) |
 | 3 | Tool Response Screener | `layer3/tool_response_screener.py` | LLM + keyword flag on tool output |
 | 4 | Permission Control | `layer4/permission_control.py` | In-scope tool check |
 | 4 | Network Egress Filter | `layer4/network_egress_filter.py` | Destination allowlist |
@@ -165,19 +165,36 @@ labeled episodes ──▶ compute_reward ──▶ evaluate_batch ──▶ pro
   `+0.8` benign→approved, `−1.0` missed attack, `−0.5` false positive.
 - Tunes **only** static knobs (3A patterns/tools, 3B `ie_threshold`) — never LLM weights.
 - `threshold_step` = `CausalAnalyzer.ie_resolution` (so a move can change a verdict).
-- v1 is a CPU heuristic; GRPO/torch training (Kaggle) will replace `propose_update()` internals behind the same contract.
+- **`propose_update()` is a CPU heuristic and remains one.** GRPO training was not
+  abandoned — it ran, on Kaggle, and the torch backend agreed with the pure-Python
+  implementation to **exactly zero** difference. It found no natural gap to close,
+  its one apparent gain was an artifact of a self-authored corpus, and its own
+  policy proposed a reward-*decreasing* change three times. The P100 turned out
+  not to run PyTorch at all (sm_60 against sm_70+), and the CPU fallback costs
+  0.27 s for the whole workload — so **the GPU premise is retired**, not deferred.
+- **3D honestly proposes a no-op, and the no-op is the result.** This layer is
+  reported as a negative finding in the paper rather than as unfinished work.
 
 ---
 
 ## 6. Models
 
-| Model | VRAM | Used by |
+| Model | Role | Status |
 | :--- | :--- | :--- |
-| `gemma3:4b` | ~3.5 GB | 3B Causal Analyzer (complies under masked probe → measurable signal) |
-| `qwen2.5:3b` | ~2 GB | 3C sanitizer, L3 screener, planner |
-| `gemma2:9b` | CPU | Fallback for 3B at scale |
+| `gemma3:4b` | 3B Causal Analyzer — complies under the masked probe, which is what makes the signal measurable | **model of record.** ⚠️ currently **40% GPU-resident**; read `/api/ps` before trusting a repeat |
+| `qwen2.5:3b` | 3C sanitizer, L3 screener, planner | in use — and **not** usable as 3B: it answers `no_action` on cases the incumbent detects, with no refusal string |
+| `llama3.2:3b` | second probe model, Phase 16 | the stratification replicates under it: 100.0% / 10.0% |
+| `qwen2.5:7b` | evaluated as a 3B candidate | **rejected** — 53% resident on this card, not deterministic at temperature 0 |
 
-GPU-heavy work (GRPO, 7B+) → Kaggle P100. The pipeline itself runs locally on a 4 GB card.
+Everything runs **locally on one 4 GB card**, under `./venv` (the runtime of
+record — see `Rules.md` §1). There is no GPU-offload path: Kaggle was used for
+Phase 6's GRPO training and is retired with it (§5), and it cannot host Ollama,
+so no model above ~4B has an environment here at all. That ceiling is a stated
+limitation of the work, not a temporary condition.
+
+⛔ **`gemma2:9b` was listed here as a fallback for 3B and never existed on this
+machine.** It is not installed and was never measured; the row is removed rather
+than carried as an aspiration.
 
 ---
 

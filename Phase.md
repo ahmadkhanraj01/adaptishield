@@ -97,15 +97,16 @@ attempts already cost 8 detections).
 | 6d | Joint GRPO action space + propose-and-verify | ✅ **Done (§6n)** — 5 dims / 720 actions; the one gain it found was a **corpus artifact**, and its own policy proposed a reward-*decreasing* change 3× |
 | 7 | Eight-vector benchmark (static vs full vs +3D) | ✅ **Done (2026-08-08)** — first result withdrawn, repaired, re-run over 216 cases. **ASR `static_only` 71.4% → `full` 14.3%**, 18/21 stops attributed to 3B, `static_only` produces **zero** detection stops, and Layer 4 adds **nothing incremental** |
 | 8 | Layer 5 — dashboard / console / override | ✅ **Done** — 4 components, stdlib only. Gate recomputes evidence rather than trusting the proposal; found that every proposal's `blocked_patterns` are **inert** |
-| 9 | Grow the pytest suite | 🟡 Ongoing (**502 tests**, ~8 s, no LLM / network / GPU) |
+| 9 | Grow the pytest suite | 🟡 Ongoing (**501 tests**, ~8 s, no LLM / network / GPU) |
 | 10 | **External baselines** (undefended + spotlighting/data-marking) | ✅ **Done (2026-08-08).** Undefended floor ASR 100%. Spotlighting: steered **34.8% → 33.3%**, McNemar **p = 1.00** — **no measurable effect**. The raw figure said *17 points worse* until a scorer negation defect was fixed |
 | 10b | **Refusal audit** — does refusal-shaped output inflate 3B's regime severities? | ✅ **Done (2026-08-08).** **0 of 209**, positive control passing → the regime scorer is left unchanged. The exposure is **live on the shipped keyword path** and has never fired. An instrument check, not a result |
 | 11 | **Per-component ablations** (ladder + leave-one-out) | ✅ **Done (2026-08-08).** **Only two layers do anything.** 3B: 18/0, exact **p = 0.000**. 3C: 18/0 on WCR, **p = 0.000**. L3, 3A and **both** halves of Layer 4: **0/0 with zero discordant pairs** |
 | 12 | **Second benchmark: InjecAgent** (external validity) | ✅ **Done (2026-08-09).** **Detection 96.7% → ~18%.** 93.3% where 3B's target-match path fires (10% of the corpus), **10.0%** where it cannot (90%). The stratification *is* the finding |
 | 13 | **The severity function** | 🟡 **Done as an investigation, deliberately not landed (2026-08-09).** Misnamed — a harm taxonomy, not a threshold. In-sample **90.0%**, holdout **43.3%** (4/0, p = 0.125). Two flags, both default-off |
 | **14** | **Manuscript + reproducibility artifact** | 🔲 **In progress from week 1.** 🔵 Blocked on the journal decision for format only, not for content |
-| 14a | Repeat measurements (noise floor + stratum power) | 🔲 **NEXT — week 1** |
-| **15** | **Multi-turn sessions — is the adaptive layer measurable at all?** | 🔲 **NEW. Weeks 2–3.** Pre-registered; publishable either way |
+| 14a | Repeat measurements (noise floor + stratum power) | ✅ **Done.** Benign FPR **2/60 in all 3 recordings** (range 0); InjecAgent strata re-recorded ×3, run-to-run variation ≤1 case → `results/noise_floor/`, manuscript Table VIII |
+| **15** | **Multi-turn sessions — is the adaptive layer measurable at all?** | ✅ **Done — closed structurally, twice.** Two pre-registered runs, PRIMARY **0/3 both times**, guard clean 0/2. Across both: `orig == masked` on **24/30 turns**, IE = 0 on **29/30** — the drift rule's input is zero, so **no cohort can reach it at any threshold** → `results/phase15/multiturn_r1.json`, `_r2.json` |
+| **16** | **Second probe model — does the stratification survive?** | ✅ **Done (12 Sep 2026).** `llama3.2:3b` over the same InjecAgent draw: **100.0% / 10.0%**, a **90.0-point** gap beside the incumbent's 83.3, 58/60 cases agreeing. The collapse is the mechanism's, not the model's → `results/phase16_model_transfer/` |
 
 ---
 
@@ -521,7 +522,7 @@ recording instrument rather than a full live run. The claim is only that the
 stratified collapse is not an artifact of a single run — which is what a reviewer
 would challenge.
 
-### 15 · Multi-turn sessions — 🔲 *the experiment that decides whether "adaptive" is earned*
+### 15 · Multi-turn sessions — ✅ *the experiment that decided whether "adaptive" is earned — it is not*
 
 **The question.** Every number in this project so far says the adaptive layer
 does nothing: 3D proposes a no-op, it has no rung in §11's ladder, GRPO's
@@ -694,11 +695,11 @@ unidentifiable on our corpus — there is close to nothing there to identify. Th
 subsumes the earlier "no gap the knob can close" and gives §7 of the manuscript
 its spine.
 
-### 14 · Manuscript + reproducibility artifact — 🔲 *drafting from week 1*
+### 14 · Manuscript + reproducibility artifact — 🟡 *drafted; blocked only on the author block*
 
 Structure follows the evidence, and leads with the ablation + baseline tables
 rather than the architecture diagram. The `results/` tree, the run manifests and
-the deterministic test suite (502 tests, no LLM, ~8 s) are the artifact. Layer 5's
+the deterministic test suite (501 tests, no LLM, ~8 s) are the artifact. Layer 5's
 self-contained HTML report is a strong figure: it shows the machine disagreeing
 with itself and a human adjudicating, which is the paper's thesis in one image.
 
@@ -722,7 +723,7 @@ with itself and a human adjudicating, which is the paper's thesis in one image.
 ### Carried forward (unchanged in scope)
 
 - **8 · Layer 5** ✅ done — audit dashboard, policy inspection console, manual override.
-- **9 · Tests** 🟡 ongoing — **502 deterministic**, ~8 s. The 3 validated pipeline
+- **9 · Tests** 🟡 ongoing — **501 deterministic**, ~8 s. The 3 validated pipeline
   episodes are natural regression cases.
 
 ---
