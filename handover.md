@@ -1,8 +1,8 @@
 # AdaptiShield — Session Handover
 
 **Written:** 13 September 2026, end of session
-**Last commit before this one:** `e099104` on `origin/main` — thirteen commits
-today with this one, all pushed, all deployed, all linear
+**Last commit before this one:** `b046a54` on `origin/main` — eighteen commits
+on 13–14 September, all pushed, all deployed, all linear
 *(a handover cannot name its own SHA; check `git log --oneline -1` for the tip)*
 **Read this first, then [README.md](README.md) §0 for what the research is.**
 
@@ -73,7 +73,10 @@ Opened as housekeeping; closed two of the three blockers.
 | 9 | `cf5ae66` | 🟡 **`The Model of Record Is 40% Resident`** — the finding, the vault entry, and the handover's model table corrected. |
 | 10 | `fb36b6c` | ✅ **Site audited against `results/`.** Every generated number traces correctly; one hand-written label did not carry its scope. See §7. |
 | 11 | `e099104` | The audit lands in the vault, with the trap that generalises. |
-| 12 | *this commit* | ✅ **`./venv` declared the runtime of record** in all three documents. The README's package list is flagged as a historical snapshot — it says `langchain==0.3.7`; the venv has 1.4.0. |
+| 12 | `3023af2` | ✅ **`./venv` declared the runtime of record** in all three documents. The README's package list is flagged as a historical snapshot — it says `langchain==0.3.7`; the venv has 1.4.0. |
+| 13 | `f91f0a4` | The declaration lands in the vault. |
+| 14 | `e28a75b` | ✅ **The docs stop describing done work as pending.** `Phase.md` 14a/15 closed, Phase 16 added to the board, 501 everywhere. `gemma2:9b` removed from two files — never installed. The README's "`llama3.2:3b` rejected" corrected: it is the paper's second probe model. |
+| 15 | `e140331`, `b046a54` | ✅ **Five unbuilt boxes removed from the implementation diagram** and the figure re-exported. Appendix A's caption and README's ASCII stack moved with them. |
 
 ## 4. Findings worth carrying
 
@@ -201,4 +204,5 @@ candidate), `qwen2.5:7b` (does not fit — 53% resident, non-deterministic).
 
 ---
 
-*Handover written 13 September 2026, on top of `e099104`. Nothing local.*
+*Handover written 13 September 2026, extended 14 September, on top of `b046a54`.
+Nothing local except a superseded `…drawio old.png`, deliberately untracked.*

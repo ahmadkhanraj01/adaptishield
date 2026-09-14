@@ -257,6 +257,65 @@ the commit it sits **on top of** (`e099104`) and points the reader at
 `git log --oneline -1` for the tip — which also fits the warning already at the
 top of that file about its own claims being checkable.
 
+## The documentation pass, and a figure that described work that did not exist
+
+The last stretch was bookkeeping the repo could not defend. Four documents were
+describing a different project than the one in `results/`.
+
+**`Phase.md`** still marked **14a** and **15** as not started. Both have committed
+artifacts: the repeat measurements are 2/60 in all three recordings with range 0,
+and Phase 15 ran *twice* — PRIMARY not met both times, closing structurally
+because `orig == masked` on 24/30 turns and IE = 0 on 29/30, so the drift rule's
+input is zero and no cohort reaches it at any threshold. **Phase 16 was not on the
+board at all.** Test counts corrected to 501 in six places across three files.
+
+**`Architecture.md`** described the future rather than the result: GRPO was
+"pending", and Kaggle "will replace `propose_update()` internals". Both already
+happened. The tense was the defect, not the content → see below.
+
+**Two claims removed because they were never true.** `gemma2:9b` was listed in the
+architecture *and* the README as 3B's fallback and has never been installed or
+measured. And the README called `llama3.2:3b` **rejected for poor security
+reasoning** — it is the paper's second probe model in §VII-E, where it passed the
+compliance pre-flight 11/11 and detects a case `qwen2.5:3b` misses. A README
+contradicting the manuscript about a published result is the worst of the three,
+and it is what a supervisor opening the repo would have hit first.
+
+### The five boxes
+
+The implementation diagram carried five components with dashed borders meaning
+*specified, not yet implemented*: Transport Integrity Verifier, Schema Validator,
+Name Squatting Guard, Supply Chain Scanner, Provenance Memory Store. The legend
+disclosed it and Appendix A's caption explained the convention, so this was
+**honest rather than wrong** — and it was still removed, at the user's direction,
+on the reasoning that an *implementation* diagram should show the implementation.
+
+The knock-on edits are the point. Appendix A's caption described the dashed
+convention, so it had to be rewritten or it would contradict its own figure;
+README's ASCII stack listed `Provenance Memory Store` under a `[built]` header.
+A box in a diagram is never only in the diagram.
+
+⚠️ **And for one commit the repo was knowingly inconsistent.** There is no drawio
+CLI on this machine, so the XML lost the boxes while the two committed PNG
+exports — which are what the `.docx` and the site actually render — still had
+them. That was recorded in the commit message rather than left to be discovered.
+The user re-exported by hand; the new image was verified **by reading it**, not by
+trusting its filename, and the published PNG's md5 now matches the local file
+byte-for-byte.
+
+### Why Kaggle stays
+
+Worth writing down, because it was asked and the answer is not obvious from the
+repo. Kaggle is **not** in the same category as the five boxes. The five were
+specified and never built. Kaggle was used: Phase 6's GRPO training executed
+there, the torch backend agreed with the pure-Python implementation to **exactly
+zero**, and `evaluation/kaggle/` is committed code with a dataset and a
+`proposed_update.json` to show for it. What was retired is the *GPU premise* — the
+P100 is sm_60 against a torch needing sm_70+, so the trainer fell back to CPU and
+the whole workload costs 0.27 s. The panel earned its place by being executed, and
+what it documents is a **negative result**, which this project reports rather than
+hides → [[The Adaptive Layer Proposes a No-Op]].
+
 ## What moved, and what did not
 
 | | |
@@ -266,7 +325,7 @@ top of that file about its own claims being checkable.
 | Tests | **501** passed, 7.3 s — one fewer, by deletion, not by failure |
 | Manuscript | §VI-D new; Tables VI–XII renumbered VII–XIII; 13 tables, ~10,301 words |
 | Environment | `./venv` satisfies `requirements.txt` and is now **the declared runtime of record**; figures byte-identical under the pin; pipeline verified end-to-end under `langchain-core` 1.6.3 |
-| Commits | thirteen, `e4a7132` onward — all pushed, all deployed |
+| Commits | eighteen, `e4a7132` onward — all pushed, all deployed |
 
 [[Current Numbers]] needs no edit to **our** figures, and saying so is the point:
 nothing measured here moved. What moved is what we quote from other people, and
