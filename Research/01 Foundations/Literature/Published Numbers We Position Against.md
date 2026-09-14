@@ -60,10 +60,25 @@ difference and nothing more.
   headline. It sat in `external_numbers.json` from August to 12 September →
   [[A Published p-Value With No Committed Source]] is the same failure with a
   different number.
-- 🟡 **Unreconciled**: the tool-filter row above quotes the paper's prose at 7.5%,
-  while Table 5's tool-filter cell reads 6.84% (±2.0). Both may be correct — prose
-  and table need not aggregate identically — but nobody has settled which the
-  manuscript means.
+- 🟡 **The tool filter is two numbers, and the paper gives both.** The body text
+  says *"lowering the attack success rate to 7.5%"*; Table 5's tool-filter cell
+  reads **6.84% (±2.0)**. Checked 14 Sep against the surrounding paragraph: it is
+  **not** a different model (the paper focuses on GPT-4o from that point), not
+  untargeted ASR, and not an average across models. Same defense, same model, same
+  metric, **0.66 points apart** — larger than rounding and not resolvable from the
+  text.
+
+  **Neither is chosen.** The row keeps 7.5% and stays `verbatim` — the quote is
+  real and the value matches it — and carries a `discrepancy_note` plus a setting
+  saying *stated in the body text, not read off Table 5*. §II quotes the prose
+  figure and names the table figure beside it; §XI reports the discrepancy rather
+  than resolving it.
+
+  ⛔ **6.84% was deliberately not promoted to a row.** That is a new `verbatim`
+  claim, and the 13 Sep read confirmed the *No defense* and *Delimiting* rows, not
+  this cell. To resolve: a human reads both, then the row is re-scoped or a Table 5
+  row is added → the same rule that held [[A Published p-Value With No Committed Source]]
+  back for four weeks and was right to.
 
 ## Detectors — the FPR/FNR landscape
 

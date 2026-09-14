@@ -316,6 +316,28 @@ the whole workload costs 0.27 s. The panel earned its place by being executed, a
 what it documents is a **negative result**, which this project reports rather than
 hides → [[The Adaptive Layer Proposes a No-Op]].
 
+## The tool filter does not reconcile, and that is the answer
+
+The last open number. AgentDojo's body text gives its tool filter **7.5%**; its
+own Table 5 gives the same defense **6.84% (±2.0)**. The obvious explanations were
+checked and all fail — not a different model, not untargeted ASR, not an average.
+0.66 points is not rounding.
+
+The tempting move was to pick the table, since the other two AgentDojo rows come
+from it and consistency would look tidier. That would have been a **new verbatim
+claim certified off my own fetch**, on the same paper whose number was already
+wrong by twelve points once. So: the row keeps 7.5%, stays `verbatim` because the
+quote is real and matches it, and gains a `discrepancy_note`. The manuscript
+quotes the prose figure and *names the table figure beside it* in both places it
+appears. Reporting an irreducible discrepancy is a better state than a tidy
+paragraph that hides one → [[Published Numbers We Position Against]].
+
+**A guard fired correctly on the way.** The first test run came back 1 failed:
+`test_positioning_table` caught `paper/10-positioning.md` going stale against
+`external_numbers.json` before it was regenerated. The generated table cannot
+drift from its source the way the review deck did, and this is the first time
+that has been demonstrated rather than asserted.
+
 ## What moved, and what did not
 
 | | |
@@ -325,7 +347,7 @@ hides → [[The Adaptive Layer Proposes a No-Op]].
 | Tests | **501** passed, 7.3 s — one fewer, by deletion, not by failure |
 | Manuscript | §VI-D new; Tables VI–XII renumbered VII–XIII; 13 tables, ~10,301 words |
 | Environment | `./venv` satisfies `requirements.txt` and is now **the declared runtime of record**; figures byte-identical under the pin; pipeline verified end-to-end under `langchain-core` 1.6.3 |
-| Commits | eighteen, `e4a7132` onward — all pushed, all deployed |
+| Commits | twenty-one, `e4a7132` onward — all pushed, all deployed |
 
 [[Current Numbers]] needs no edit to **our** figures, and saying so is the point:
 nothing measured here moved. What moved is what we quote from other people, and

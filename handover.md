@@ -155,7 +155,7 @@ Opened as housekeeping; closed two of the three blockers.
 | 🟡 | **Author block `CONFIRM` bracket** — ORCIDs, IEEE grades, author order, funding | the supervisor |
 | 🟡 | **Residency is unpinned.** `gemma3:4b` is 40% resident and a cold first call differs from warm ones. No manifest records residency; no recording warms the model first | a decision, then a small change to the run procedure |
 | — | ~~Declare the runtime of record~~ — ✅ **done 13 Sep.** `./venv` is the runtime of record in `Rules.md` §1, its vault twin, and `README.md` §8. System `python3` is explicitly not it | — |
-| 🟡 | **Tool-filter row unreconciled** — our `verbatim` row quotes the paper's prose at 7.5%; Table 5's cell reads 6.84% (±2.0). Both may be right | a judgement about which the manuscript means |
+| 🟡 | **Tool filter: 6.84% is named but not citable.** The discrepancy is checked and reported (14 Sep) — prose 7.5% against Table 5's 6.84% (±2.0), not a model, metric or aggregation difference. The row keeps 7.5%; 6.84% was **not** promoted to a `verbatim` row off an automated fetch | a human reading both, then re-scope the row or add a Table 5 row |
 | — | ~~Read the published site against `results/`~~ — ✅ done 13 Sep. 10 tiles, 80 percentages, 13 captions, 6 assets, 6 links all trace. One labelling defect found and fixed | — |
 | 🟡 | §XI's positioning table now renders five AgentDojo rows; check it still reads as calibration rather than a scoreboard | a prose read |
 
