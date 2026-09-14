@@ -224,6 +224,39 @@ scope lives in a label some human wrote once. [[Traps]] has it now. The tiles
 carry `run 0`, with an admonition saying why and noting that the two-model
 comparison is only valid run-0-against-run-0.
 
+## The runtime of record, declared
+
+The item the 12 September handover raised as *which interpreter is the runtime of
+record?* is closed, and closed in the direction the evidence pointed: `./venv`,
+now that it satisfies `requirements.txt` in full and the figures are proven
+byte-identical under the pin.
+
+Declared in all three places it has to be — `Rules.md` §1, its twin
+`07 Practice/Rules and Invariants.md`, and `README.md` §8 — with system `python3`
+named as **not** the runtime, since it carries the numpy §1 forbids. The phrasing
+that matters is the last clause: *if something only works outside the venv, that
+is a bug in the venv, not a licence to switch interpreter.* Reaching for whichever
+interpreter had the package is how the split happened in the first place.
+
+Both rule documents now also carry the lesson rather than only the rule: the
+version must be **written in** `requirements.txt`, not merely asserted in prose,
+and `installed.txt` is evidence of drift, never a lockfile.
+
+**Flagged, not fixed:** `README.md` §8's package list is stale — it reads
+`langchain==0.3.7` where the venv has 1.4.0. Rewriting it would be inventing a
+lockfile nobody verified, on the day this project learned what an unverified
+version claim costs. It is labelled a historical snapshot instead, with
+`requirements.txt` named authoritative.
+
+### A handover cannot name its own SHA
+
+Small, and worth recording because it wasted two amends. The handover's header
+quotes the last commit; writing the handover *is* a commit, so any SHA put there
+is a prediction, and amending to correct it changes the SHA again. It now names
+the commit it sits **on top of** (`e099104`) and points the reader at
+`git log --oneline -1` for the tip — which also fits the warning already at the
+top of that file about its own claims being checkable.
+
 ## What moved, and what did not
 
 | | |
@@ -232,8 +265,8 @@ comparison is only valid run-0-against-run-0.
 | **Published** numbers | two released to `verbatim` — 57.69% and 41.65%, both AgentDojo Table 5 → [[Published Numbers We Position Against]] |
 | Tests | **501** passed, 7.3 s — one fewer, by deletion, not by failure |
 | Manuscript | §VI-D new; Tables VI–XII renumbered VII–XIII; 13 tables, ~10,301 words |
-| Environment | `./venv` satisfies `requirements.txt`; figures byte-identical under the pin; pipeline verified end-to-end under `langchain-core` 1.6.3 |
-| Commits | eleven, `e4a7132` through `fb36b6c` — all pushed, all deployed |
+| Environment | `./venv` satisfies `requirements.txt` and is now **the declared runtime of record**; figures byte-identical under the pin; pipeline verified end-to-end under `langchain-core` 1.6.3 |
+| Commits | thirteen, `e4a7132` onward — all pushed, all deployed |
 
 [[Current Numbers]] needs no edit to **our** figures, and saying so is the point:
 nothing measured here moved. What moved is what we quote from other people, and
@@ -260,9 +293,12 @@ Their reasoning was not recorded at the time and is not reconstructed here.
 section opened with when the entry was first written. What it does **not** cover
 is the campaign or benchmark paths, which are the ones that take hours.
 
-**Not that `./venv` is the runtime of record.** It is now *capable* of being that.
-`README.md` and `Rules.md` §1 have not been changed to declare it, so the
-question the handover raised is answered in fact and open in prose.
+**`./venv` *is* now the runtime of record**, declared in all three documents —
+which closes the question this section was opened to keep honest. Scoped: the
+declaration says what should be used, and the venv was verified to satisfy
+`requirements.txt` on 13 Sep. Nothing enforces it. No test fails if someone runs
+`python3` outside the venv, and the README's package list still names versions
+that are not installed.
 
 **Not that AgentDojo's tool-filter row is settled.** It quotes the paper's prose
 at 7.5% and is marked `verbatim`; Table 5's cell says 6.84% (±2.0). Left as
