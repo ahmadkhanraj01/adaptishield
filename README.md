@@ -642,7 +642,7 @@ output needed re-recording.
 │  └──────────────────────────────────────────────────────────────┘│
 ├──────────────────────────────────────────────────────────────────┤
 │  Layer 1 — Input and Supply Chain Screening        [built]       │
-│  Input Parser · Context Builder · Provenance Memory Store        │
+│  Input Parser · Context Builder                                  │
 ├──────────────────────────────────────────────────────────────────┤
 │  Layer 0 — MCP Transport and Server Trust          [built]       │
 │  Server Trust Registry (rug-pull detection · allowlist)          │
