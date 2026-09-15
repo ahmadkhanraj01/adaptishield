@@ -16,6 +16,26 @@ manuscript, the site or the vault.
 
 ---
 
+## 0. Research phase closed — 15 September 2026
+
+The user declared the research complete. Nothing in §1 moved; every phase is
+✅ on `Phase.md`'s board. The next work is **writing**, from a new folder:
+
+- **`writeup/`** — eight bullet-point digests (abstract, introduction, related
+  work, methodology, experiments and results, discussion, conclusion), each
+  bullet carrying its number, its `results/` source, and a `[meaning …]` bracket
+  in plain words, so the paper can be written in the authors' own words without
+  losing a single sourced figure. Six figures copied in, Mermaid explainer
+  diagrams added, and two rules files (`rules/`) for general and journal papers.
+- **Fixed on the way:** the manuscript's Data and Code Availability statement
+  said 494 tests in ~12 s; it now says 501 in ~8 s. The `.docx` was **not**
+  rebuilt (it is byte-unstable and regenerates from the markdown on demand).
+- **Still open, all administrative:** venue (🔵 parked), author block (🟡
+  supervisor), the two human reads in §6, residency (🟡 procedure note).
+- Vault: `04 Research Log/Entry XXVIII — The Research Is Complete.md`.
+
+The sections below are the 13–14 September state and remain accurate.
+
 ## 1. Where the project stands
 
 | | |

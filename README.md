@@ -5,8 +5,13 @@
 **Students:** Muhammad Ahmad Khan (23JZBCS0238) · Aleena Khan (23JZBCS0229)
 **Institution:** UET Peshawar (Jalozai Campus)
 
-**Doc version:** v23 (9 August 2026) — **the severity function, diagnosed, and
-the fix held out.** §1.6: the address-free gap was **never a threshold** — the
+**Doc version:** v24 (15 September 2026) — **the research phase is closed.**
+Every measurement phase is done and the manuscript is drafted against committed
+artifacts; what remains is the write-up in the authors' own words (from
+[`writeup/`](writeup/README.md)) and administration — venue, author block, two
+human reads. §13 lists them. No number moved.
+*v23 (9 August 2026) — the severity function, diagnosed, and
+the fix held out.* §1.6: the address-free gap was **never a threshold** — the
 probe transcribes those injections correctly and the scorer's keyword list has no
 word for them. A grounded verb+resource harm class fixes part of it. §1.7 is the
 number to quote: on a **holdout** corpus imported after the lexicon was frozen,
@@ -1177,28 +1182,32 @@ tokens do not work with CLI 1.7.4.5, which is the newest on PyPI.
 
 ## 13. What to Build Next
 
-1. 🔴 **The severity function.** *Phases 7, 10, 11 and 12 are all done (§1.1–§1.5).*
-   Phase 12 promoted this from a 3-case tail to the critical path: **10.0%** detection
-   on InjecAgent's address-free stratum, which is 90% of that corpus, against 93.3%
-   where the target-match path fires. §6e showed the semantic scorer is worse
-   end-to-end and §6p showed the prompt is not the place either, so this needs a
-   **third** approach. Whatever it is, re-measure the external **FPR** with it —
-   InjecAgent gives no false-positive signal, and the obvious ways to catch
-   address-free injections are the over-blocking ways.
-2. **Phase 13 — manuscript.** 🔵 Blocked on the journal decision.
-2. **The severity function** — all 4 residual misses are `masked = 0`. §6e showed
-   the semantic scorer is worse end-to-end, so this needs a third approach rather
-   than a re-run of that one.
-4. **Multi-turn sessions** — campaigns give every case a unique `session_id`, so
-   the temporal-drift rule never fires and two of 3D's five dimensions are
-   unidentifiable. The trainer reports this itself.
-5. **Screen tool descriptions at registration** — two benchmark vectors are
-   approximated because the pipeline consumes tool *responses*, not manifests.
-6. **3C `ContextSanitizer.sanitize()`** still carries the prompt weakness 3B's
-   internal sanitizer had (§6m). It feeds the user-visible safe continuation and
-   the WCR metric, so it was left unchanged rather than altered silently.
-7. **Publish the Layer 5 dashboard** as a shareable artifact (decide visibility,
-   and render the AgentDojo attribution on the page first).
+**The research phase closed on 15 September 2026.** Every measurement phase on
+`Phase.md`'s board is ✅; the manuscript (`paper/manuscript.md`, 16 sections,
+13 tables, 6 figures) is drafted against committed `results/` artifacts; 501
+deterministic tests pass. Nothing below needs a model run.
+
+1. ✍️ **Write the paper in the authors' own words.** Start from
+   [`writeup/README.md`](writeup/README.md): one bullet-point digest per section,
+   every number carrying its `n`, interval and `results/` source, with a
+   `[meaning …]` bracket in plain words. Write the abstract last. The rules for
+   a professional paper and for a journal paper are in `writeup/rules/`.
+2. 🔵 **Venue.** Parked at the user's request; `paper/supervisor-brief.md` and
+   the 34-slide review deck are ready to send. Do not raise it unprompted.
+3. 🟡 **Author block.** ORCIDs, IEEE grades, author order and the funding
+   statement — the supervisor's call. The `CONFIRM` bracket at the top of the
+   manuscript marks the spot.
+4. 🟡 **Two human reads.** AgentDojo's Table 5, to decide whether the tool-filter
+   row should carry 6.84% or stay at the prose 7.5%; and §XI's positioning
+   table, to confirm it still reads as calibration rather than a scoreboard.
+5. 🟡 **Residency.** `gemma3:4b` is 40% GPU-resident and no manifest records it.
+   Only matters if anything is ever re-recorded: warm the model before case 0
+   and record `size_vram / size` in the manifest.
+
+**Deliberately not on this list** (decided, do not re-open): tuning the
+capability lexicon (the holdout is spent); landing either Phase 13 flag; the
+probe-hallucination fix (three prompt attempts cost 8 detections); expanding
+the benign cohort past 60 (it is a census); the 7B model on this hardware.
 
 ---
 

@@ -50,6 +50,7 @@ The chronological spine. **Two volumes**, and the split is deliberate.
 | XXV | 12 Sep 2026, later | [[Entry XXV — The Number That Could Not Be Checked]] |
 | XXVI | 12 Sep 2026, afternoon | [[Entry XXVI — The Objection Closes, on the Third Candidate]] |
 | XXVII | 13 Sep 2026 | [[Entry XXVII — The Prose Catches Up With the Finding]] |
+| XXVIII | 15 Sep 2026 | [[Entry XXVIII — The Research Is Complete]] |
 
 ## The arc, in one paragraph
 

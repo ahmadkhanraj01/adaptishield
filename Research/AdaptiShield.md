@@ -16,10 +16,14 @@ finding and decision is one note, linked to the notes it depends on. Start here.
 
 ## Where it stands right now
 
+**The research phase closed on 15 September 2026** →
+[[Entry XXVIII — The Research Is Complete]]. What remains is the write-up in the
+authors' own words (repo `writeup/`) and administration.
+
 See [[Current Numbers]] for the live figures. In one line: **detection 96.7%
-(116/120), FPR 3.3% against externally-authored benign data, 452 deterministic
-tests, ~93% built / ~70% evidenced**, and the adaptive layer honestly proposes a
-**no-op**.
+(116/120), FPR 3.3% against externally-authored benign data, 501 deterministic
+tests, ~93% built, evidence complete for the paper as drafted**, and the adaptive
+layer honestly proposes a **no-op**.
 
 **Phase 7 is done (8 Aug 2026)** — the comparative claim the thesis was framed
 around is measured: [[ASR]] `static_only` **71.4%** → `full` **14.3%**, with

@@ -478,7 +478,7 @@ The approach is not refuted, but its operating envelope is far narrower than its
 
 ## Data and Code Availability
 
-All results are regenerable by committed commands over the released artifact. Each phase directory under `results/` contains the benchmark payload and a run manifest recording commit SHA, working-tree cleanliness, model tags, corpus version, inference-server GPU state and a seeding statement. A deterministic test suite of 494 tests runs in approximately 12 seconds with no model, no network and no GPU; it pins the failure modes of each measurement instrument rather than only the behaviour of the system. External corpora are vendored with source, licence and version recorded.
+All results are regenerable by committed commands over the released artifact. Each phase directory under `results/` contains the benchmark payload and a run manifest recording commit SHA, working-tree cleanliness, model tags, corpus version, inference-server GPU state and a seeding statement. A deterministic test suite of 501 tests runs in approximately 8 seconds with no model, no network and no GPU; it pins the failure modes of each measurement instrument rather than only the behaviour of the system. External corpora are vendored with source, licence and version recorded.
 
 ## References
 

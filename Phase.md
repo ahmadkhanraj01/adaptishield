@@ -6,12 +6,28 @@ Section 13 holds the detailed task list; this file is the higher-altitude view.
 See [Architecture.md](Architecture.md), [Design.md](Design.md), [Rules.md](Rules.md)
 for structure / rationale / constraints.
 
-*Last updated: 2026-08-12 (session 6 — Phase 13 closed: the severity function is
-diagnosed, held out and deliberately not landed. Phase 15 added: the multi-turn
-cohort that decides whether the adaptive layer is measurable at all).
-Build ~93% complete; **evidence ~70%**.*
+*Last updated: 2026-09-15 — **the research phase is closed** (see the notice
+below). Previously 2026-08-12 (session 6 — Phase 13 closed; Phase 15 added).
+Build ~93% complete; **evidence complete for the paper as drafted**.*
 
 ---
+
+## ✅ Research phase closed — 15 September 2026
+
+The user declared the research complete on 15 September 2026. Every measurement
+phase on the board below is ✅, the manuscript is drafted against committed
+artifacts, and nothing on the roadmap waits on a run. What remains is **writing
+and administration**, not research:
+
+| | Item | Needs |
+| :--- | :--- | :--- |
+| ✍️ | **Write the paper in the authors' own words** from [`writeup/`](writeup/README.md) — one bullet-point file per section, every number sourced | the authors |
+| 🔵 | Venue — parked at the user's request | user + supervisor |
+| 🟡 | Author block `CONFIRM` bracket — ORCIDs, IEEE grades, order, funding | supervisor |
+| 🟡 | Two human reads: AgentDojo Table 5 for the 6.84% tool-filter cell; §XI's positioning table as prose | a human |
+| 🟡 | Model residency unpinned in manifests (`gemma3:4b` 40% resident) — a run-procedure note, not a result | a decision, if any further recording is ever done |
+
+No number moved on 15 September. The dates below are kept as history.
 
 ## ⚠ Two dates now govern this file
 
@@ -103,7 +119,7 @@ attempts already cost 8 detections).
 | 11 | **Per-component ablations** (ladder + leave-one-out) | ✅ **Done (2026-08-08).** **Only two layers do anything.** 3B: 18/0, exact **p = 0.000**. 3C: 18/0 on WCR, **p = 0.000**. L3, 3A and **both** halves of Layer 4: **0/0 with zero discordant pairs** |
 | 12 | **Second benchmark: InjecAgent** (external validity) | ✅ **Done (2026-08-09).** **Detection 96.7% → ~18%.** 93.3% where 3B's target-match path fires (10% of the corpus), **10.0%** where it cannot (90%). The stratification *is* the finding |
 | 13 | **The severity function** | 🟡 **Done as an investigation, deliberately not landed (2026-08-09).** Misnamed — a harm taxonomy, not a threshold. In-sample **90.0%**, holdout **43.3%** (4/0, p = 0.125). Two flags, both default-off |
-| **14** | **Manuscript + reproducibility artifact** | 🔲 **In progress from week 1.** 🔵 Blocked on the journal decision for format only, not for content |
+| **14** | **Manuscript + reproducibility artifact** | ✅ **Drafted (16 sections, 13 tables, 6 figures) against committed artifacts.** Research closed 15 Sep 2026; the authors' own-words write-up starts from `writeup/`. 🔵 Venue parked; 🟡 author block waits on the supervisor |
 | 14a | Repeat measurements (noise floor + stratum power) | ✅ **Done.** Benign FPR **2/60 in all 3 recordings** (range 0); InjecAgent strata re-recorded ×3, run-to-run variation ≤1 case → `results/noise_floor/`, manuscript Table VIII |
 | **15** | **Multi-turn sessions — is the adaptive layer measurable at all?** | ✅ **Done — closed structurally, twice.** Two pre-registered runs, PRIMARY **0/3 both times**, guard clean 0/2. Across both: `orig == masked` on **24/30 turns**, IE = 0 on **29/30** — the drift rule's input is zero, so **no cohort can reach it at any threshold** → `results/phase15/multiturn_r1.json`, `_r2.json` |
 | **16** | **Second probe model — does the stratification survive?** | ✅ **Done (12 Sep 2026).** `llama3.2:3b` over the same InjecAgent draw: **100.0% / 10.0%**, a **90.0-point** gap beside the incumbent's 83.3, 58/60 cases agreeing. The collapse is the mechanism's, not the model's → `results/phase16_model_transfer/` |
@@ -695,7 +711,7 @@ unidentifiable on our corpus — there is close to nothing there to identify. Th
 subsumes the earlier "no gap the knob can close" and gives §7 of the manuscript
 its spine.
 
-### 14 · Manuscript + reproducibility artifact — 🟡 *drafted; blocked only on the author block*
+### 14 · Manuscript + reproducibility artifact — ✅ *drafted; research closed 15 Sep 2026; write-up in the authors' words begins from `writeup/`*
 
 Structure follows the evidence, and leads with the ablation + baseline tables
 rather than the architecture diagram. The `results/` tree, the run manifests and

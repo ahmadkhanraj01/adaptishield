@@ -16,7 +16,7 @@ date: 2026-08-08
 | **FPR** (8 hand-written controls) | 50% — ⚠️ **a diagnostic. Never quote it as a rate** |
 | **IE-alone catches** | **14/116** — attacks the standalone rule cannot make |
 | **Corpus** | **188 episodes** — 120 malicious, 68 benign → [[Evaluation Corpus]] |
-| **Tests** | **452 deterministic**, ~9 s, no LLM / network / GPU → [[Test Suite]] |
+| **Tests** | **501 deterministic**, ~8 s, no LLM / network / GPU → [[Test Suite]] *(count corrected 15 Sep 2026; no measured number moved)* |
 | **[[ASR]]** (campaign) | 0% on address-carrying attacks; **non-zero by design** on [[Address-Free Attacks]] |
 | **Completion** | **~92%** |
 
