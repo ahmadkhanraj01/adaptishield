@@ -24,7 +24,11 @@ markdown_extensions:
   - attr_list
   - md_in_html
   - footnotes
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.details
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
@@ -34,4 +38,15 @@ nav:
   - Home: index.md
   - Architecture: architecture.md
   - Manuscript: manuscript/index.md
+  - Write-up:
+    - "How to use": writeup/README.md
+    - "Abstract": writeup/00-abstract.md
+    - "Introduction": writeup/01-introduction.md
+    - "Related work": writeup/02-related-work.md
+    - "Methodology": writeup/03-methodology.md
+    - "Experiments and results": writeup/04-experiments-results.md
+    - "Discussion": writeup/05-discussion.md
+    - "Conclusion": writeup/06-conclusion.md
+    - "Rules: research paper": writeup/rules/general-research-paper-rules.md
+    - "Rules: journal paper": writeup/rules/journal-paper-rules.md
   - Progress: progress.md
