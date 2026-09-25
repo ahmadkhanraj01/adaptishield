@@ -10,6 +10,9 @@ venv/
 # Logs
 logs/
 
+#
+FYP/node_modules/
+
 # IDE
 .vscode/
 .idea/
