@@ -20,7 +20,7 @@ async function icon(name, color, size = 256) {
   const pres = new pptxgen();
   pres.layout = "LAYOUT_16x9";
   pres.title = "AdaptiShield FYP Proposal Presentation";
-  const TOTAL = 8;
+  const TOTAL = 7;
 
   function base(n, kicker, title) {
     const s = pres.addSlide();
@@ -113,33 +113,79 @@ async function icon(name, color, size = 256) {
 
   // 4. Methodology I - architecture
   {
-    const s = base(4, "3. METHODOLOGY", "System architecture: five modules, one backend");
-    const box = async (x, y, w, h, ic, title, sub, dark) => {
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y, w, h, fill: { color: dark ? NAVY : CARD }, line: { color: dark ? NAVY : LINE }, rectRadius: 0.1 });
-      s.addImage({ data: await icon(ic, dark ? AMBER : NAVY), x: x + 0.16, y: y + 0.15, w: 0.28, h: 0.28 });
-      s.addText(title, { x: x + 0.5, y: y + 0.1, w: w - 0.6, h: 0.38, fontFace: F, fontSize: 12.5, bold: true, color: dark ? WHITE : INK, margin: 0, valign: "middle", isTextBox: true });
-      if (sub) s.addText(sub, { x: x + 0.16, y: y + 0.5, w: w - 0.28, h: h - 0.56, fontFace: F, fontSize: 10.5, color: dark ? ICE : MUTED, margin: 0, valign: "top", isTextBox: true });
+    const s = base(4, "3. METHODOLOGY", "Five modules, one backend");
+    const badge = (n, x, y, bg = NAVY, fg = AMBER) => {
+      s.addShape(pres.shapes.OVAL, { x, y, w: 0.3, h: 0.3, fill: { color: bg }, line: { color: bg } });
+      s.addText(String(n), { x, y, w: 0.3, h: 0.3, fontFace: F, fontSize: 11, bold: true, color: fg, align: "center", valign: "middle", margin: 0, isTextBox: true });
     };
-    await box(0.5, 1.55, 1.85, 1.15, "FaFlask", "Attack Lab", "Pick or write an attack; run protected vs unprotected", false);
-    arrow(s, 2.4, 2.13, 2.7, 2.13);
-    await box(2.75, 1.55, 1.85, 1.15, "FaRobot", "Demo Agent", "Email/document assistant that proposes actions", false);
-    arrow(s, 4.65, 2.13, 4.95, 2.13);
-    s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: 5.0, y: 1.45, w: 2.5, h: 2.4, fill: { color: NAVY }, line: { color: NAVY }, rectRadius: 0.1 });
-    s.addImage({ data: await icon("FaShieldAlt", AMBER), x: 5.18, y: 1.6, w: 0.28, h: 0.28 });
-    s.addText("Defense Engine", { x: 5.52, y: 1.55, w: 1.9, h: 0.38, fontFace: F, fontSize: 12.5, bold: true, color: WHITE, margin: 0, valign: "middle", isTextBox: true });
-    const layers = ["Provenance tagging", "Response screening", "Policy rules", "Causal check", "Sanitizer", "Permission & egress limits"];
-    for (let i = 0; i < layers.length; i++) {
-      const hi = layers[i] === "Causal check";
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: 5.18, y: 2.0 + i * 0.28, w: 2.14, h: 0.24, fill: { color: hi ? AMBER : NAVY2 }, line: { color: hi ? AMBER : NAVY2 }, rectRadius: 0.05 });
-      s.addText(layers[i], { x: 5.18, y: 2.0 + i * 0.28, w: 2.14, h: 0.24, fontFace: F, fontSize: 9.5, bold: hi, color: hi ? NAVY : ICE, align: "center", valign: "middle", margin: 0, isTextBox: true });
-    }
-    arrow(s, 7.55, 2.13, 7.85, 2.13);
-    await box(7.9, 1.55, 1.6, 1.15, "FaTools", "Tools", "Send, forward, delete, upload", false);
-    arrow(s, 5.75, 3.9, 4.9, 4.15);
-    arrow(s, 6.75, 3.9, 7.5, 4.15);
-    await box(2.7, 4.2, 3.0, 0.85, "FaEye", "Live Defense Monitor", "Streams each layer's decision live, over WebSockets", false);
-    await box(6.0, 4.2, 3.5, 0.85, "FaUserShield", "Admin Console & Analytics", "Approve changes; detection/false-alarm/completion rates by attack type", false);
-    s.addNotes("Every proposed action passes through the defense engine before any tool runs: provenance tagging, response screening, policy rules, the causal check, sanitisation, and permission/egress limits. The engine feeds a live dashboard and an admin console where a person approves configuration changes.");
+    const module = (n, x, y, w, h, title, sub) => {
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y, w, h, fill: { color: CARD }, line: { color: LINE }, rectRadius: 0.08 });
+      badge(n, x + 0.12, y + 0.12);
+      s.addText(title, { x: x + 0.5, y: y + 0.1, w: w - 0.58, h: 0.34, fontFace: F, fontSize: 12, bold: true, color: INK, margin: 0, valign: "middle", isTextBox: true });
+      s.addText(sub, { x: x + 0.14, y: y + 0.5, w: w - 0.26, h: h - 0.56, fontFace: F, fontSize: 9.5, color: MUTED, margin: 0, valign: "top", isTextBox: true });
+    };
+    const chip = (text, x, y, w, h, fill, color, bold = false, size = 9.5) => {
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y, w, h, fill: { color: fill }, line: { color: fill }, rectRadius: 0.05 });
+      s.addText(text, { x, y, w, h, fontFace: F, fontSize: size, bold, color, align: "center", valign: "middle", margin: 0, isTextBox: true });
+    };
+
+    // left: agent and attack lab
+    module(1, 0.4, 1.5, 1.8, 1.2, "Demo Agent", "Email/document assistant that proposes send, forward, delete, upload");
+    module(2, 0.4, 3.05, 1.8, 1.2, "Attack Lab", "Plants benchmark or custom attacks; runs protection on vs off");
+    arrow(s, 1.3, 3.03, 1.3, 2.72, AMBER);
+    arrow(s, 2.22, 2.12, 2.43, 2.12);
+
+    // centre: defense engine
+    const EX = 2.45, EW = 5.4;
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: EX, y: 1.4, w: EW, h: 2.85, fill: { color: NAVY }, line: { color: NAVY }, rectRadius: 0.08 });
+    badge(3, EX + 0.14, 1.5, AMBER, NAVY);
+    s.addText([
+      { text: "Defense Engine", options: { bold: true, color: WHITE, fontSize: 13 } },
+      { text: "   checks every tool call before it runs", options: { color: ICE, fontSize: 9.5, italic: true } },
+    ], { x: EX + 0.52, y: 1.48, w: EW - 0.6, h: 0.34, fontFace: F, margin: 0, valign: "middle", isTextBox: true });
+
+    const cw = 1.6, cg = 0.16, cx0 = EX + 0.15, cy = 1.95;
+    ["Provenance tagging\ntrusted / untrusted", "Tool-response\nscreening", "Static policy\nrules"].forEach((t, i) => {
+      chip(t, cx0 + i * (cw + cg), cy, cw, 0.46, NAVY2, ICE);
+      if (i < 2) arrow(s, cx0 + i * (cw + cg) + cw + 0.01, cy + 0.23, cx0 + (i + 1) * (cw + cg) - 0.01, cy + 0.23, AMBER);
+    });
+    s.addText("high-impact action", { x: cx0 + 2 * (cw + cg) - 0.2, y: cy + 0.47, w: 1.8, h: 0.2, fontFace: F, fontSize: 8.5, italic: true, color: AMBER, align: "center", margin: 0, isTextBox: true });
+    arrow(s, cx0 + 2 * (cw + cg) + cw / 2, cy + 0.47, cx0 + 2 * (cw + cg) + cw / 2, 2.66, AMBER);
+
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: cx0, y: 2.68, w: EW - 0.3, h: 0.78, fill: { color: AMBER }, line: { color: AMBER }, rectRadius: 0.06 });
+    s.addText("CAUSAL CHECK", { x: cx0 + 0.15, y: 2.72, w: 1.6, h: 0.7, fontFace: F, fontSize: 12, bold: true, color: NAVY, valign: "middle", margin: 0, isTextBox: true });
+    s.addText([
+      { text: "Re-runs the action choice with the suspicious span ", options: { color: NAVY } },
+      { text: "shown", options: { color: NAVY, bold: true } },
+      { text: " vs ", options: { color: NAVY } },
+      { text: "hidden / sanitised", options: { color: NAVY, bold: true } },
+      { text: ". A changed decision means the untrusted text caused it.", options: { color: NAVY } },
+    ], { x: cx0 + 1.8, y: 2.72, w: EW - 2.25, h: 0.7, fontFace: F, fontSize: 10, valign: "middle", margin: 0, isTextBox: true });
+
+    const oy = 3.62, ow = 1.12, og = 0.08;
+    chip("Block action", cx0, oy, ow, 0.46, REDL, RED, true);
+    chip("Strip injection,\ncontinue task", cx0 + (ow + og), oy, ow, 0.46, GREENL, GREEN, true, 9);
+    chip("No change:\napprove", cx0 + 2 * (ow + og), oy, ow, 0.46, NAVY2, ICE, true, 9);
+    const lx = cx0 + 3 * (ow + og) + 0.2;
+    arrow(s, lx - 0.19, oy + 0.23, lx - 0.02, oy + 0.23, AMBER);
+    chip("Permission &\negress limits", lx, oy, EX + EW - 0.15 - lx, 0.46, NAVY2, WHITE, true);
+
+    // right: tools (execution target, not a module)
+    arrow(s, EX + EW + 0.01, oy + 0.23, 8.1, oy + 0.23);
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: 8.12, y: 3.2, w: 1.48, h: 1.05, fill: { color: WHITE }, line: { color: MUTED, width: 1, dashType: "dash" }, rectRadius: 0.08 });
+    s.addImage({ data: await icon("FaTools", MUTED), x: 8.25, y: 3.3, w: 0.24, h: 0.24 });
+    s.addText("Tools run", { x: 8.55, y: 3.28, w: 1.0, h: 0.3, fontFace: F, fontSize: 11, bold: true, color: INK, margin: 0, valign: "middle", isTextBox: true });
+    s.addText("mail, files, APIs\n(not a module)", { x: 8.25, y: 3.62, w: 1.3, h: 0.55, fontFace: F, fontSize: 9, color: MUTED, margin: 0, valign: "top", isTextBox: true });
+
+    // bottom: observability and control
+    arrow(s, 3.8, 4.27, 3.8, 4.4);
+    arrow(s, 6.5, 4.27, 6.5, 4.4);
+    module(4, 2.45, 4.42, 2.9, 0.72, "Live Defense Monitor", "");
+    s.addText("each layer's verdict, streamed over WebSockets", { x: 2.95, y: 4.78, w: 2.3, h: 0.32, fontFace: F, fontSize: 9, color: MUTED, margin: 0, valign: "top", isTextBox: true });
+    module(5, 5.5, 4.42, 4.1, 0.72, "Admin Console & Analytics", "");
+    s.addText("person approves config changes; rates by attack type", { x: 6.0, y: 4.78, w: 3.5, h: 0.32, fontFace: F, fontSize: 9, color: MUTED, margin: 0, valign: "top", isTextBox: true });
+
+    s.addNotes("Five modules share one FastAPI backend: (1) the demo agent, (2) the attack lab, (3) the defense engine, (4) the live defense monitor, (5) the admin console with analytics. The tools themselves are not a module; they are what the engine protects. Inside the engine every proposed tool call is tagged trusted or untrusted, screened, and checked against static policy rules. High-impact actions go to the causal check, which re-runs the action choice with the suspicious span shown and hidden. A changed decision is evidence of injection, so the action is blocked or the injected text is stripped and the task continues. Permission and egress limits apply before any tool runs.");
   }
 
   // 5. Methodology II - causal check + data/tools
