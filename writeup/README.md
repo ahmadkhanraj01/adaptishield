@@ -34,6 +34,7 @@ that you understand each point well enough to say it yourself.
 | [`04-experiments-results.md`](04-experiments-results.md) | Every experiment, every number, in the order the paper reports them | §V to §IX |
 | [`05-discussion.md`](05-discussion.md) | What the results mean together, the negative results, positioning, limitations | §X, §XI, §XII |
 | [`06-conclusion.md`](06-conclusion.md) | The closing argument and what the next system should do | §XIII |
+| [`07-how-my-research-differs.md`](07-how-my-research-differs.md) | Plain-words comparison of every cited paper against this work, with diagrams and a summary | §II (study aid) |
 | [`rules/general-research-paper-rules.md`](rules/general-research-paper-rules.md) | How a professional research paper is written, section by section | — |
 | [`rules/journal-paper-rules.md`](rules/journal-paper-rules.md) | What a journal adds on top: reviewers, statistics, reproducibility, the submission itself | — |
 | `figures/` | The six figures, copied from `paper/figures/` and the root diagram | — |

@@ -51,6 +51,8 @@ The chronological spine. **Two volumes**, and the split is deliberate.
 | XXVI | 12 Sep 2026, afternoon | [[Entry XXVI — The Objection Closes, on the Third Candidate]] |
 | XXVII | 13 Sep 2026 | [[Entry XXVII — The Prose Catches Up With the Finding]] |
 | XXVIII | 15 Sep 2026 | [[Entry XXVIII — The Research Is Complete]] |
+| XXIX | 6 Oct 2026 | [[Entry XXIX — How the Work Differs From the References]] |
+| XXX | 6 Oct 2026 | [[Entry XXX — A Plan for Paper 2]] |
 
 ## The arc, in one paragraph
 
