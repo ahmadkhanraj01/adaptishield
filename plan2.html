@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AdaptiShield Paper 2 Plan</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: research-notebook column with a sticky phase index on wide screens; phases colour-coded by stage (signal / adapt / attack / prove) */
+:root{
+  --bg:#f6f8f9; --surface:#ffffff; --fg:#17212b; --muted:#56636f; --line:#d9e0e5;
+  --accent:#0f6e74; --accent-soft:#dff0f0;
+  --signal:#a16207; --signal-soft:#fdf3d7;
+  --adapt:#15803d; --adapt-soft:#dcf3e3;
+  --attack:#b42318; --attack-soft:#fbe3e0;
+  --prove:#1d4ed8; --prove-soft:#e0e8fb;
+  --setup:#5b6470; --setup-soft:#e9edf0;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1519; --surface:#162027; --fg:#e4eaee; --muted:#9aa8b3; --line:#2a3741;
+  --accent:#5cc3c8; --accent-soft:#163536;
+  --signal:#e8b54a; --signal-soft:#33290f;
+  --adapt:#5fd08a; --adapt-soft:#14301f;
+  --attack:#f2836f; --attack-soft:#3a1a16;
+  --prove:#8aa9ff; --prove-soft:#1a2547;
+  --setup:#a9b3bd; --setup-soft:#222c33; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1519; --surface:#162027; --fg:#e4eaee; --muted:#9aa8b3; --line:#2a3741;
+  --accent:#5cc3c8; --accent-soft:#163536;
+  --signal:#e8b54a; --signal-soft:#33290f;
+  --adapt:#5fd08a; --adapt-soft:#14301f;
+  --attack:#f2836f; --attack-soft:#3a1a16;
+  --prove:#8aa9ff; --prove-soft:#1a2547;
+  --setup:#a9b3bd; --setup-soft:#222c33; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:17px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr)} nav.index{display:none}}
+nav.index{position:sticky;top:env(safe-area-inset-top,0px);align-self:start;padding-top:40px;font-size:14px}
+nav.index ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+nav.index a{display:flex;gap:10px;align-items:center;padding:5px 8px;border-radius:6px;color:var(--muted);text-decoration:none}
+nav.index a:hover,nav.index a:focus-visible{background:var(--surface);color:var(--fg);outline:none}
+nav.index .dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--setup)}
+nav.index .lbl{font-family:var(--f-mono);font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:18px 8px 6px}
+main{min-width:0;max-width:820px}
+header.top{padding-block:40px 8px}
+.eyebrow{font-family:var(--f-mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);font-weight:700;margin-top:10px;letter-spacing:-.01em}
+h2{font-size:1.7rem;font-weight:700;margin-bottom:14px}
+h3{font-size:1.15rem;font-weight:600;font-family:var(--f-body);margin:22px 0 8px}
+p{margin:0 0 12px}
+.lede{font-size:1.15rem;color:var(--muted);max-width:62ch;margin-top:14px}
+.meta{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:18px;font-size:14px;color:var(--muted)}
+.meta b{color:var(--fg);font-weight:600}
+.pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:12px;padding:2px 9px;border-radius:999px;background:var(--setup-soft);color:var(--setup);white-space:nowrap}
+.pill.warn{background:var(--signal-soft);color:var(--signal)}
+section{padding-top:48px;scroll-margin-top:16px}
+code,.mono{font-family:var(--f-mono);font-size:.86em}
+code{background:var(--setup-soft);padding:1px 5px;border-radius:4px}
+.tbl{overflow-x:auto;margin:10px 0 18px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:15px;min-width:560px}
+th,td{text-align:left;vertical-align:top;padding:10px 14px;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:none}
+th{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--bg)}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.mark{font-family:var(--f-mono);font-size:12px;color:var(--signal)}
+.note{border-left:3px solid var(--accent);padding:10px 16px;background:var(--accent-soft);border-radius:0 8px 8px 0;margin:16px 0}
+.facts{display:grid;gap:10px;margin:14px 0;padding:0;list-style:none}
+.facts li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:baseline}
+.facts .big{font-family:var(--f-display);font-weight:700;font-size:1.35rem;min-width:4.5ch;color:var(--accent);font-variant-numeric:tabular-nums}
+.crit{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:10px}
+@media (max-width:600px){.crit{grid-template-columns:minmax(0,1fr)}}
+.crit div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.crit .id{font-family:var(--f-mono);font-size:12px;color:var(--accent);font-weight:600}
+.crit h4{margin:2px 0 6px;font-size:1.02rem}
+.crit p{font-size:14.5px;color:var(--muted);margin:0}
+.diagram{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;margin:14px 0}
+pre.mermaid{margin:0;background:none;text-align:center}
+
+/* timeline, to scale in weeks */
+.tl{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;margin:14px 0;overflow-x:auto}
+.tl-grid{display:grid;grid-template-columns:150px repeat(16,minmax(26px,1fr));row-gap:6px;min-width:620px;font-size:13px}
+.tl-grid .wk{font-family:var(--f-mono);font-size:10.5px;color:var(--muted);text-align:center;border-left:1px dashed var(--line)}
+.tl-grid .name{padding-right:10px;align-self:center;white-space:nowrap}
+.tl-grid .bar{height:22px;border-radius:5px;align-self:center;font-family:var(--f-mono);font-size:10.5px;display:flex;align-items:center;padding:0 7px;white-space:nowrap;overflow:hidden}
+.k-setup{--c:var(--setup);--s:var(--setup-soft)}
+.k-signal{--c:var(--signal);--s:var(--signal-soft)}
+.k-adapt{--c:var(--adapt);--s:var(--adapt-soft)}
+.k-attack{--c:var(--attack);--s:var(--attack-soft)}
+.k-prove{--c:var(--prove);--s:var(--prove-soft)}
+.bar{background:var(--s);color:var(--c);border:1px solid var(--c)}
+nav.index a .dot{background:var(--c,var(--setup))}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:13px;color:var(--muted);margin-top:12px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:3px;background:var(--s);border:1px solid var(--c)}
+
+/* phase cards */
+.phase{border:1px solid var(--line);border-top:4px solid var(--c);border-radius:10px;background:var(--surface);padding:22px 24px;margin-top:18px}
+@media (max-width:600px){.phase{padding:18px 16px}}
+.phase-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
+.phase-head .num{font-family:var(--f-mono);font-size:12.5px;font-weight:600;color:var(--c);letter-spacing:.05em;text-transform:uppercase}
+.phase-head h2{font-size:1.45rem;margin:0}
+.phase-head .dur{margin-left:auto;font-family:var(--f-mono);font-size:12.5px;color:var(--muted)}
+.phase .why{color:var(--muted);margin-top:10px}
+.phase ol,.phase ul{padding-left:1.3em;margin:6px 0 12px}
+.phase li{margin-bottom:6px}
+.out{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:14px}
+.out div{border-radius:8px;padding:10px 14px;background:var(--bg);font-size:14.5px}
+.out b{display:block;font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px}
+.out .exit b{color:var(--adapt)} .out .kill b{color:var(--attack)} .out .fb b{color:var(--accent)} .out .metric b{color:var(--prove)}
+.gate{border:2px dashed var(--signal);background:var(--signal-soft);border-radius:10px;padding:18px 22px;margin-top:18px}
+.gate h2{font-size:1.25rem;color:var(--signal);margin-bottom:6px}
+.core{display:inline-block;font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;background:var(--adapt);color:var(--surface);padding:2px 8px;border-radius:4px}
+.claim{font-family:var(--f-display);font-size:1.3rem;line-height:1.35;border-left:4px solid var(--accent);padding:6px 0 6px 18px;margin:16px 0}
+footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);font-size:13.5px;color:var(--muted)}
+a{color:var(--accent)}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<nav class="index" aria-label="Plan sections">
+  <div class="lbl">Plan</div>
+  <ol>
+    <li><a href="#corrections"><span class="dot"></span>Corrections</a></li>
+    <li><a href="#problem"><span class="dot"></span>Problem</a></li>
+    <li><a href="#adaptive"><span class="dot"></span>What "adaptive" means</a></li>
+    <li><a href="#kaggle"><span class="dot"></span>Kaggle platform</a></li>
+    <li><a href="#overview"><span class="dot"></span>Phase overview</a></li>
+  </ol>
+  <div class="lbl">Phases</div>
+  <ol>
+    <li><a href="#p0" class="k-setup"><span class="dot"></span>0 · Kaggle and freeze</a></li>
+    <li><a href="#p1" class="k-signal"><span class="dot"></span>1 · Task-scope scorer</a></li>
+    <li><a href="#p2" class="k-signal"><span class="dot"></span>2 · Continuous score</a></li>
+    <li><a href="#p4a" class="k-adapt"><span class="dot"></span>4A · Adaptation harness</a></li>
+    <li><a href="#g1" class="k-signal"><span class="dot"></span>G1 · Signal gate</a></li>
+    <li><a href="#p3" class="k-adapt"><span class="dot"></span>3 · Offline baseline</a></li>
+    <li><a href="#p4" class="k-adapt"><span class="dot"></span>4 · Online adaptation</a></li>
+    <li><a href="#p5" class="k-attack"><span class="dot"></span>5 · Feedback poisoning</a></li>
+    <li><a href="#p6" class="k-prove"><span class="dot"></span>6 · Holdout and ablation</a></li>
+    <li><a href="#p7" class="k-setup"><span class="dot"></span>7 · Write-up</a></li>
+  </ol>
+  <div class="lbl">Reference</div>
+  <ol>
+    <li><a href="#hypotheses"><span class="dot"></span>Hypotheses</a></li>
+    <li><a href="#timeline"><span class="dot"></span>Timeline</a></li>
+    <li><a href="#risks"><span class="dot"></span>Risks</a></li>
+    <li><a href="#excluded"><span class="dot"></span>Not in this plan</a></li>
+    <li><a href="#summary"><span class="dot"></span>Summary</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="top">
+  <div class="eyebrow">AdaptiShield · Paper 2 proposal</div>
+  <h1>Making AdaptiShield actually adaptive</h1>
+  <p class="lede">Paper 1 found that the adaptive layer had nothing to learn from. This plan fixes the signal first, then lets the defense learn while it runs, attacks that learning, and tests everything on data we did not write.</p>
+  <div class="meta">
+    <span><b>Written</b> 6 Oct 2026</span>
+    <span><b>Revised</b> 15 Oct 2026</span>
+    <span class="pill warn">Proposal only · not started · not approved</span>
+  </div>
+  <div class="note" style="border-left-color:var(--adapt);background:var(--adapt-soft)"><b>Priority 1:</b> the Kaggle pipeline and the adaptation harness on it (Phase 0 and track 4A). Every recorded run in paper 2 happens on Kaggle.</div>
+  <div class="note"><b>Rule:</b> this is paper 2. Paper 1 is submitted first, and nothing here may delay it. Every existing number is traced to <code>results/</code> or <code>paper/</code>. <span class="mark">(to measure)</span> marks a goal, not a result. <span class="mark">(to verify)</span> marks a claim not yet checked.</div>
+</header>
+
+<section id="corrections">
+  <h2>Corrections from the 15 October review</h2>
+  <p>The first draft was checked against the results files. Eight things changed.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>#</th><th>Earlier plan said</th><th>Data says</th><th>Change made</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>Continuous scores need a 7–14B model on Kaggle</td><td>The log-probability scouting run used <b>gemma3:4b</b>, locally (<code>results/phase15/logprob_probe.json</code>)</td><td>Phase 2 starts on gemma3:4b; all recorded runs move to Kaggle</td></tr>
+      <tr><td class="num">2</td><td>"96.7% with a target vs 10.0% without"</td><td>96.7% is our own corpus. The InjecAgent contrast is <b>93.3% vs 10.0%</b></td><td>Use 93.3% vs 10.0% everywhere</td></tr>
+      <tr><td class="num">3</td><td>Success = address-free detection above 10.0%</td><td>AgentDojo's address-free baseline was already <b>30.0%</b></td><td>Baselines are set per corpus</td></tr>
+      <tr><td class="num">4</td><td>New attack data needed</td><td>InjecAgent has <b>459</b> address-free cases; paper 1 drew 30</td><td>The ~429 unused cases become dev set and frozen holdout</td></tr>
+      <tr><td class="num">5</td><td>Offline grid search counts as "adaptive"</td><td>Reviewers will call that tuning</td><td>Core claim moves to an online learner on a shifting stream</td></tr>
+      <tr><td class="num">6</td><td>No adaptive attacker</td><td>Any learning defense invites feedback poisoning</td><td>New Phase 5</td></tr>
+      <tr><td class="num">7</td><td>Labels assumed</td><td>Deployment has no ground truth</td><td>Phase 4 defines weak labels</td></tr>
+      <tr><td class="num">8</td><td>"If it fails, the negative is the contribution"</td><td>Supervisor's paper 1 comments reject negative framing</td><td>Each phase has a positive fallback</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="problem">
+  <h2>The problem</h2>
+  <p>In paper 1 the adaptive layer did nothing. The learner was not weak. It had nothing to learn from.</p>
+  <ul class="facts">
+    <li><span class="big">0</span><span>Detector score on address-free attacks, below both detection rules (standalone needs 2, indirect-effect needs at least 1). 23 of 26 recorded address-free cases score (0, 0) while the probe's transcription of the attack is correct.</span></li>
+    <li><span class="big">0</span><span>Extra attacks caught when the reward is replayed across the whole threshold grid (Phase 6).</span></li>
+    <li><span class="big">24/30</span><span>Multi-turn turns where the masked and unmasked probes agree, so the drift rule has nothing to add up (Phase 15).</span></li>
+  </ul>
+  <p>A learner cannot tune a dial connected to nothing. To be adaptive, the system needs a signal that varies with the attack, parameters that change the decision, and feedback that exists outside a benchmark.</p>
+  <div class="note"><b>Goal:</b> a defense that improves from feedback while it runs, on attacks it was not tuned on, that survives an attacker trying to steer its learning, and that does not raise false positives.</div>
+</section>
+
+<section id="adaptive">
+  <h2>What "adaptive" means here</h2>
+  <p>All four must hold. Pass conditions are pre-registered in Phase 0.</p>
+  <div class="crit">
+    <div><span class="id">A1 · Phase 4</span><h4>Changes from feedback</h4><p>Parameters move during the stream, and every move is logged with its evidence.</p></div>
+    <div><span class="id">A2 · Phase 4</span><h4>The change helps</h4><p>Detection after the shift beats the frozen static system; lower 95% bound of the paired gain above 0.</p></div>
+    <div><span class="id">A3 · Phases 4, 5</span><h4>The change is safe</h4><p>FPR within the non-inferiority margin, and poisoning attempts are refused.</p></div>
+    <div><span class="id">A4 · Phase 6</span><h4>It generalizes</h4><p>The gain holds on the frozen holdout and on a corpus not used in Phases 1–5.</p></div>
+  </div>
+</section>
+
+<section id="kaggle">
+  <h2>Compute platform: Kaggle</h2>
+  <p>Decided 15 October 2026. Every recorded run in paper 2 happens on Kaggle: probe runs, adaptation, poisoning and the holdout. The laptop (GTX 1650 Ti, 4 GB) is for debugging only.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Work</th><th>Where</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Debugging prompts and code on 10–20 cases</td><td>Laptop</td><td>Fast edit-run loop, no quota used</td></tr>
+      <tr><td>Probe runs over the corpora (Phases 1, 2, 5, 6)</td><td><b>Kaggle GPU</b></td><td>Several times faster than the 1650 Ti; 7–8B models fit in 16 GB</td></tr>
+      <tr><td>Paper 1 static baseline, rerun</td><td><b>Kaggle GPU</b></td><td>Baseline and new system must share hardware</td></tr>
+      <tr><td>Adaptation harness, learners, stream simulation (Phases 3, 4)</td><td><b>Kaggle</b> (CPU session; GPU only when new probe calls are needed)</td><td>One platform for every reported number; versioned notebooks as the run record</td></tr>
+      <tr><td>Statistics and figures</td><td>Kaggle output, copied into <code>results/</code></td><td>Numbers trace to a notebook version and a commit</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Rules</h3>
+  <ol>
+    <li><b>Never mix platforms in one comparison.</b> Every paper 2 number comes from Kaggle. Local runs are never reported.</li>
+    <li><b>Pin the environment:</b> model tag and quantization, Ollama or llama.cpp version, temperature and commit hash in each run's manifest.</li>
+    <li><b>Checkpoint</b> every N cases, so a session that hits the time limit resumes instead of restarting.</li>
+    <li><b>Freeze applies to Kaggle too:</b> frozen splits go up as a versioned Kaggle dataset, recorded beside the git commit.</li>
+    <li><b>Budget the weekly GPU quota</b> (about 30 h/week, <span class="mark">(to verify)</span>): debug locally first.</li>
+  </ol>
+  <div class="diagram"><pre class="mermaid">
+flowchart LR
+    L["Laptop<br/>debug on 10-20 cases"] -->|"git push"| GH["GitHub<br/>code at a commit"]
+    GH --> K["Kaggle notebook<br/>pinned model and seed"]
+    DS["Kaggle dataset<br/>frozen splits"] --> K
+    K --> PR["Probe runs<br/>saved scores"]
+    PR --> AD["Adaptation harness<br/>learner and stream"]
+    AD --> OUT["Run outputs<br/>with manifest"]
+    OUT -->|"copy back"| RS["results/ in the repo"]
+  </pre></div>
+  <p>Pipeline: the existing Path A route in <code>evaluation/kaggle/</code>. Only the API token fetch is manual.</p>
+</section>
+
+<section id="overview">
+  <h2>Phase overview</h2>
+  <p>Phases 1 and 2 and track 4A run in parallel. Phase 4 is the core claim, and its harness (4A) is built first so the learner is ready the moment G1 passes.</p>
+  <div class="diagram"><pre class="mermaid">
+flowchart TB
+    P0["Phase 0<br/>Freeze and pre-register"] --> P1["Phase 1<br/>Task-scope scorer"]
+    P0 --> P2["Phase 2<br/>Continuous score"]
+    P0 --> AH["Track 4A<br/>Adaptation harness on Kaggle"]
+    AH --> P3
+    P1 --> G1{"Gate G1<br/>is there signal?"}
+    P2 --> G1
+    G1 -->|"no"| W1["Write up Phases 1-2<br/>as a detection paper"]
+    G1 -->|"yes"| P3["Phase 3<br/>Offline baseline"]
+    P3 --> P4["Phase 4<br/>Online adaptation"]
+    P4 --> P5["Phase 5<br/>Feedback poisoning"]
+    P5 --> P6["Phase 6<br/>Holdout and ablation"]
+    P6 --> P7["Phase 7<br/>Write-up"]
+  </pre></div>
+</section>
+
+<!-- PHASE 0 -->
+<section id="p0">
+<article class="phase k-setup">
+  <div class="phase-head"><span class="num">Phase 0</span><h2>Kaggle setup, freeze, pre-register</h2><span class="core">Priority 1</span><span class="dur">≈ 1–2 weeks</span></div>
+  <p class="why">Set up Kaggle and fix everything that could later be tuned to the answer.</p>
+  <ol start="0">
+    <li><b>Kaggle setup.</b> Get the API token (the one manual step), extend <code>evaluation/kaggle/</code> to run the probe with checkpointing, and time 20 probe calls on Kaggle and on the laptop. Rerun the paper 1 static baseline on Kaggle so every comparison shares hardware.</li>
+    <li><b>Split InjecAgent.</b> Take the 459 address-free and 51 target-bearing direct-harm cases, exclude the 60 paper 1 already used, and split the rest by fixed seed into dev (≈30%) and frozen holdout (≈70%), stratified by tool family. Commit the index lists before reading any case, then upload them as a versioned Kaggle dataset.</li>
+    <li><b>Choose a second benign corpus.</b> AgentDojo's 60 documents are a census and already used. Target at least 300 documents so a small FPR margin is measurable. <span class="mark">(to choose)</span></li>
+    <li><b>Power calculation.</b> Fix n and the decision rule for each test. With n = 30 a Wilson interval is about ±20 points; with n ≈ 100 about ±10. <span class="mark">(compute exactly)</span></li>
+    <li><b>Pre-registration</b> in <code>evaluation/preregistration/paper2_*.md</code>: hypotheses H1–H6, metrics, n, decision rules, FPR margin, kill tests.</li>
+    <li><b>Literature check.</b> Position against masked re-execution (MELON) and task-alignment checking (Task Shield). <span class="mark">(to verify)</span></li>
+  </ol>
+  <div class="out">
+    <div class="exit"><b>Exit</b>Working Kaggle pipeline with timing numbers and the paper 1 baseline rerun there. Splits, pre-registration, benign corpus and positioning notes committed before any Phase 1–2 result exists.</div>
+  </div>
+</article>
+</section>
+
+<!-- PHASE 1 -->
+<section id="p1">
+<article class="phase k-signal">
+  <div class="phase-head"><span class="num">Phase 1</span><h2>Task-scope scorer</h2><span class="dur">≈ 2–3 weeks · parallel with 2</span></div>
+  <p class="why">The probe already describes address-free attacks correctly: "grant permanent access to guest_amy01", "transfer $3,000 to account number 123-1234-1234", "unlock the front door". The scorer only knows data-movement verbs, so it returns 0. The new question is whether the action goes beyond what the user asked for.</p>
+  <div class="diagram"><pre class="mermaid">
+flowchart LR
+    U["User task:<br/>summarise product reviews"] --> C{"Is the probe action<br/>inside that task?"}
+    P["Probe: agent would<br/>unlock the front door"] --> C
+    C -->|"No"| F["Flag as out of scope"]
+    C -->|"Yes"| OK["Allow"]
+  </pre></div>
+  <ol>
+    <li>Define the check: user task + tool list + proposed action in, scope score out. Graded 0–2 for the existing detector, plus a continuous version for Phase 4.</li>
+    <li>Implement on gemma3:4b (debug on the laptop, record on Kaggle), comparing the action with the action under the masked input, so it stays a causal check and not a plain classifier.</li>
+    <li>Measure FPR first, on AgentDojo's 60 benign documents and the new benign corpus, before any attack data.</li>
+    <li>Run on the dev split only, then freeze the scorer at a commit hash.</li>
+  </ol>
+  <div class="out">
+    <div class="metric"><b>Metric</b>Address-free detection per corpus (InjecAgent baseline 10.0% [3.5, 25.6]; AgentDojo 30.0%) and FPR, with Wilson CIs.</div>
+    <div class="exit"><b>Exit</b>Dev lower bound above the per-corpus baseline, FPR within margin.</div>
+    <div class="kill"><b>Kill</b>Dev FPR breaks the margin. The in-sample → holdout collapse test (like 90.0% → 43.3%) runs in Phase 6.</div>
+    <div class="fb"><b>Fallback</b>A partial lift on the ≈90% address-free share of InjecAgent is a detection result on its own.</div>
+  </div>
+</article>
+</section>
+
+<!-- PHASE 2 -->
+<section id="p2">
+<article class="phase k-signal">
+  <div class="phase-head"><span class="num">Phase 2</span><h2>Continuous causal score</h2><span class="dur">≈ 2 weeks · parallel with 1</span></div>
+  <p class="why">Recorded on Kaggle; gemma3:4b is enough to start. Integer severities round small changes to 0. The scouting run (gemma3:4b, 15 turns) found IE exactly 0 on all 6 benign turns and non-zero on 3 of 9 attacks: too small to conclude, large enough to test properly.</p>
+  <ol>
+    <li>Turn the forced-choice log-probability margin (masked vs unmasked) into a score in [0, 1].</li>
+    <li>Calibrate on dev data with temperature or isotonic scaling. The scouting margins saturate (12.5 vs 22.6 nats on one turn), so raw margins are not probabilities.</li>
+    <li>Measure separation on dev: ROC AUC and detection at a fixed FPR.</li>
+    <li>Re-run the Phase 15 multi-turn sessions to see whether the drift rule can now fire.</li>
+    <li>Size check: repeat on a 7–8B model on the same Kaggle setup. A 14B model needs 4-bit quantization on a 16 GB P100, and larger, safer models may refuse to state the action. If so, record it as a finding.</li>
+  </ol>
+  <div class="out">
+    <div class="exit"><b>Exit</b>A calibrated score with dev AUC clearly above the integer score's. <span class="mark">(to measure)</span></div>
+    <div class="fb"><b>Fallback</b>A calibrated continuous causal score is reusable even without adaptation.</div>
+  </div>
+</article>
+</section>
+
+<!-- TRACK 4A -->
+<section id="p4a">
+<article class="phase k-adapt">
+  <div class="phase-head"><span class="num">Track 4A</span><h2>Adaptation harness on Kaggle</h2><span class="core">Priority 1</span><span class="dur">≈ 2 weeks · parallel with 1 and 2</span></div>
+  <p class="why">The learner cannot learn before gate G1, but its machinery can be built and tested now, so Phases 3 and 4 start the day G1 passes.</p>
+  <ol>
+    <li>Build the harness as a Kaggle notebook plus repo module: load saved probe scores, replay an episode stream, apply a parameter set, record decisions, compute metrics.</li>
+    <li>Implement the weak-label simulator with a noise-rate setting.</li>
+    <li>Implement the learners behind one interface: grid / coordinate search, Bayesian optimization, contextual bandit.</li>
+    <li>Implement the safety path: verify on a replay window, gate check that recomputes from raw logs, versioned parameter sets, one-step rollback, drift monitor.</li>
+    <li><b>Dry run on paper 1's recorded probe outputs</b> (<code>results/probe_corpus/</code>). The learner should propose no useful change, because the paper 1 signal is flat. Reproducing that no-op is the correctness test.</li>
+  </ol>
+  <div class="out">
+    <div class="exit"><b>Exit</b>Reproduces paper 1's no-op on old data and runs end to end on Kaggle in one session.</div>
+  </div>
+</article>
+</section>
+
+<!-- GATE -->
+<section id="g1">
+<div class="gate">
+  <h2>Gate G1 · Is there signal?</h2>
+  <p>Proceed to Phase 3 only if at least one Phase 1 or Phase 2 signal separates attack from benign on dev where the old scorer gave 0. If neither does, skip Phases 3–5 and write Phases 1–2 up as a detection paper.</p>
+  <p style="margin:0">This is the step paper 1 lacked: never train a learner on a flat signal.</p>
+</div>
+</section>
+
+<!-- PHASE 3 -->
+<section id="p3">
+<article class="phase k-adapt">
+  <div class="phase-head"><span class="num">Phase 3</span><h2>Offline calibration baseline</h2><span class="dur">≈ 1–2 weeks · Kaggle</span></div>
+  <p class="why">Before claiming adaptation, show what plain offline tuning achieves. Phase 4 must beat this, not just the static system.</p>
+  <h3>Parameter space (everything else frozen)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Parameter</th><th>Type</th><th>Evidence it matters</th></tr></thead>
+    <tbody>
+      <tr><td>Thresholds on the new continuous scores</td><td>real</td><td>Only meaningful after G1</td></tr>
+      <tr><td>Task-scope strictness per tool family</td><td>real, per family</td><td>Tools have different normal behavior</td></tr>
+      <tr><td>Target classes: bare hosts, phone numbers, usernames, account IDs, file paths</td><td>on/off per class</td><td>The schemeless fix traded +2 caught for +3 false alarms</td></tr>
+      <tr><td>Drift window and trigger level</td><td>int, real</td><td>Only if Phase 2 revives the drift rule</td></tr>
+      <tr><td>Sanitizer (3C) settings</td><td>choice set</td><td>3C moves workflow continuation (18 helped / 0 hurt)</td></tr>
+    </tbody>
+  </table></div>
+  <ol>
+    <li>Constrained grid / coordinate search on dev: maximize detection subject to FPR ≤ margin. A constraint, not a weighted reward, because paper 1 showed a reward can pick a rule that scores lower on its own metric (+0.8683 vs +0.8688).</li>
+    <li>Bayesian optimization with the same constraint, as a second baseline.</li>
+    <li>Record the oracle-tuned static setting (best fixed parameters in hindsight) for Phase 4.</li>
+  </ol>
+  <div class="out"><div class="exit"><b>Output</b>Two tuned baselines and an oracle bound, all frozen.</div></div>
+</article>
+</section>
+
+<!-- PHASE 4 -->
+<section id="p4">
+<article class="phase k-adapt">
+  <div class="phase-head"><span class="num">Phase 4</span><h2>Online adaptation</h2><span class="core">Core claim</span><span class="dur">≈ 3–4 weeks · Kaggle</span></div>
+  <p class="why">Runs in the track 4A harness on saved probe scores. A Kaggle GPU is needed only when a parameter changes the text the model sees (sanitizer settings); keep those to two or three. Adaptation means improving while running as the attack mix changes. This phase makes paper 2 about adaptation rather than tuning.</p>
+  <div class="diagram"><pre class="mermaid">
+flowchart LR
+    S["Episode stream"] --> D["Detector with<br/>current parameters"]
+    D --> O["Decision and outcome"]
+    O --> WL["Weak label"]
+    WL --> B["Bandit proposes<br/>a change"]
+    B --> V{"Verify on<br/>replay window"}
+    V -->|"worse"| R["Refuse and log"]
+    V -->|"better"| H["Layer 5 gate<br/>recomputes evidence"]
+    H -->|"approved"| NP[("New parameters")]
+    H -->|"rejected"| R
+    NP --> D
+  </pre></div>
+  <ol>
+    <li><b>Build the stream.</b> Order dev episodes with a mid-stream shift: target-bearing attacks first, then mostly address-free, then a new tool family, with benign episodes mixed in at a realistic rate.</li>
+    <li><b>Weak labels</b>, which a deployed system actually has:
+      <ul>
+        <li>egress block (Layer 4) on an action the detector allowed → likely missed attack</li>
+        <li>user rejects or undoes an action → likely missed attack</li>
+        <li>user overrides a block → likely false alarm</li>
+        <li>masked and unmasked probes disagree strongly → likely attack</li>
+      </ul>
+      Simulated from ground truth with a stated noise rate, reported at several noise levels.</li>
+    <li><b>Learner:</b> a contextual bandit per tool family over the Phase 3 parameters, with an FPR constraint.</li>
+    <li><b>Safety path:</b> propose → verify on a replay window (CI-aware) → Layer 5 gate recomputes from raw logs and checks outside benign data → version in git → one-step rollback. Paper 1's learned gain produced 36 false positives of 68 on external data while every internal check passed.</li>
+    <li><b>Drift monitor:</b> if rolling FPR or detection leaves its band, freeze learning and alert.</li>
+  </ol>
+  <div class="out">
+    <div class="metric"><b>Metrics</b>Cumulative detection and FPR; detection after the shift; episodes to recover; regret vs oracle; refused updates.</div>
+    <div class="metric"><b>Compared against</b>Static AdaptiShield, Phase 3 offline tuning, oracle-tuned static, random search.</div>
+    <div class="exit"><b>Exit · A1, A2</b>Online beats static and offline-tuned after the shift; paired gain lower bound above 0.</div>
+    <div class="fb"><b>Fallback</b>If online only matches offline, the verified-update pipeline plus the new signals are still the contribution.</div>
+  </div>
+</article>
+</section>
+
+<!-- PHASE 5 -->
+<section id="p5">
+<article class="phase k-attack">
+  <div class="phase-head"><span class="num">Phase 5</span><h2>Feedback poisoning</h2><span class="dur">≈ 2 weeks · Kaggle</span></div>
+  <p class="why">Any defense that learns from feedback can be steered by whoever controls part of that feedback. A security reviewer asks this first.</p>
+  <p><b>Threat model:</b> the attacker can place documents in the stream and cause some weak labels (for example benign-looking episodes that trigger user overrides). The attacker cannot change the gate or the code.</p>
+  <ol>
+    <li><b>Loosening attack:</b> benign-looking episodes that push task-scope strictness or thresholds down, followed by address-free attacks.</li>
+    <li><b>Tightening attack:</b> induce false-alarm labels until the system blocks legitimate work.</li>
+    <li>Count the poisoned episodes needed to move a parameter, with and without the verify step and the gate.</li>
+  </ol>
+  <div class="out">
+    <div class="metric"><b>Metrics</b>Attack success after poisoning; episodes needed; share of poisoned updates refused by verify vs by the gate.</div>
+    <div class="exit"><b>Exit · A3</b>With the gate on, poisoning cannot raise attack success above the static system's. <span class="mark">(target)</span></div>
+    <div class="fb"><b>Why it helps</b>It turns paper 1's human gate from a precaution into a measured defense against learning attacks.</div>
+  </div>
+</article>
+</section>
+
+<!-- PHASE 6 -->
+<section id="p6">
+<article class="phase k-prove">
+  <div class="phase-head"><span class="num">Phase 6</span><h2>Frozen holdout, outside data, ablation</h2><span class="dur">≈ 2 weeks · Kaggle</span></div>
+  <ol>
+    <li>Run the frozen system once on the InjecAgent frozen holdout, per stratum, never pooled.</li>
+    <li>Run on the second benign corpus with the pre-registered non-inferiority test.</li>
+    <li>Cross-corpus shift: adapt on InjecAgent, test on AgentDojo attacks, and the reverse.</li>
+    <li>Multi-turn: a corpus where sessions escalate gradually, to test the revived drift rule. <span class="mark">(to build or source)</span></li>
+    <li>Ablation: remove in turn the scope scorer, the continuous score, the online learner, the verify step and the gate.</li>
+  </ol>
+  <div class="out">
+    <div class="exit"><b>Exit · A4</b>The gain holds on the holdout and across corpora.</div>
+    <div class="kill"><b>Kill test</b>The Phase 1 in-sample → holdout collapse check is evaluated here and reported whatever it shows.</div>
+  </div>
+</article>
+</section>
+
+<!-- PHASE 7 -->
+<section id="p7">
+<article class="phase k-setup">
+  <div class="phase-head"><span class="num">Phase 7</span><h2>Write-up</h2><span class="dur">≈ 2 weeks</span></div>
+  <ul>
+    <li>Written in own words from the start, following the supervisor's comment on paper 1.</li>
+    <li>Contribution first, scope condition second. Weaknesses go in Limitations.</li>
+    <li>Every number with n, CI and a named baseline (journal rule).</li>
+    <li>Update the root README handover, <code>paper/</code> docs and the Research vault.</li>
+  </ul>
+</article>
+</section>
+
+<section id="hypotheses">
+  <h2>Hypotheses</h2>
+  <p>To be pre-registered in Phase 0.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>ID</th><th>Hypothesis</th><th>Phase</th><th>Test</th></tr></thead>
+    <tbody>
+      <tr><td class="num">H1</td><td>The task-scope scorer raises address-free detection above the per-corpus baseline</td><td class="num">1, 6</td><td>Wilson lower bound vs baseline on the holdout</td></tr>
+      <tr><td class="num">H2</td><td>The continuous score separates attack from benign better than integer severity</td><td class="num">2</td><td>AUC difference, bootstrap CI</td></tr>
+      <tr><td class="num">H3</td><td>Online adaptation beats static and offline tuning after a shift</td><td class="num">4</td><td>Paired gain, lower bound above 0</td></tr>
+      <tr><td class="num">H4</td><td>Adaptation keeps FPR within the margin</td><td class="num">4, 6</td><td>Non-inferiority test</td></tr>
+      <tr><td class="num">H5</td><td>With the gate, poisoning cannot raise attack success above static</td><td class="num">5</td><td>Attack success with vs without gate</td></tr>
+      <tr><td class="num">H6</td><td>The gain transfers across corpora</td><td class="num">6</td><td>Cross-corpus vs in-corpus gain</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>Rules carried over from paper 1:</b> freeze before fetching; report by attack type; never pool strata or cohorts; report every outcome (<code>Rules.md</code> §7).</p>
+</section>
+
+<section id="timeline">
+  <h2>Timeline</h2>
+  <p>About 16–17 weeks at the upper estimates, starting after paper 1 is submitted. Bars are drawn to scale in weeks.</p>
+  <div class="tl" role="img" aria-label="Sixteen-week timeline. Phase 0 week 1; Phase 1 weeks 2 to 4; Phase 2 weeks 2 to 3; Track 4A weeks 2 to 3; Phase 3 weeks 5 to 6; Phase 4 weeks 7 to 10; Phase 5 weeks 11 to 12; Phase 6 weeks 13 to 14; Phase 7 weeks 15 to 16.">
+    <div class="tl-grid">
+      <div></div>
+      <div class="wk">1</div><div class="wk">2</div><div class="wk">3</div><div class="wk">4</div><div class="wk">5</div><div class="wk">6</div><div class="wk">7</div><div class="wk">8</div><div class="wk">9</div><div class="wk">10</div><div class="wk">11</div><div class="wk">12</div><div class="wk">13</div><div class="wk">14</div><div class="wk">15</div><div class="wk">16</div>
+      <div class="name">0 · Kaggle, freeze</div><div class="bar k-setup" style="grid-column:2 / span 1">1–2w</div>
+      <div class="name">1 · Task-scope</div><div class="bar k-signal" style="grid-column:3 / span 3">3w</div>
+      <div class="name">2 · Continuous</div><div class="bar k-signal" style="grid-column:3 / span 2">2w</div>
+      <div class="name">4A · Harness</div><div class="bar k-adapt" style="grid-column:3 / span 2">2w · Kaggle</div>
+      <div class="name">3 · Offline</div><div class="bar k-adapt" style="grid-column:6 / span 2">2w</div>
+      <div class="name">4 · Online</div><div class="bar k-adapt" style="grid-column:8 / span 4">4w · core</div>
+      <div class="name">5 · Poisoning</div><div class="bar k-attack" style="grid-column:12 / span 2">2w</div>
+      <div class="name">6 · Holdout</div><div class="bar k-prove" style="grid-column:14 / span 2">2w</div>
+      <div class="name">7 · Write-up</div><div class="bar k-setup" style="grid-column:16 / span 2">2w</div>
+    </div>
+    <div class="legend">
+      <span class="k-setup"><i></i>Setup and write-up</span>
+      <span class="k-signal"><i></i>Fix the signal</span>
+      <span class="k-adapt"><i></i>Adapt</span>
+      <span class="k-attack"><i></i>Attack the learner</span>
+      <span class="k-prove"><i></i>Prove on outside data</span>
+    </div>
+  </div>
+  <div class="note"><b>Minimum publishable version</b> if time runs short: Phases 0, 1, 2 and track 4A, a reduced Phase 4 (task-scope strictness and one threshold) and one poisoning experiment. That still covers A1–A4 and needs only the new benign corpus.</div>
+</section>
+
+<section id="risks">
+  <h2>Risks</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Risk</th><th>Likelihood</th><th>Response</th></tr></thead>
+    <tbody>
+      <tr><td>Neither new signal separates attack from benign</td><td>medium</td><td>G1 stops; write Phases 1–2 as a detection paper</td></tr>
+      <tr><td>Task-scope scorer raises FPR</td><td>medium-high</td><td>FPR measured first; per-tool strictness</td></tr>
+      <tr><td>Overlap with task-alignment or masked re-execution defenses</td><td>medium</td><td>Phase 0 literature check; differentiate on causal contrast, online learning and poisoning</td></tr>
+      <tr><td>Weak labels too noisy to learn from</td><td>medium</td><td>Report across noise levels; fall back to gate-only updates</td></tr>
+      <tr><td>Learner overfits the small dev set</td><td>high</td><td>Per-tool-family folds, frozen holdout, simple learner</td></tr>
+      <tr><td>Gain comes from our own data again</td><td>medium</td><td>Outside-benign check inside the gate</td></tr>
+      <tr><td>No second benign corpus found</td><td>medium</td><td>Blocks the FPR claim; resolve in Phase 0 first</td></tr>
+      <tr><td>Kaggle quota or session limit stalls a run</td><td>medium</td><td>Checkpointing, debug locally first, batch runs across weeks</td></tr>
+      <tr><td>Kaggle outputs differ from local outputs</td><td>known</td><td>Never mix platforms; rerun the paper 1 baseline on Kaggle</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="excluded">
+  <h2>Not in this plan</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Idea</th><th>Why not</th></tr></thead>
+    <tbody>
+      <tr><td>GRPO over the current thresholds</td><td>The reward is flat; measured in paper 1</td></tr>
+      <tr><td>More harm words in the keyword list</td><td>Already tried: 90.0% → 43.3% on fresh data</td></tr>
+      <tr><td>More layers</td><td>Four of six existing layers change no outcome</td></tr>
+      <tr><td>Applying learned changes with no gate</td><td>Paper 1 showed every internal check can pass on a bad change</td></tr>
+      <tr><td>Requiring a 14B model</td><td>The 4B log-probability probe already works; a 7–8B check on Kaggle is enough</td></tr>
+      <tr><td>Recording runs on the laptop</td><td>4 GB is too slow for corpus runs, and mixing platforms breaks comparisons</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="summary">
+  <h2>Summary</h2>
+  <p><b>Paper 1:</b> causal detection works when the attack names something an action can copy (93.3% on InjecAgent) and hardly at all when it does not (10.0%). The adaptive layer was inert because its signal was flat.</p>
+  <p><b>Paper 2</b> sets up Kaggle as the single run platform and builds the adaptation harness there first, freezes the data, fixes the signal with a task-scope scorer and a calibrated continuous score, tunes offline as a baseline, adapts online on a shifting stream behind a verify step and a human gate, attacks the learner through its own feedback, and proves it on a frozen holdout and data we did not write.</p>
+  <p class="claim">Causal detection can be extended beyond targets an action can name, and it can adapt online to a changing attack mix without raising false positives, under a gate that resists feedback poisoning.</p>
+  <p style="color:var(--muted);font-size:14.5px">This is the claim if the plan works. Nothing in it has been measured yet.</p>
+</section>
+
+<footer>Source: <code>paper2-plan.md</code> in the AdaptiShield repository, revised 15 October 2026. Companion files: <code>paper/paper-writing-plan.md</code> (paper 1 revisions) and <code>writeup/07-how-my-research-differs.md</code>.</footer>
+</main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+  const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({ startOnLoad: true, theme: dark ? 'dark' : 'neutral', securityLevel: 'strict' });
+</script>
+</body>
+</html>

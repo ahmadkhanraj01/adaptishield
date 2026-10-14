@@ -47,6 +47,7 @@ nav:
     - "Experiments and results": writeup/04-experiments-results.md
     - "Discussion": writeup/05-discussion.md
     - "Conclusion": writeup/06-conclusion.md
+    - "How my research differs": writeup/07-how-my-research-differs.md
     - "Rules: research paper": writeup/rules/general-research-paper-rules.md
     - "Rules: journal paper": writeup/rules/journal-paper-rules.md
   - Progress: progress.md

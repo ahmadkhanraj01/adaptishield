@@ -321,6 +321,7 @@ WRITEUP_PAGES = [  # (source file, nav title) — order is reading order
     ("04-experiments-results.md", "Experiments and results"),
     ("05-discussion.md", "Discussion"),
     ("06-conclusion.md", "Conclusion"),
+    ("07-how-my-research-differs.md", "How my research differs"),
     ("rules/general-research-paper-rules.md", "Rules: research paper"),
     ("rules/journal-paper-rules.md", "Rules: journal paper"),
 ]

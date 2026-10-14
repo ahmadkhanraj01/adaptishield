@@ -55,7 +55,7 @@
 
 The reframing must stay honest, since the journal target requires every number to carry n, a CI and a named external baseline. Proposal to bring to the meeting:
 
-> Keep every result and every number. Change only the **order and the verbs**: lead with what works (causal detection reaches 96.7% when the attack names a target an action can copy), then state the boundary as a **scope condition** ("applies when…") instead of as a failure. Move the adaptive-layer findings out of the abstract's headline and into a short "future work" sentence that motivates paper 2.
+> Keep every result and every number. Change only the **order and the verbs**: lead with what works (causal detection reaches 96.7% on our attacks and 93.3% on InjecAgent attacks that name a target an action can copy), then state the boundary as a **scope condition** ("applies when…") instead of as a failure. Move the adaptive-layer findings out of the abstract's headline and into a short "future work" sentence that motivates paper 2.
 
 Questions to ask:
 - Is it acceptable to keep the negative findings in the body (Sections 7–8) but not in the abstract or the contributions?
@@ -73,8 +73,9 @@ Work in this order. Tick each item only when the supervisor-visible text has cha
 - [ ] 2. Why it matters (merged with 1).
 - [ ] 3. Objective: test whether comparing the agent's action with and without the untrusted text can detect injections.
 - [ ] 4. Method (one clause): masked vs. unmasked comparison, evaluated per attack type on a pre-registered test.
-- [ ] 5. Results: **one** headline pair with "from X to Y" wording, e.g. detection of 96.7% when the attack contains an address or URL, and 10.0% when it does not (check the exact figures against `results/` before writing).
+- [ ] 5. Results: **one** headline pair with "from X to Y" wording, e.g. on InjecAgent, detection of 93.3% when the attack contains an address or URL, and 10.0% when it does not.
 - [ ] 6. Implications: the method is reliable where attacks name a target; extending it beyond that is the next step.
+- [ ] **Factual fix (found 15 Oct, not a supervisor comment):** the abstract says "96.7% where the detector's target-match path can fire against 10.0% where it cannot". 96.7% is our own corpus (phase 7). The InjecAgent target-match stratum is **93.3%** [78.7%, 98.2%] (`paper/05-external-validity.md`). Use 93.3% vs 10.0%, or name both corpora.
 - [ ] Replace: "third framing", "spotlighting", "widening", "harm taxonomy", "corpus" (→ dataset), "negative results".
 - [ ] Split the long drift sentence (item 14), or move it to the body.
 - [ ] Replace the item-16 sentence with: "All results are reproducible, and the code for every experiment is on GitHub."
