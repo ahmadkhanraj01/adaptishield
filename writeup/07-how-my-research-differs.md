@@ -32,8 +32,8 @@ This attack is called **indirect prompt injection**. Every paper below is about 
 Earlier work defends in one of three ways. We use a fourth.
 
 ```mermaid
-flowchart TB
-    Q["How do you stop a hidden instruction?"]
+flowchart LR
+    Q["How do you stop<br/>a hidden instruction?"]
     Q --> W1["1 · Mark the text<br/>Tell the AI: do not follow this part"]
     Q --> W2["2 · Limit the actions<br/>Only allow safe actions"]
     Q --> W3["3 · Check the text<br/>A second model says: attack or safe"]
@@ -87,6 +87,7 @@ flowchart LR
       direction TB
       m1["Run twice and compare<br/>(same idea)"] --> m2["Results split by attack type"] --> m3["Shows where it works<br/>and where it does not"]
     end
+    AS -. "same idea,<br/>deeper testing" .-> ME
     style m3 fill:#dcfce7,stroke:#15803d
 ```
 
@@ -122,7 +123,7 @@ The method works very well when the attack names a **clear target**: an email
 address or a website link that the agent's action can copy.
 
 ```mermaid
-flowchart TB
+flowchart LR
     S["Hidden instruction"] --> Q{"Does it name a clear target?<br/>e.g. an email address or a link"}
     Q -->|"Yes"| Y["✅ Caught 93.3%<br/>on InjecAgent"]
     Q -->|"No"| N["⏳ Caught 10.0%<br/>the gap paper 2 will close"]
